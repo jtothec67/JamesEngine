@@ -7,12 +7,16 @@ include_directories(
 )
 
 add_library(JamesEngine
-	src/JamesEngine/core.cpp src/JamesEngine/core.h
+	src/JamesEngine/JamesEngine.h
+	src/JamesEngine/Core.cpp
+	src/JamesEngine/Core.h
+	src/JamesEngine/Component.h
+
+	src/JamesEngine/Entity.h
 )
 
 add_executable(demo
 	src/demo/main.cpp
-	src/demo/Employee.cpp src/demo/Employee.h
 )
 
 target_link_libraries(demo JamesEngine)

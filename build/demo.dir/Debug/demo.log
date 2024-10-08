@@ -1,0 +1,50 @@
+﻿  main.cpp
+D:\gameengine\JamesEngine\src\JamesEngine\Entity.h(17,15): error C2665: 'std::vector<std::shared_ptr<JamesEngine::Component>,std::allocator<std::shared_ptr<JamesEngine::Component>>>::push_back': no overloaded function could convert all the argument types
+  (compiling source file '../src/demo/main.cpp')
+  C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.38.33130\include\vector(874,23):
+  could be 'void std::vector<std::shared_ptr<JamesEngine::Component>,std::allocator<std::shared_ptr<JamesEngine::Component>>>::push_back(_Ty &&)'
+          with
+          [
+              _Ty=std::shared_ptr<JamesEngine::Component>
+          ]
+  	D:\gameengine\JamesEngine\src\JamesEngine\Entity.h(17,15):
+  	'void std::vector<std::shared_ptr<JamesEngine::Component>,std::allocator<std::shared_ptr<JamesEngine::Component>>>::push_back(_Ty &&)': cannot convert argument 1 from 'std::shared_ptr<Test>' to '_Ty &&'
+          with
+          [
+              _Ty=std::shared_ptr<JamesEngine::Component>
+          ]
+  		D:\gameengine\JamesEngine\src\JamesEngine\Entity.h(17,26):
+  		Reason: cannot convert from 'std::shared_ptr<Test>' to '_Ty'
+          with
+          [
+              _Ty=std::shared_ptr<JamesEngine::Component>
+          ]
+  		D:\gameengine\JamesEngine\src\JamesEngine\Entity.h(17,26):
+  		No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
+  C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.38.33130\include\vector(870,23):
+  or       'void std::vector<std::shared_ptr<JamesEngine::Component>,std::allocator<std::shared_ptr<JamesEngine::Component>>>::push_back(const _Ty &)'
+          with
+          [
+              _Ty=std::shared_ptr<JamesEngine::Component>
+          ]
+  	D:\gameengine\JamesEngine\src\JamesEngine\Entity.h(17,15):
+  	'void std::vector<std::shared_ptr<JamesEngine::Component>,std::allocator<std::shared_ptr<JamesEngine::Component>>>::push_back(const _Ty &)': cannot convert argument 1 from 'std::shared_ptr<Test>' to 'const _Ty &'
+          with
+          [
+              _Ty=std::shared_ptr<JamesEngine::Component>
+          ]
+  		D:\gameengine\JamesEngine\src\JamesEngine\Entity.h(17,26):
+  		Reason: cannot convert from 'std::shared_ptr<Test>' to 'const _Ty'
+          with
+          [
+              _Ty=std::shared_ptr<JamesEngine::Component>
+          ]
+  		D:\gameengine\JamesEngine\src\JamesEngine\Entity.h(17,26):
+  		No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
+  D:\gameengine\JamesEngine\src\JamesEngine\Entity.h(17,15):
+  while trying to match the argument list '(std::shared_ptr<Test>)'
+  D:\gameengine\JamesEngine\src\JamesEngine\Entity.h(17,15):
+  the template instantiation context (the oldest one first) is
+  	D:\gameengine\JamesEngine\src\demo\main.cpp(19,5):
+  	see reference to function template instantiation 'std::shared_ptr<Test> JamesEngine::Entity::AddComponent<Test>(void)' being compiled
+  

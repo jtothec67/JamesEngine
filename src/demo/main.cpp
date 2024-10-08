@@ -1,10 +1,22 @@
-#include "JamesEngine/Core.h"
+#include "JamesEngine/JamesEngine.h"
 
 #include <iostream>
 
+using namespace JamesEngine;
+
+class Test : Component
+{
+	int mTemp;
+};
+
+
+
 int main()
 {
-	std::cout<< "Hello World!" << std::endl;
+	std::shared_ptr<JamesEngine::Core> core = JamesEngine::Core::Initialize();
 
-	dummy();
+	std::shared_ptr<Entity> ent = core->AddEntity();
+	ent->AddComponent<Test>();
+
+	core->Start();
 }

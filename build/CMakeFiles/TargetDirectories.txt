@@ -1,0 +1,4 @@
+D:/gameengine/JamesEngine/build/CMakeFiles/JamesEngine.dir
+D:/gameengine/JamesEngine/build/CMakeFiles/demo.dir
+D:/gameengine/JamesEngine/build/CMakeFiles/ALL_BUILD.dir
+D:/gameengine/JamesEngine/build/CMakeFiles/ZERO_CHECK.dir
