@@ -4,16 +4,15 @@
 
 using namespace JamesEngine;
 
-class Test : Component
+class Test : public Component
 {
+public:
 	int mTemp;
 };
 
-
-
 int main()
 {
-	std::shared_ptr<JamesEngine::Core> core = JamesEngine::Core::Initialize();
+	std::shared_ptr<Core> core = Core::Initialize();
 
 	std::shared_ptr<Entity> ent = core->AddEntity();
 	ent->AddComponent<Test>();

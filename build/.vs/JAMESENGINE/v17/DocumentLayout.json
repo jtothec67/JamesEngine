@@ -1,27 +1,24 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "D:\\gameengine\\JamesEngine\\build\\",
+  "WorkspaceRootPath": "F:\\JamesEngine\\build\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{8562FC09-143A-3A79-895B-6B70C7EB00FB}|demo.vcxproj|D:\\gameengine\\JamesEngine\\src\\demo\\main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+      "AbsoluteMoniker": "D:0:0:{7A284FD9-5A89-3A63-966D-A6DA864B4E5F}|demo.vcxproj|F:\\JamesEngine\\src\\demo\\main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{4E7A6491-B42C-3C4A-948A-FE6C75AC7644}|JamesEngine.vcxproj|D:\\gameengine\\JamesEngine\\src\\JamesEngine\\Component.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+      "AbsoluteMoniker": "D:0:0:{4F3ED1CA-1281-37CC-B141-14D7C7AB59E0}|JamesEngine.vcxproj|F:\\JamesEngine\\src\\JamesEngine\\JamesEngine.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{4E7A6491-B42C-3C4A-948A-FE6C75AC7644}|JamesEngine.vcxproj|D:\\gameengine\\JamesEngine\\src\\JamesEngine\\Entity.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+      "AbsoluteMoniker": "D:0:0:{4F3ED1CA-1281-37CC-B141-14D7C7AB59E0}|JamesEngine.vcxproj|F:\\JamesEngine\\src\\JamesEngine\\Entity.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{4E7A6491-B42C-3C4A-948A-FE6C75AC7644}|JamesEngine.vcxproj|D:\\gameengine\\JamesEngine\\CMakeLists.txt||{8B382828-6202-11D1-8870-0000F87579D2}"
+      "AbsoluteMoniker": "D:0:0:{4F3ED1CA-1281-37CC-B141-14D7C7AB59E0}|JamesEngine.vcxproj|F:\\JamesEngine\\src\\JamesEngine\\Component.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{4E7A6491-B42C-3C4A-948A-FE6C75AC7644}|JamesEngine.vcxproj|D:\\gameengine\\JamesEngine\\src\\JamesEngine\\JamesEngine.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+      "AbsoluteMoniker": "D:0:0:{4F3ED1CA-1281-37CC-B141-14D7C7AB59E0}|JamesEngine.vcxproj|F:\\JamesEngine\\src\\JamesEngine\\Core.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{4E7A6491-B42C-3C4A-948A-FE6C75AC7644}|JamesEngine.vcxproj|D:\\gameengine\\JamesEngine\\src\\JamesEngine\\Core.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{4E7A6491-B42C-3C4A-948A-FE6C75AC7644}|JamesEngine.vcxproj|D:\\gameengine\\JamesEngine\\src\\JamesEngine\\Core.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+      "AbsoluteMoniker": "D:0:0:{4F3ED1CA-1281-37CC-B141-14D7C7AB59E0}|JamesEngine.vcxproj|F:\\JamesEngine\\src\\JamesEngine\\Core.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     }
   ],
   "DocumentGroupContainers": [
@@ -36,90 +33,75 @@
             {
               "$type": "Document",
               "DocumentIndex": 1,
-              "Title": "Component.h",
-              "DocumentMoniker": "D:\\gameengine\\JamesEngine\\src\\JamesEngine\\Component.h",
-              "RelativeDocumentMoniker": "..\\src\\JamesEngine\\Component.h",
-              "ToolTip": "D:\\gameengine\\JamesEngine\\src\\JamesEngine\\Component.h",
-              "RelativeToolTip": "..\\src\\JamesEngine\\Component.h",
-              "ViewState": "AQIAAAAAAAAAAAAAAAAAAAUAAAANAAAA",
+              "Title": "JamesEngine.h",
+              "DocumentMoniker": "F:\\JamesEngine\\src\\JamesEngine\\JamesEngine.h",
+              "RelativeDocumentMoniker": "..\\src\\JamesEngine\\JamesEngine.h",
+              "ToolTip": "F:\\JamesEngine\\src\\JamesEngine\\JamesEngine.h",
+              "RelativeToolTip": "..\\src\\JamesEngine\\JamesEngine.h",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2024-10-08T11:54:32.98Z",
-              "EditorCaption": ""
+              "WhenOpened": "2024-10-08T13:34:46.998Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 0,
               "Title": "main.cpp",
-              "DocumentMoniker": "D:\\gameengine\\JamesEngine\\src\\demo\\main.cpp",
+              "DocumentMoniker": "F:\\JamesEngine\\src\\demo\\main.cpp",
               "RelativeDocumentMoniker": "..\\src\\demo\\main.cpp",
-              "ToolTip": "D:\\gameengine\\JamesEngine\\src\\demo\\main.cpp",
+              "ToolTip": "F:\\JamesEngine\\src\\demo\\main.cpp",
               "RelativeToolTip": "..\\src\\demo\\main.cpp",
-              "ViewState": "AQIAAAAAAAAAAAAAAAAAAAYAAAAWAAAA",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAHAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2024-10-08T10:19:24Z",
+              "WhenOpened": "2024-10-08T13:34:53.991Z",
               "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "Component.h",
+              "DocumentMoniker": "F:\\JamesEngine\\src\\JamesEngine\\Component.h",
+              "RelativeDocumentMoniker": "..\\src\\JamesEngine\\Component.h",
+              "ToolTip": "F:\\JamesEngine\\src\\JamesEngine\\Component.h",
+              "RelativeToolTip": "..\\src\\JamesEngine\\Component.h",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2024-10-08T13:34:48.654Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 2,
               "Title": "Entity.h",
-              "DocumentMoniker": "D:\\gameengine\\JamesEngine\\src\\JamesEngine\\Entity.h",
+              "DocumentMoniker": "F:\\JamesEngine\\src\\JamesEngine\\Entity.h",
               "RelativeDocumentMoniker": "..\\src\\JamesEngine\\Entity.h",
-              "ToolTip": "D:\\gameengine\\JamesEngine\\src\\JamesEngine\\Entity.h",
+              "ToolTip": "F:\\JamesEngine\\src\\JamesEngine\\Entity.h",
               "RelativeToolTip": "..\\src\\JamesEngine\\Entity.h",
-              "ViewState": "AQIAAAAAAAAAAAAAAAAAABAAAAAcAAAA",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2024-10-08T10:50:00.37Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "JamesEngine.h",
-              "DocumentMoniker": "D:\\gameengine\\JamesEngine\\src\\JamesEngine\\JamesEngine.h",
-              "RelativeDocumentMoniker": "..\\src\\JamesEngine\\JamesEngine.h",
-              "ToolTip": "D:\\gameengine\\JamesEngine\\src\\JamesEngine\\JamesEngine.h",
-              "RelativeToolTip": "..\\src\\JamesEngine\\JamesEngine.h",
-              "ViewState": "AQIAAAAAAAAAAAAAAAAAAAUAAAAVAAAA",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2024-10-08T10:34:00.269Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 6,
-              "Title": "Core.h",
-              "DocumentMoniker": "D:\\gameengine\\JamesEngine\\src\\JamesEngine\\Core.h",
-              "RelativeDocumentMoniker": "..\\src\\JamesEngine\\Core.h",
-              "ToolTip": "D:\\gameengine\\JamesEngine\\src\\JamesEngine\\Core.h",
-              "RelativeToolTip": "..\\src\\JamesEngine\\Core.h",
-              "ViewState": "AQIAAAAAAAAAAAAAAAAAABAAAAAbAAAA",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2024-10-08T10:19:06.88Z"
+              "WhenOpened": "2024-10-08T13:34:47.503Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 5,
-              "Title": "Core.cpp",
-              "DocumentMoniker": "D:\\gameengine\\JamesEngine\\src\\JamesEngine\\Core.cpp",
-              "RelativeDocumentMoniker": "..\\src\\JamesEngine\\Core.cpp",
-              "ToolTip": "D:\\gameengine\\JamesEngine\\src\\JamesEngine\\Core.cpp",
-              "RelativeToolTip": "..\\src\\JamesEngine\\Core.cpp",
-              "ViewState": "AQIAAAAAAAAAAAAAAAAAABsAAAAAAAAA",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2024-10-08T10:19:05.842Z"
+              "Title": "Core.h",
+              "DocumentMoniker": "F:\\JamesEngine\\src\\JamesEngine\\Core.h",
+              "RelativeDocumentMoniker": "..\\src\\JamesEngine\\Core.h",
+              "ToolTip": "F:\\JamesEngine\\src\\JamesEngine\\Core.h",
+              "RelativeToolTip": "..\\src\\JamesEngine\\Core.h",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2024-10-08T13:34:48.138Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "CMakeLists.txt",
-              "DocumentMoniker": "D:\\gameengine\\JamesEngine\\CMakeLists.txt",
-              "RelativeDocumentMoniker": "..\\CMakeLists.txt",
-              "ToolTip": "D:\\gameengine\\JamesEngine\\CMakeLists.txt",
-              "RelativeToolTip": "..\\CMakeLists.txt",
-              "ViewState": "AQIAAAAAAAAAAAAAAAAAABAAAAAAAAAA",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003109|",
-              "WhenOpened": "2024-10-08T10:11:54.566Z",
-              "EditorCaption": ""
+              "DocumentIndex": 4,
+              "Title": "Core.cpp",
+              "DocumentMoniker": "F:\\JamesEngine\\src\\JamesEngine\\Core.cpp",
+              "RelativeDocumentMoniker": "..\\src\\JamesEngine\\Core.cpp",
+              "ToolTip": "F:\\JamesEngine\\src\\JamesEngine\\Core.cpp",
+              "RelativeToolTip": "..\\src\\JamesEngine\\Core.cpp",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2024-10-08T13:34:44.073Z"
             }
           ]
         }

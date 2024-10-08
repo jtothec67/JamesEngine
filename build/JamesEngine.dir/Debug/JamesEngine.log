@@ -1,2 +1,3 @@
-﻿  Core.cpp
-  JamesEngine.vcxproj -> D:\gameengine\JamesEngine\build\Debug\JamesEngine.lib
+﻿  Building Custom Rule F:/JamesEngine/CMakeLists.txt
+  Core.cpp
+  JamesEngine.vcxproj -> F:\JamesEngine\build\Debug\JamesEngine.lib

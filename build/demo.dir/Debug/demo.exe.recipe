@@ -2,10 +2,10 @@
 <Project>
   <ProjectOutputs>
     <ProjectOutput>
-      <FullPath>D:\gameengine\JamesEngine\build\x64\Debug\ZERO_CHECK</FullPath>
+      <FullPath>F:\JamesEngine\build\x64\Debug\ZERO_CHECK</FullPath>
     </ProjectOutput>
     <ProjectOutput>
-      <FullPath>D:\gameengine\JamesEngine\build\Debug\demo.exe</FullPath>
+      <FullPath>F:\JamesEngine\build\Debug\demo.exe</FullPath>
     </ProjectOutput>
   </ProjectOutputs>
   <ContentFiles />

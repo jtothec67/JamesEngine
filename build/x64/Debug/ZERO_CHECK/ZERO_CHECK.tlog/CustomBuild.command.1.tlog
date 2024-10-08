@@ -1,6 +1,6 @@
-^D:\GAMEENGINE\JAMESENGINE\BUILD\CMAKEFILES\64FCB018ABD1A3884EF7964F9D0D7076\GENERATE.STAMP.RULE
+^F:\JAMESENGINE\BUILD\CMAKEFILES\26A3E8EB8CF6515BEE32A3A9DA9DE80D\GENERATE.STAMP.RULE
 setlocal
-"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SD:/gameengine/JamesEngine -BD:/gameengine/JamesEngine/build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file D:/gameengine/JamesEngine/build/JAMESENGINE.sln
+"C:\Program Files\CMake\bin\cmake.exe" -SF:/JamesEngine -BF:/JamesEngine/build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file F:/JamesEngine/build/JAMESENGINE.sln
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
