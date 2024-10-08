@@ -1,4 +1,0 @@
-F:/JamesEngine/build/CMakeFiles/JamesEngine.dir
-F:/JamesEngine/build/CMakeFiles/demo.dir
-F:/JamesEngine/build/CMakeFiles/ALL_BUILD.dir
-F:/JamesEngine/build/CMakeFiles/ZERO_CHECK.dir
