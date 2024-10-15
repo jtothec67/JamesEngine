@@ -11,7 +11,7 @@ namespace JamesEngine
 	public:
 		static std::shared_ptr<Core> Initialize();
 
-		void Start();
+		void Run();
 		std::shared_ptr<Entity> AddEntity();
 	private:
 		std::weak_ptr<Core> mSelf;

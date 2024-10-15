@@ -11,8 +11,10 @@ add_library(JamesEngine
 	src/JamesEngine/Core.cpp
 	src/JamesEngine/Core.h
 	src/JamesEngine/Component.h
+	src/JamesEngine/Component.cpp
 
 	src/JamesEngine/Entity.h
+	src/JamesEngine/Entity.cpp
 )
 
 add_executable(demo

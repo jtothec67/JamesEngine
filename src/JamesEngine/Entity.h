@@ -1,4 +1,5 @@
 #include <memory>
+#include <vector>
 
 namespace JamesEngine
 {
@@ -14,6 +15,8 @@ namespace JamesEngine
 		{
 			std::shared_ptr<T> rtn = std::make_shared<T>();
 
+			rtn->mEntity = mSelf;
+			rtn->OnInitialize();
 			mComponents.push_back(rtn);
 
 			return rtn;
@@ -22,8 +25,11 @@ namespace JamesEngine
 		friend class JamesEngine::Core;
 
 		std::weak_ptr<Core> mCore;
+		std::weak_ptr<Entity> mSelf;
 
 		std::vector<std::shared_ptr<Component>> mComponents;
+
+		void OnTick();
 	};
 
 }
