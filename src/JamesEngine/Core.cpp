@@ -1,5 +1,6 @@
 #include "Core.h"
 #include "Entity.h"
+#include "Window.h"
 
 #include <iostream>
 
@@ -8,8 +9,10 @@ namespace JamesEngine
 
 	std::shared_ptr<Core> Core::Initialize()
 	{
+
 		std::shared_ptr<Core> rtn = std::make_shared<Core>();
 		rtn->mSelf = rtn;
+		rtn->mWindow = std::make_shared<Window>(800, 600);
 		return rtn;
 	}
 

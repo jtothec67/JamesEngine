@@ -5,6 +5,7 @@ namespace JamesEngine
 {
 
 	class Entity;
+	class Window;
 
 	class Core
 	{
@@ -16,6 +17,8 @@ namespace JamesEngine
 	private:
 		std::weak_ptr<Core> mSelf;
 		std::vector<std::shared_ptr<Entity>> mEntities;
+
+		std::shared_ptr<Window> mWindow;
 	};
 
 }
