@@ -18,12 +18,29 @@ namespace JamesEngine
 
 	void Core::Run()
 	{
-		for (size_t i = 0; i < 25; ++i)
+		//for (size_t i = 0; i < 25; ++i)
+		while (true)
 		{
 			for (size_t ei = 0; ei < mEntities.size(); ++ei)
 			{
-				mEntities[ei]->OnTick();
+				//mEntities[ei]->OnTick();
 			}
+
+			// WINDOW TEST CODE (WORKS)
+			mWindow->Update();
+
+			SDL_Event event = {};
+			while (SDL_PollEvent(&event))
+			{
+				if (event.type == SDL_QUIT)
+				{
+					return;
+				}
+			}
+
+			mWindow->ClearWindow();
+
+			mWindow->SwapWindows();
 		}
 	}
 

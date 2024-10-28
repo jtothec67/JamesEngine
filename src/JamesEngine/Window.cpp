@@ -5,8 +5,6 @@
 
 namespace JamesEngine
 {
-
-
 	Window::Window(int _width, int _height)
 	{
 		mWidth = _width;
