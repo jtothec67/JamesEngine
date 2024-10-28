@@ -5,10 +5,9 @@
 
 #define GLM_VERSION_MAJOR 1
 #define GLM_VERSION_MINOR 0
-#define GLM_VERSION_PATCH 0
+#define GLM_VERSION_PATCH 2
 #define GLM_VERSION_REVISION 0 // Deprecated
 #define GLM_VERSION 1000 // Deprecated
-#define GLM_VERSION_MESSAGE "GLM: version 1.0.0"
 
 #define GLM_MAKE_API_VERSION(variant, major, minor, patch) \
     ((((uint32_t)(variant)) << 29U) | (((uint32_t)(major)) << 22U) | (((uint32_t)(minor)) << 12U) | ((uint32_t)(patch)))
@@ -339,6 +338,13 @@
 #	define GLM_IF_CONSTEXPR if
 #endif
 
+// [nodiscard]
+#if GLM_LANG & GLM_LANG_CXX17_FLAG
+#	define GLM_NODISCARD [[nodiscard]]
+#else
+#	define GLM_NODISCARD
+#endif
+
 //
 #if GLM_LANG & GLM_LANG_CXX11_FLAG
 #	define GLM_HAS_ASSIGNABLE 1
@@ -486,7 +492,9 @@
 #	define GLM_NEVER_INLINE
 #endif//defined(GLM_FORCE_INLINE)
 
-#define GLM_FUNC_DECL GLM_CUDA_FUNC_DECL
+#define GLM_CTOR_DECL GLM_CUDA_FUNC_DECL GLM_CONSTEXPR
+#define GLM_FUNC_DISCARD_DECL GLM_CUDA_FUNC_DECL
+#define GLM_FUNC_DECL GLM_NODISCARD GLM_CUDA_FUNC_DECL
 #define GLM_FUNC_QUALIFIER GLM_CUDA_FUNC_DEF GLM_INLINE
 
 // Do not use CUDA function qualifiers on CUDA compiler when functions are made default
@@ -494,14 +502,14 @@
 #	define GLM_DEFAULTED_FUNC_DECL
 #	define GLM_DEFAULTED_FUNC_QUALIFIER GLM_INLINE
 #else
-#	define GLM_DEFAULTED_FUNC_DECL GLM_FUNC_DECL
+#	define GLM_DEFAULTED_FUNC_DECL GLM_FUNC_DISCARD_DECL
 #	define GLM_DEFAULTED_FUNC_QUALIFIER GLM_FUNC_QUALIFIER
 #endif//GLM_HAS_DEFAULTED_FUNCTIONS
 #if !defined(GLM_FORCE_CTOR_INIT)
-#	define GLM_DEFAULTED_DEFAULT_CTOR_DECL GLM_DEFAULTED_FUNC_DECL
+#	define GLM_DEFAULTED_DEFAULT_CTOR_DECL GLM_CUDA_FUNC_DECL
 #	define GLM_DEFAULTED_DEFAULT_CTOR_QUALIFIER GLM_DEFAULTED_FUNC_QUALIFIER
 #else
-#	define GLM_DEFAULTED_DEFAULT_CTOR_DECL GLM_FUNC_DECL
+#	define GLM_DEFAULTED_DEFAULT_CTOR_DECL GLM_FUNC_DISCARD_DECL
 #	define GLM_DEFAULTED_DEFAULT_CTOR_QUALIFIER GLM_FUNC_QUALIFIER
 #endif//GLM_FORCE_CTOR_INIT
 
@@ -586,7 +594,11 @@
 #	define GLM_DEPRECATED __declspec(deprecated)
 #	define GLM_ALIGNED_TYPEDEF(type, name, alignment) typedef __declspec(align(alignment)) type name
 #elif GLM_COMPILER & (GLM_COMPILER_GCC | GLM_COMPILER_CLANG | GLM_COMPILER_INTEL)
-#	define GLM_DEPRECATED __attribute__((__deprecated__))
+#	if GLM_LANG & GLM_LANG_CXX14_FLAG
+#		define GLM_DEPRECATED [[deprecated]]
+#	else
+#		define GLM_DEPRECATED __attribute__((__deprecated__))
+#	endif
 #	define GLM_ALIGNED_TYPEDEF(type, name, alignment) typedef type name __attribute__((aligned(alignment)))
 #elif (GLM_COMPILER & GLM_COMPILER_CUDA) || (GLM_COMPILER & GLM_COMPILER_HIP)
 #	define GLM_DEPRECATED
@@ -614,8 +626,10 @@
 
 #ifdef GLM_FORCE_SIZE_T_LENGTH
 #	define GLM_CONFIG_LENGTH_TYPE		GLM_LENGTH_SIZE_T
+#	define GLM_ASSERT_LENGTH(l, max) (assert ((l) < (max)))
 #else
 #	define GLM_CONFIG_LENGTH_TYPE		GLM_LENGTH_INT
+#	define GLM_ASSERT_LENGTH(l, max) (assert ((l) >= 0 && (l) < (max)))
 #endif
 
 namespace glm
@@ -966,7 +980,7 @@ namespace detail
 #		define GLM_STR(x) GLM_STR_HELPER(x)
 
 	// Report GLM version
-#		pragma message (GLM_STR(GLM_VERSION_MESSAGE))
+#		pragma message ("GLM: version " GLM_STR(GLM_VERSION_MAJOR) "." GLM_STR(GLM_VERSION_MINOR) "." GLM_STR(GLM_VERSION_PATCH))
 
 	// Report C++ language
 #	if (GLM_LANG & GLM_LANG_CXX20_FLAG) && (GLM_LANG & GLM_LANG_EXT)

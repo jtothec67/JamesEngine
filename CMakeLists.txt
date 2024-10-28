@@ -5,11 +5,10 @@ project(JAMESENGINE)
 include_directories(
 	src
 	contrib/include
-	contrib/cl-windows-x86_64/include
 )
 
 link_directories(
-	${PROJECT_SOURCE_DIR}/contrib/cl-windows-x86_64/lib
+	${PROJECT_SOURCE_DIR}/contrib/lib
 )
 
 add_library(JamesEngine

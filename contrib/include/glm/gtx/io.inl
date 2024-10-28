@@ -82,7 +82,7 @@ namespace io
 		: value(a)
 	{}
 
-	GLM_FUNC_QUALIFIER windowWidth::windowWidth(unsigned a)
+	GLM_FUNC_QUALIFIER width::width(unsigned a)
 		: value(a)
 	{}
 
