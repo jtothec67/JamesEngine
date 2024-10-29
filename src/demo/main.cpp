@@ -14,7 +14,7 @@ public:
 
 	void OnTick()
 	{
-		std::cout << "Player tick" << std::endl;
+		//std::cout << "Player tick" << std::endl;
 	}
 };
 

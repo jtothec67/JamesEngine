@@ -5,10 +5,12 @@ project(JAMESENGINE)
 include_directories(
 	src
 	contrib/include
+	contrib/cl-windows-x84_64/include
 )
 
 link_directories(
-	${PROJECT_SOURCE_DIR}/contrib/lib
+	contrib/cl-windows-x84_64/lib
+
 )
 
 add_library(JamesEngine
@@ -23,19 +25,23 @@ add_library(JamesEngine
 
 	src/JamesEngine/Window.cpp
 	src/JamesEngine/Window.h
-
-	src/JamesEngine/Font.cpp
-	src/JamesEngine/Font.h
-	src/JamesEngine/Mesh.cpp
-	src/JamesEngine/Mesh.h
-	src/JamesEngine/RenderTexture.cpp
-	src/JamesEngine/RenderTexture.h
-	src/JamesEngine/Shader.cpp
-	src/JamesEngine/Shader.h
-	src/JamesEngine/Model.h
 )
 
-target_link_libraries(JamesEngine SDL2 OpenGL32 glew32)
+target_link_libraries(JamesEngine Renderer)
+
+add_library(Renderer
+	src/Renderer/Font.cpp
+	src/Renderer/Font.h
+	src/Renderer/Mesh.cpp
+	src/Renderer/Mesh.h
+	src/Renderer/RenderTexture.cpp
+	src/Renderer/RenderTexture.h
+	src/Renderer/Shader.cpp
+	src/Renderer/Shader.h
+	src/Renderer/Model.h
+)
+
+target_link_libraries(Renderer SDL2 OpenGL32 glew32)
 
 add_executable(demo
 	src/demo/main.cpp

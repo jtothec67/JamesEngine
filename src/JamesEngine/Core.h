@@ -14,11 +14,11 @@ namespace JamesEngine
 
 		void Run();
 		std::shared_ptr<Entity> AddEntity();
+		std::shared_ptr<Window> GetWindow() const { return mWindow; }
 	private:
-		std::weak_ptr<Core> mSelf;
-		std::vector<std::shared_ptr<Entity>> mEntities;
-
 		std::shared_ptr<Window> mWindow;
+		std::vector<std::shared_ptr<Entity>> mEntities;
+		std::weak_ptr<Core> mSelf;
 	};
 
 }

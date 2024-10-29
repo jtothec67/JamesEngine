@@ -11,14 +11,16 @@ namespace JamesEngine
 	class Window
 	{
 	public:
-		Window(int _width, int _height);
+		Window();
 		~Window();
+
+		void OnInitialize(int _width, int _height);
 
 		void Update();
 
 		void ClearWindow();
 
-		void SwapWindows() { SDL_GL_SwapWindow(mWindow); }
+		void SwapWindows() { SDL_GL_SwapWindow(mRaw); }
 
 		void GetWindowSize(int& _width, int& _height) { _width = mWidth; _height = mHeight; }
 
@@ -29,7 +31,7 @@ namespace JamesEngine
 		bool IsVSyncActive() { return mVSync; }
 
 	private:
-		SDL_Window* mWindow;
+		SDL_Window* mRaw;
 
 		int mWidth;
 		int mHeight;
@@ -37,6 +39,9 @@ namespace JamesEngine
 		glm::vec3 mClearColour = glm::vec3(0.0f, 0.0f, 0.0f);
 
 		bool mVSync = true;
+
+		Window(const Window& _copy);
+		Window& operator*(const Window& _assign);
 	};
 
 }

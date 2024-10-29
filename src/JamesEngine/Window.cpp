@@ -5,17 +5,22 @@
 
 namespace JamesEngine
 {
-	Window::Window(int _width, int _height)
+	Window::Window()
+	{
+
+	}
+
+	void Window::OnInitialize(int _width, int _height)
 	{
 		mWidth = _width;
 		mHeight = _height;
 
-		mWindow = SDL_CreateWindow("My Game",
+		mRaw = SDL_CreateWindow("My Game",
 			SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-			_width, _height,
+			mWidth, mHeight,
 			SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
 
-		if (!SDL_GL_CreateContext(mWindow))
+		if (!SDL_GL_CreateContext(mRaw))
 		{
 			std::cout << "Couldn't create SDL window." << std::endl;
 			throw std::exception("Couldn't create SDL window.");
@@ -41,12 +46,13 @@ namespace JamesEngine
 
 	Window::~Window()
 	{
-		SDL_DestroyWindow(mWindow);
+		SDL_DestroyWindow(mRaw);
+		SDL_Quit();
 	}
 
 	void Window::Update()
 	{
-		SDL_GetWindowSize(mWindow, &mWidth, &mHeight);
+		SDL_GetWindowSize(mRaw, &mWidth, &mHeight);
 		glViewport(0, 0, mWidth, mHeight);
 	}
 

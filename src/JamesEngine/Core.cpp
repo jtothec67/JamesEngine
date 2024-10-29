@@ -11,19 +11,21 @@ namespace JamesEngine
 	{
 
 		std::shared_ptr<Core> rtn = std::make_shared<Core>();
+		rtn->mWindow = std::make_shared<Window>();
 		rtn->mSelf = rtn;
-		rtn->mWindow = std::make_shared<Window>(800, 600);
+
 		return rtn;
 	}
 
 	void Core::Run()
 	{
+		mWindow->OnInitialize(800, 600);
 		//for (size_t i = 0; i < 25; ++i)
 		while (true)
 		{
 			for (size_t ei = 0; ei < mEntities.size(); ++ei)
 			{
-				//mEntities[ei]->OnTick();
+				mEntities[ei]->OnTick();
 			}
 
 			// WINDOW TEST CODE (WORKS)
