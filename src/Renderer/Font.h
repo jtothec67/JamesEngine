@@ -9,8 +9,7 @@
 
 #include FT_FREETYPE_H  
 
-namespace JamesEngine
-{
+
 	struct Character {
 		GLuint TextureID;  // ID handle of the glyph texture
 		glm::ivec2   Size;       // Size of glyph
@@ -47,4 +46,3 @@ namespace JamesEngine
 
 		bool m_dirty = true;
 	};
-}

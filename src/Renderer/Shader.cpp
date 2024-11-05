@@ -5,7 +5,7 @@
 #include <iostream>
 #include <exception>
 
-namespace JamesEngine
+namespace Renderer
 {
 
 	Shader::Shader(const std::string& _vertpath, const std::string& _fragpath)

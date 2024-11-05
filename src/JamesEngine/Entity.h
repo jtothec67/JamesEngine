@@ -30,6 +30,7 @@ namespace JamesEngine
 		std::vector<std::shared_ptr<Component>> mComponents;
 
 		void OnTick();
+		void OnRender();
 	};
 
 }

@@ -6,7 +6,7 @@
 #include <vector>
 #include <string>
 
-namespace JamesEngine
+namespace Renderer
 {
 	struct Vertex
 	{

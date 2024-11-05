@@ -2,7 +2,7 @@
 
 #include <GL/glew.h>
 
-namespace JamesEngine
+namespace Renderer
 {
 	class RenderTexture
 	{

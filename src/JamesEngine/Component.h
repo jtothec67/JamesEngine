@@ -1,3 +1,5 @@
+#pragma once
+
 #include <memory>
 
 namespace JamesEngine
@@ -8,8 +10,9 @@ namespace JamesEngine
 	class Component
 	{
 	public:
-		virtual void OnInitialize();
-		virtual void OnTick();
+		virtual void OnInitialize() { }
+		virtual void OnTick() { }
+		virtual void OnRender() { }
 
 	private:
 		friend class JamesEngine::Entity;
@@ -17,5 +20,6 @@ namespace JamesEngine
 		std::weak_ptr<Entity> mEntity;
 
 		void Tick();
+		void Render();
 	};
 }

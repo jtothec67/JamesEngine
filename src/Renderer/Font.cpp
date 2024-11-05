@@ -3,8 +3,7 @@
 #include <iostream>
 #include <exception>
 
-namespace JamesEngine
-{
+
     Font::Font(const std::string& _fontPath)
     {
         m_fontPath = _fontPath;
@@ -118,4 +117,3 @@ namespace JamesEngine
 
         m_dirty = true;
     }
-}

@@ -25,6 +25,9 @@ add_library(JamesEngine
 
 	src/JamesEngine/Window.cpp
 	src/JamesEngine/Window.h
+
+	src/JamesEngine/TriangleRenderer.cpp
+	src/JamesEngine/TriangleRenderer.h
 )
 
 target_link_libraries(JamesEngine Renderer)
@@ -38,6 +41,8 @@ add_library(Renderer
 	src/Renderer/RenderTexture.h
 	src/Renderer/Shader.cpp
 	src/Renderer/Shader.h
+	src/Renderer/Texture.cpp
+	src/Renderer/Texture.h
 	src/Renderer/Model.h
 )
 

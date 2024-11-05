@@ -33,6 +33,8 @@ namespace JamesEngine
 	private:
 		SDL_Window* mRaw;
 
+		SDL_GLContext mContext;
+
 		int mWidth;
 		int mHeight;
 

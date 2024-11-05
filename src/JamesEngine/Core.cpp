@@ -20,7 +20,7 @@ namespace JamesEngine
 	void Core::Run()
 	{
 		mWindow->OnInitialize(800, 600);
-		//for (size_t i = 0; i < 25; ++i)
+		
 		while (true)
 		{
 			for (size_t ei = 0; ei < mEntities.size(); ++ei)
@@ -28,7 +28,6 @@ namespace JamesEngine
 				mEntities[ei]->OnTick();
 			}
 
-			// WINDOW TEST CODE (WORKS)
 			mWindow->Update();
 
 			SDL_Event event = {};

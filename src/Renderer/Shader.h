@@ -10,7 +10,7 @@
 
 #include <string>
 
-namespace JamesEngine
+namespace Renderer
 {
 	class Shader
 	{

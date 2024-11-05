@@ -2,11 +2,14 @@
 
 namespace JamesEngine
 {
-	void Component::OnInitialize() { }
-	void Component::OnTick() { }
 
 	void Component::Tick()
 	{
 		OnTick();
+	}
+
+	void Component::Render()
+	{
+		OnRender();
 	}
 }

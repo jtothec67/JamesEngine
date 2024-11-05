@@ -3,7 +3,7 @@
 #include <iostream>
 #include <exception>
 
-namespace JamesEngine
+namespace Renderer
 {
 	Mesh::Mesh()
 	{

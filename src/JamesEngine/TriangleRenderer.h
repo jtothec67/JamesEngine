@@ -1,0 +1,23 @@
+#pragma once
+
+#include "Component.h"
+
+#include "Renderer/Mesh.h"
+#include "Renderer/Shader.h"
+#include "Renderer/Texture.h"
+
+namespace JamesEngine
+{
+
+	class TriangleRenderer : public Component
+	{
+	public:
+		TriangleRenderer();
+		void OnRender();
+	private:
+		std::shared_ptr<Renderer::Mesh> mMesh;
+		std::shared_ptr<Renderer::Shader> mShader = std::make_shared<Renderer::Shader>("../shaders/ObjShader.vert", "../shaders/ObjShader.vert");
+		std::shared_ptr<Renderer::Texture> mTexture = std::make_shared<Renderer::Texture>("../images/cat.png");
+	};
+
+}

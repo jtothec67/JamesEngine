@@ -3,7 +3,7 @@
 #include <iostream>
 #include <exception>
 
-namespace JamesEngine
+namespace Renderer
 {
 	RenderTexture::RenderTexture(int _width, int _height)
 		: m_fboId(0)
