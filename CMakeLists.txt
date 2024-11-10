@@ -10,7 +10,6 @@ include_directories(
 
 link_directories(
 	contrib/cl-windows-x84_64/lib
-
 )
 
 add_library(JamesEngine
@@ -46,7 +45,7 @@ add_library(Renderer
 	src/Renderer/Model.h
 )
 
-target_link_libraries(Renderer SDL2 OpenGL32 glew32)
+target_link_libraries(Renderer SDL2 OpenGL32 glew32 freetype)
 
 add_executable(demo
 	src/demo/main.cpp

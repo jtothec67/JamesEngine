@@ -3,6 +3,8 @@
 #include <iostream>
 #include <exception>
 
+namespace Renderer
+{
 
     Font::Font(const std::string& _fontPath)
     {
@@ -117,3 +119,5 @@
 
         m_dirty = true;
     }
+
+}

@@ -9,6 +9,8 @@
 
 #include FT_FREETYPE_H  
 
+namespace Renderer
+{
 
 	struct Character {
 		GLuint TextureID;  // ID handle of the glyph texture
@@ -46,3 +48,5 @@
 
 		bool m_dirty = true;
 	};
+
+}
