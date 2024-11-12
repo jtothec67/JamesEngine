@@ -10,6 +10,8 @@ namespace JamesEngine
 	class Entity
 	{
 	public:
+		std::shared_ptr<Core> GetCore() { return std::make_shared<Core>(mCore); }
+
 		template <typename T>
 		std::shared_ptr<T> AddComponent()
 		{
@@ -21,6 +23,7 @@ namespace JamesEngine
 
 			return rtn;
 		}
+
 	private:
 		friend class JamesEngine::Core;
 

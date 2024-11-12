@@ -41,6 +41,11 @@ namespace JamesEngine
 
 			mWindow->ClearWindow();
 
+			for (size_t ei = 0; ei < mEntities.size(); ++ei)
+			{
+				mEntities[ei]->OnRender();
+			}
+
 			mWindow->SwapWindows();
 		}
 	}

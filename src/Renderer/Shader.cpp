@@ -17,7 +17,7 @@ namespace Renderer
 
 		if (!vfile.is_open())
 		{
-			std::cout << "Couln't open shader: " << _vertpath << std::endl;
+			std::cout << "Couln't open vertex shader: " << _vertpath << std::endl;
 			throw std::exception();
 		}
 
@@ -35,7 +35,7 @@ namespace Renderer
 
 		if (!lfile.is_open())
 		{
-			std::cout << "Couln't open shader: " << _fragpath << std::endl;
+			std::cout << "Couln't open fragment shader: " << _fragpath << std::endl;
 			throw std::exception();
 		}
 

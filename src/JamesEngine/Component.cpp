@@ -2,7 +2,6 @@
 
 namespace JamesEngine
 {
-
 	void Component::Tick()
 	{
 		OnTick();
