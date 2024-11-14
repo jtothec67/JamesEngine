@@ -7,8 +7,8 @@ namespace JamesEngine
 	{
 		Renderer::Face face;
 		face.a.m_position = glm::vec3(0.0f, 1.0f, 0.0f);
-		face.b.m_position = glm::vec3(-1.0f, 0.0f, 0.0f);
-		face.c.m_position = glm::vec3(1.0f, 0.0f, 0.0f);
+		face.b.m_position = glm::vec3(-1.0f, -1.0f, 0.0f);
+		face.c.m_position = glm::vec3(1.0f, -1.0f, 0.0f);
 		face.a.m_texcoords = glm::vec2(0.5f, -1.f);
 		face.b.m_texcoords = glm::vec2(0.f, 0.f);
 		face.c.m_texcoords = glm::vec2(1.f, 0.f);
@@ -30,7 +30,7 @@ namespace JamesEngine
 		mShader->uniform("u_View", view);
 
 		glm::mat4 modelMatrix = glm::mat4(1.f);
-		modelMatrix = glm::translate(modelMatrix, GetEntity());
+		modelMatrix = glm::translate(modelMatrix, glm::vec3(0, 0, -3));
 		modelMatrix = glm::rotate(modelMatrix, glm::radians(0.f), glm::vec3(1, 0, 0));
 		modelMatrix = glm::rotate(modelMatrix, glm::radians(0.f), glm::vec3(0, 1, 0));
 		modelMatrix = glm::rotate(modelMatrix, glm::radians(0.f), glm::vec3(0, 0, 1));

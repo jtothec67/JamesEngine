@@ -17,7 +17,7 @@ namespace Renderer
 
 		if (!vfile.is_open())
 		{
-			std::cout << "Couln't open vertex shader: " << _vertpath << std::endl;
+			std::cout << "Couldn't open vertex shader: " << _vertpath << std::endl;
 			throw std::exception();
 		}
 
@@ -35,7 +35,7 @@ namespace Renderer
 
 		if (!lfile.is_open())
 		{
-			std::cout << "Couln't open fragment shader: " << _fragpath << std::endl;
+			std::cout << "Couldn't open fragment shader: " << _fragpath << std::endl;
 			throw std::exception();
 		}
 
@@ -62,7 +62,7 @@ namespace Renderer
 
 			if (!success)
 			{
-				std::cout << "Shader failed to compile: " << m_vertpath << std::endl;
+				std::cout << "Vertex shader failed to compile: " << m_vertpath << std::endl;
 				throw std::exception();
 			}
 
@@ -75,7 +75,7 @@ namespace Renderer
 
 			if (!success)
 			{
-				std::cout << "Shader failed to compile: " << m_fragpath << std::endl;
+				std::cout << "Fragment shader failed to compile: " << m_fragpath << std::endl;
 				throw std::exception();
 			}
 
@@ -90,7 +90,7 @@ namespace Renderer
 
 			if (!success)
 			{
-				std::cout << "Shader id failed to be created: " << m_vertpath << std::endl << m_fragpath << std::endl;
+				std::cout << "Shader id failed to be created: " << std::endl << m_vertpath << std::endl << m_fragpath << std::endl;
 				throw std::exception();
 			}
 

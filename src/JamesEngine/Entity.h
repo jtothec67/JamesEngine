@@ -1,3 +1,5 @@
+#pragma once
+
 #include <memory>
 #include <vector>
 
@@ -10,7 +12,7 @@ namespace JamesEngine
 	class Entity
 	{
 	public:
-		std::shared_ptr<Core> GetCore() { return std::make_shared<Core>(mCore); }
+		//std::shared_ptr<Core> GetCore() { return std::make_shared<Core>(mCore); }
 
 		template <typename T>
 		std::shared_ptr<T> AddComponent()

@@ -10,7 +10,7 @@ namespace JamesEngine
 	class Component
 	{
 	public:
-		std::shared_ptr<Entity> GetEntity() { return std::make_shared<Entity>(mEntity); }
+		//std::shared_ptr<Entity> GetEntity() { return std::make_shared<Entity>(mEntity); }
 
 		virtual void OnInitialize() { }
 		virtual void OnTick() { }
