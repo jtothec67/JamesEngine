@@ -1,6 +1,7 @@
 #include "Core.h"
 #include "Entity.h"
 #include "Window.h"
+#include "Transform.h"
 
 #include <iostream>
 
@@ -9,7 +10,6 @@ namespace JamesEngine
 
 	std::shared_ptr<Core> Core::Initialize()
 	{
-
 		std::shared_ptr<Core> rtn = std::make_shared<Core>();
 		rtn->mWindow = std::make_shared<Window>();
 		rtn->mSelf = rtn;
@@ -53,6 +53,7 @@ namespace JamesEngine
 	std::shared_ptr<Entity> Core::AddEntity()
 	{
 		std::shared_ptr<Entity> rtn = std::make_shared<Entity>();
+		rtn->AddComponent<Transform>();
 		rtn->mSelf = rtn;
 		rtn->mCore = mSelf;
 

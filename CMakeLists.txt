@@ -27,6 +27,8 @@ add_library(JamesEngine
 
 	src/JamesEngine/TriangleRenderer.cpp
 	src/JamesEngine/TriangleRenderer.h
+
+	src/JamesEngine/Transform.h
 )
 
 target_link_libraries(JamesEngine Renderer)

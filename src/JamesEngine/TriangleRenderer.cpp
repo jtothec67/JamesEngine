@@ -1,4 +1,6 @@
 #include "TriangleRenderer.h"
+#include "Entity.h"
+#include "Transform.h"
 
 namespace JamesEngine
 {
@@ -29,12 +31,14 @@ namespace JamesEngine
 		view = glm::inverse(view);
 		mShader->uniform("u_View", view);
 
+		Transform* transform = GetEntity()->GetComponent<Transform>().get();
+
 		glm::mat4 modelMatrix = glm::mat4(1.f);
-		modelMatrix = glm::translate(modelMatrix, glm::vec3(0, 0, -3));
-		modelMatrix = glm::rotate(modelMatrix, glm::radians(0.f), glm::vec3(1, 0, 0));
-		modelMatrix = glm::rotate(modelMatrix, glm::radians(0.f), glm::vec3(0, 1, 0));
-		modelMatrix = glm::rotate(modelMatrix, glm::radians(0.f), glm::vec3(0, 0, 1));
-		modelMatrix = glm::scale(modelMatrix, glm::vec3(1.f, 1.f, 1.f));
+		modelMatrix = glm::translate(modelMatrix, transform->position);
+		modelMatrix = glm::rotate(modelMatrix, glm::radians(transform->rotation.x), glm::vec3(1, 0, 0));
+		modelMatrix = glm::rotate(modelMatrix, glm::radians(transform->rotation.y), glm::vec3(0, 1, 0));
+		modelMatrix = glm::rotate(modelMatrix, glm::radians(transform->rotation.z), glm::vec3(0, 0, 1));
+		modelMatrix = glm::scale(modelMatrix, transform->scale);
 		mShader->uniform("u_Model", modelMatrix);
 
 		mShader->uniform("u_IsSpecular", false);

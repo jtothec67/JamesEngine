@@ -12,7 +12,7 @@ namespace JamesEngine
 	class Entity
 	{
 	public:
-		//std::shared_ptr<Core> GetCore() { return std::make_shared<Core>(mCore); }
+		std::shared_ptr<Core> GetCore();
 
 		template <typename T>
 		std::shared_ptr<T> AddComponent()
@@ -24,6 +24,21 @@ namespace JamesEngine
 			mComponents.push_back(rtn);
 
 			return rtn;
+		}
+
+		template <typename T>
+		std::shared_ptr<T> GetComponent()
+		{
+			for (size_t i = 0; i < mComponents.size(); ++i)
+			{
+				std::shared_ptr<T> rtn = std::dynamic_pointer_cast<T>(mComponents[i]);
+				if (rtn)
+				{
+					return rtn;
+				}
+			}
+
+			return nullptr;
 		}
 
 	private:
