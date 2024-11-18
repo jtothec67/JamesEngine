@@ -7,8 +7,8 @@ namespace JamesEngine
 {
 
 	ModelRenderer::ModelRenderer(std::string _modelPath, std::string _texturePath)
-		: mModel(std::make_shared<Renderer::Model>(_modelPath))
-		, mTexture(std::make_shared<Renderer::Texture>(_texturePath))
+		: mModel(std::make_shared<Renderer::Model>("../assets/models/car/formula_car.obj"))
+		, mTexture(std::make_shared<Renderer::Texture>("../assets/models/car/car_02_m.png"))
 	{
 
 	}

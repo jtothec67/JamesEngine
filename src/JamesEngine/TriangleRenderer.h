@@ -18,7 +18,7 @@ namespace JamesEngine
 	private:
 		std::shared_ptr<Renderer::Mesh> mMesh = std::make_shared<Renderer::Mesh>();
 		std::shared_ptr<Renderer::Shader> mShader = std::make_shared<Renderer::Shader>("../shaders/ObjShader.vert", "../shaders/ObjShader.frag");
-		std::shared_ptr<Renderer::Texture> mTexture = std::make_shared<Renderer::Texture>("../images/cat.png");
+		std::shared_ptr<Renderer::Texture> mTexture = std::make_shared<Renderer::Texture>("../assets/images/cat.png");
 	};
 
 }

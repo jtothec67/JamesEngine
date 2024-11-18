@@ -28,7 +28,7 @@ int main()
 	ent->GetComponent<Transform>()->position.z = -3;
 
 	ent->AddComponent<Player>();
-	//ent->AddComponent<ModelRenderer("", "")>(); // How
+	ent->AddComponent<ModelRenderer>("../assets/models/car/formula_car.obj", "../assets/models/car/car_02_m.png");
 
 	core->Run();
 }
