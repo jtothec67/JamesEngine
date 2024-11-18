@@ -1,4 +1,4 @@
-#include "TriangleRenderer.h"
+#include "ModelRenderer.h"
 #include "Entity.h"
 #include "Transform.h"
 #include "Core.h"
@@ -6,20 +6,14 @@
 namespace JamesEngine
 {
 
-	TriangleRenderer::TriangleRenderer()
+	ModelRenderer::ModelRenderer(std::string _modelPath, std::string _texturePath)
+		: mModel(std::make_shared<Renderer::Model>(_modelPath))
+		, mTexture(std::make_shared<Renderer::Texture>(_texturePath))
 	{
-		Renderer::Face face;
-		face.a.m_position = glm::vec3(0.0f, 1.0f, 0.0f);
-		face.b.m_position = glm::vec3(-1.0f, -1.0f, 0.0f);
-		face.c.m_position = glm::vec3(1.0f, -1.0f, 0.0f);
-		face.a.m_texcoords = glm::vec2(0.5f, -1.f);
-		face.b.m_texcoords = glm::vec2(0.f, 0.f);
-		face.c.m_texcoords = glm::vec2(1.f, 0.f);
 
-		mMesh->add(face);
 	}
 
-	void TriangleRenderer::OnRender()
+	void ModelRenderer::OnRender()
 	{
 		int winWidth, winHeight;
 		GetEntity()->GetCore().get()->GetWindow()->GetWindowSize(winWidth, winHeight);
@@ -27,7 +21,7 @@ namespace JamesEngine
 		mShader->uniform("u_Projection", projection);
 
 		glm::mat4 view(1.0f);
-		view = glm::translate(view,glm::vec3(0.f, 0.f, 0.f));
+		view = glm::translate(view, glm::vec3(0.f, 0.f, 0.f));
 		view = glm::rotate(view, glm::radians(0.f), glm::vec3(0, 1, 0));
 		view = glm::rotate(view, glm::radians(0.f), glm::vec3(1, 0, 0));
 		view = glm::rotate(view, glm::radians(0.f), glm::vec3(0, 0, 1));
@@ -52,7 +46,7 @@ namespace JamesEngine
 
 		mShader->uniform("u_LightStrength", 1.f);
 
-		mShader->draw(mMesh.get(), mTexture.get());
+		mShader->draw(mModel.get(), mTexture.get());
 	}
 
 }

@@ -1,4 +1,5 @@
 #pragma once
+#include "Window.h"
 
 #include <memory>
 #include <vector>
@@ -7,7 +8,7 @@ namespace JamesEngine
 {
 
 	class Entity;
-	class Window;
+	//class Window;
 
 	class Core
 	{

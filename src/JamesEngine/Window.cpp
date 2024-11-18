@@ -5,6 +5,7 @@
 
 namespace JamesEngine
 {
+
 	Window::Window()
 	{
 
@@ -70,4 +71,5 @@ namespace JamesEngine
 		mClearColour = _colour;
 		glClearColor(mClearColour.r, mClearColour.g, mClearColour.b, 1.f);
 	}
+
 }

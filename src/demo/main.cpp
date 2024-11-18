@@ -28,7 +28,7 @@ int main()
 	ent->GetComponent<Transform>()->position.z = -3;
 
 	ent->AddComponent<Player>();
-	ent->AddComponent<TriangleRenderer>();
+	//ent->AddComponent<ModelRenderer("", "")>(); // How
 
 	core->Run();
 }
