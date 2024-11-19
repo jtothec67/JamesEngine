@@ -11,10 +11,8 @@ namespace JamesEngine
 	class Window
 	{
 	public:
-		Window();
+		Window(int _width, int _height);
 		~Window();
-
-		void OnInitialize(int _width, int _height);
 
 		void Update();
 

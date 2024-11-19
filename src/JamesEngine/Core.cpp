@@ -11,7 +11,7 @@ namespace JamesEngine
 	std::shared_ptr<Core> Core::Initialize()
 	{
 		std::shared_ptr<Core> rtn = std::make_shared<Core>();
-		rtn->mWindow = std::make_shared<Window>();
+		rtn->mWindow = std::make_shared<Window>(800, 600);
 		rtn->mSelf = rtn;
 
 		return rtn;
@@ -19,8 +19,6 @@ namespace JamesEngine
 
 	void Core::Run()
 	{
-		mWindow->OnInitialize(800, 600);
-		
 		while (true)
 		{
 			for (size_t ei = 0; ei < mEntities.size(); ++ei)

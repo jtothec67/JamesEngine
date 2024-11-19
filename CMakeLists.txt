@@ -34,6 +34,16 @@ add_library(JamesEngine
 	src/JamesEngine/ModelRenderer.cpp
 
 	src/JamesEngine/Transform.h
+	src/JamesEngine/Transform.cpp
+
+	src/JamesEngine/Resource.h
+	src/JamesEngine/Resource.cpp
+
+	src/JamesEngine/Resources.h
+	src/JamesEngine/Resources.cpp
+
+	src/JamesEngine/Texture.h
+	src/JamesEngine/Texture.cpp
 )
 
 target_link_libraries(JamesEngine Renderer)

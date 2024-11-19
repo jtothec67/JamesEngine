@@ -150,7 +150,7 @@ namespace Renderer
         }
 
         glGenBuffers(1, &m_vboid);
-		std::cout << "vboid: " << m_vboid << std::endl;
+
         if (!m_vboid)
         {
             throw std::runtime_error("Failed to generate vertex buffer");

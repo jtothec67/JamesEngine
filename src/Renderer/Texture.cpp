@@ -26,6 +26,8 @@ namespace Renderer
 		}
 
 		free(data);
+
+		skybox = false;
 	}
 
 	// Overloaded constructor for a cubemap, used for a skybox (should be 6 faces/images)

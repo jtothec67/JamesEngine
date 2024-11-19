@@ -6,12 +6,7 @@
 namespace JamesEngine
 {
 
-	Window::Window()
-	{
-
-	}
-
-	void Window::OnInitialize(int _width, int _height)
+	Window::Window(int _width, int _height)
 	{
 		mWidth = _width;
 		mHeight = _height;

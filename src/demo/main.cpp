@@ -25,7 +25,7 @@ int main()
 
 	std::shared_ptr<Entity> ent = core->AddEntity();
 
-	ent->GetComponent<Transform>()->position.z = -3;
+	ent->GetComponent<Transform>()->position.z = -10;
 
 	ent->AddComponent<Player>();
 	ent->AddComponent<ModelRenderer>("../assets/models/car/formula_car.obj", "../assets/models/car/car_02_m.png");
