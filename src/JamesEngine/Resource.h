@@ -10,6 +10,7 @@ namespace JamesEngine
 	public:
 		virtual void OnLoad() = 0;
 
+		void SetPath(std::string _path) { mPath = _path; }
 		std::string GetPath() const { return mPath; }
 
 	private:

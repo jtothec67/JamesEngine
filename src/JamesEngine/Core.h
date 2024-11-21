@@ -1,5 +1,6 @@
 #pragma once
 #include "Window.h"
+//#include "Resources.h"
 
 #include <memory>
 #include <vector>
@@ -8,7 +9,7 @@ namespace JamesEngine
 {
 
 	class Entity;
-	//class Window;
+	class Resources;
 
 	class Core
 	{
@@ -17,9 +18,13 @@ namespace JamesEngine
 
 		void Run();
 		std::shared_ptr<Entity> AddEntity();
+
 		std::shared_ptr<Window> GetWindow() const { return mWindow; }
+		std::shared_ptr<Resources> GetResources() const { return mResources; }
+
 	private:
 		std::shared_ptr<Window> mWindow;
+		std::shared_ptr<Resources> mResources;
 		std::vector<std::shared_ptr<Entity>> mEntities;
 		std::weak_ptr<Core> mSelf;
 	};

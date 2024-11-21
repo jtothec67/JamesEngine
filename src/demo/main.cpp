@@ -28,7 +28,11 @@ int main()
 	ent->GetComponent<Transform>()->position.z = -10;
 
 	ent->AddComponent<Player>();
-	ent->AddComponent<ModelRenderer>("../assets/models/car/formula_car.obj", "../assets/models/car/car_02_m.png");
+	std::shared_ptr<ModelRenderer> mr = ent->AddComponent<ModelRenderer>();
+
+	mr->SetModel(core->GetResources()->Load<Model>("models/car/formula_car"));
+	mr->SetTexture(core->GetResources()->Load<Texture>("models/car/car_02_m"));
+	//std::shared_ptr<Resources> re = core->GetResources();// ->Load<Model>("models/car/formula_car");
 
 	core->Run();
 }

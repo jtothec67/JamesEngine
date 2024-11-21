@@ -1,4 +1,7 @@
 #include "ModelRenderer.h"
+
+#include "Model.h"
+#include "Texture.h"
 #include "Entity.h"
 #include "Transform.h"
 #include "Core.h"
@@ -6,15 +9,19 @@
 namespace JamesEngine
 {
 
-	ModelRenderer::ModelRenderer(std::string _modelPath, std::string _texturePath)
-		: mModel(std::make_shared<Renderer::Model>("../assets/models/car/formula_car.obj"))
-		, mTexture(std::make_shared<Renderer::Texture>("../assets/models/car/car_02_m.png"))
+	ModelRenderer::ModelRenderer()
 	{
 
 	}
 
 	void ModelRenderer::OnRender()
 	{
+		if (mModel = nullptr)
+			return;
+
+		if (mTexture = nullptr)
+			return;
+
 		int winWidth, winHeight;
 		GetEntity()->GetCore().get()->GetWindow()->GetWindowSize(winWidth, winHeight);
 		glm::mat4 projection = glm::perspective(glm::radians(45.f), (float)winWidth / (float)winHeight, 0.1f, 100.f);
@@ -46,7 +53,7 @@ namespace JamesEngine
 
 		mShader->uniform("u_LightStrength", 1.f);
 
-		mShader->draw(mModel.get(), mTexture.get());
+		mShader->draw(mModel->mModel.get(), mTexture->mTexture.get());
 	}
 
 }

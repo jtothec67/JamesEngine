@@ -44,6 +44,8 @@ add_library(JamesEngine
 
 	src/JamesEngine/Texture.h
 	src/JamesEngine/Texture.cpp
+
+	src/JamesEngine/Model.h
 )
 
 target_link_libraries(JamesEngine Renderer)

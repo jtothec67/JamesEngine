@@ -8,12 +8,16 @@
 namespace JamesEngine
 {
 
-	class Texture : Resource
+	class ModelRenderer;
+
+	class Texture : public Resource
 	{
 	public:
-		void OnLoad();
+		void OnLoad() { mTexture = std::make_shared<Renderer::Texture>(GetPath() + ".png"); }
 
 	private:
+		friend class JamesEngine::ModelRenderer;
+
 		std::shared_ptr<Renderer::Texture> mTexture;
 	};
 

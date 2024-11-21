@@ -1,7 +1,7 @@
 #include "Core.h"
 #include "Entity.h"
-#include "Window.h"
 #include "Transform.h"
+#include "Resources.h"
 
 #include <iostream>
 
@@ -12,6 +12,7 @@ namespace JamesEngine
 	{
 		std::shared_ptr<Core> rtn = std::make_shared<Core>();
 		rtn->mWindow = std::make_shared<Window>(800, 600);
+		rtn->mResources = std::make_shared<Resources>();
 		rtn->mSelf = rtn;
 
 		return rtn;
