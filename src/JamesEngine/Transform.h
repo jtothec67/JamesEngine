@@ -9,16 +9,17 @@ namespace JamesEngine
 	class Transform : public Component
 	{
 	public:
-		glm::vec3 position{ 0.f };
-		glm::vec3 rotation{ 0.f };
-		glm::vec3 scale{ 1.f };
+		void SetPosition(glm::vec3 _position) { mPosition = _position; }
+		glm::vec3 GetPosition() { return mPosition; }
+
+		glm::mat4 GetModel();
 
 		glm::vec3 GetForward()
 		{
 			glm::vec3 forward;
-			forward.x = sin(glm::radians(rotation.y)) * cos(glm::radians(rotation.x));
-			forward.y = sin(glm::radians(rotation.x));
-			forward.z = cos(glm::radians(rotation.y)) * cos(glm::radians(rotation.x));
+			forward.x = sin(glm::radians(mRotation.y)) * cos(glm::radians(mRotation.x));
+			forward.y = sin(glm::radians(mRotation.x));
+			forward.z = cos(glm::radians(mRotation.y)) * cos(glm::radians(mRotation.x));
 
 			return glm::normalize(forward);
 		}
@@ -26,9 +27,9 @@ namespace JamesEngine
 		glm::vec3 GetRight()
 		{
 			glm::vec3 right;
-			right.x = sin(glm::radians(rotation.y - 90)) * cos(glm::radians(rotation.x));
-			right.y = sin(glm::radians(rotation.x));
-			right.z = cos(glm::radians(rotation.y - 90)) * cos(glm::radians(rotation.x));
+			right.x = sin(glm::radians(mRotation.y - 90)) * cos(glm::radians(mRotation.x));
+			right.y = sin(glm::radians(mRotation.x));
+			right.z = cos(glm::radians(mRotation.y - 90)) * cos(glm::radians(mRotation.x));
 
 			return glm::normalize(right);
 		}
@@ -36,11 +37,16 @@ namespace JamesEngine
 		glm::vec3 GetUp()
 		{
 			glm::vec3 up;
-			up.x = sin(glm::radians(rotation.y)) * cos(glm::radians(rotation.x + 90));
-			up.y = sin(glm::radians(rotation.x + 90));
-			up.z = cos(glm::radians(rotation.y)) * cos(glm::radians(rotation.x + 90));
+			up.x = sin(glm::radians(mRotation.y)) * cos(glm::radians(mRotation.x + 90));
+			up.y = sin(glm::radians(mRotation.x + 90));
+			up.z = cos(glm::radians(mRotation.y)) * cos(glm::radians(mRotation.x + 90));
 
 			return glm::normalize(up);
 		}
+
+	private:
+		glm::vec3 mPosition{ 0.f };
+		glm::vec3 mRotation{ 0.f };
+		glm::vec3 mScale{ 1.f };
 	};
 }

@@ -9,7 +9,7 @@ class Player : public Component
 public:
 	void OnInitialize()
 	{
-		std::cout << "Player initialize" << std::endl;
+		//std::cout << "Player initialize" << std::endl;
 	}
 
 	void OnTick()
@@ -25,14 +25,13 @@ int main()
 
 	std::shared_ptr<Entity> ent = core->AddEntity();
 
-	ent->GetComponent<Transform>()->position.z = -10;
+	ent->GetComponent<Transform>()->SetPosition(glm::vec3(0.0f, 0.0f, -10.f));
 
 	ent->AddComponent<Player>();
 	std::shared_ptr<ModelRenderer> mr = ent->AddComponent<ModelRenderer>();
 
 	mr->SetModel(core->GetResources()->Load<Model>("models/car/formula_car"));
 	mr->SetTexture(core->GetResources()->Load<Texture>("models/car/car_02_m"));
-	//std::shared_ptr<Resources> re = core->GetResources();// ->Load<Model>("models/car/formula_car");
 
 	core->Run();
 }

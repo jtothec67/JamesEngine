@@ -16,10 +16,10 @@ namespace JamesEngine
 
 	void ModelRenderer::OnRender()
 	{
-		if (mModel = nullptr)
+		if (!mModel)
 			return;
 
-		if (mTexture = nullptr)
+		if (!mTexture)
 			return;
 
 		int winWidth, winHeight;
@@ -37,13 +37,8 @@ namespace JamesEngine
 
 		Transform* transform = GetEntity()->GetComponent<Transform>().get();
 
-		glm::mat4 modelMatrix = glm::mat4(1.f);
-		modelMatrix = glm::translate(modelMatrix, transform->position);
-		modelMatrix = glm::rotate(modelMatrix, glm::radians(transform->rotation.x), glm::vec3(1, 0, 0));
-		modelMatrix = glm::rotate(modelMatrix, glm::radians(transform->rotation.y), glm::vec3(0, 1, 0));
-		modelMatrix = glm::rotate(modelMatrix, glm::radians(transform->rotation.z), glm::vec3(0, 0, 1));
-		modelMatrix = glm::scale(modelMatrix, transform->scale);
-		mShader->uniform("u_Model", modelMatrix);
+		
+		mShader->uniform("u_Model", transform->GetModel());
 
 		mShader->uniform("u_IsSpecular", false);
 

@@ -7,6 +7,7 @@
 
 namespace JamesEngine
 {
+
 	class ModelRenderer;
 
 	class Model : public Resource
@@ -16,7 +17,7 @@ namespace JamesEngine
 		void OnLoad() { mModel = std::make_shared<Renderer::Model>(GetPath() + ".obj"); }
 
 	private:
-		friend class JamesEngine::ModelRenderer;
+		friend class ModelRenderer;
 
 		std::shared_ptr<Renderer::Model> mModel;
 	};
