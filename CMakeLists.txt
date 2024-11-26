@@ -46,6 +46,18 @@ add_library(JamesEngine
 	src/JamesEngine/Texture.cpp
 
 	src/JamesEngine/Model.h
+
+	src/JamesEngine/Mesh.h
+
+	src/JamesEngine/Shader.h
+
+	src/JamesEngine/Font.h
+
+	src/JamesEngine/Input.h
+	src/JamesEngine/Input.cpp
+
+	src/JamesEngine/Keyboard.h
+	src/JamesEngine/Keyboard.cpp
 )
 
 target_link_libraries(JamesEngine Renderer)

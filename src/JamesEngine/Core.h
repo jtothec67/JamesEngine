@@ -1,6 +1,7 @@
 #pragma once
+
 #include "Window.h"
-//#include "Resources.h"
+#include "Input.h"
 
 #include <memory>
 #include <vector>
@@ -24,6 +25,7 @@ namespace JamesEngine
 
 	private:
 		std::shared_ptr<Window> mWindow;
+		std::shared_ptr<Input> mInput;
 		std::shared_ptr<Resources> mResources;
 		std::vector<std::shared_ptr<Entity>> mEntities;
 		std::weak_ptr<Core> mSelf;

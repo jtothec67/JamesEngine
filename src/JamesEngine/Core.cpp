@@ -29,13 +29,9 @@ namespace JamesEngine
 
 			mWindow->Update();
 
-			SDL_Event event = {};
-			while (SDL_PollEvent(&event))
+			if (!mInput->Update())
 			{
-				if (event.type == SDL_QUIT)
-				{
-					return;
-				}
+				return;
 			}
 
 			mWindow->ClearWindow();
