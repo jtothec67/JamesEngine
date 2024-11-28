@@ -3,9 +3,14 @@
 namespace JamesEngine
 {
 
+	Input::Input()
+	{
+		mKeyboard = std::make_shared<Keyboard>();
+	}
+
 	bool Input::Update()
 	{
-		mKeyboard.Update();
+		mKeyboard->Update();
 
 		SDL_Event event = {};
 		while (SDL_PollEvent(&event))
@@ -14,17 +19,15 @@ namespace JamesEngine
 			{
 				return false;
 			}
-			
-			if (event.type == SDL_KEYDOWN)
+			else if (event.type == SDL_KEYDOWN)
 			{
-				//mKeyboard.keys.emplace_back(event.key.keysym.sym);
-				//mKeyboard.pressedKeys.emplace_back(event.key.keysym.sym);
+				mKeyboard->keys.push_back(event.key.keysym.sym);
+				mKeyboard->pressedKeys.push_back(event.key.keysym.sym);
 			}
-
-			if (event.type == SDL_KEYUP)
+			else if (event.type == SDL_KEYUP)
 			{
-				//mKeyboard.keys.emplace_back(event.key.keysym.sym);
-				//mKeyboard.pressedKeys.emplace_back(event.key.keysym.sym);
+				mKeyboard->KeyBeenReleased(event.key.keysym.sym);
+				mKeyboard->releasedKeys.push_back(event.key.keysym.sym);
 			}
 		}
 

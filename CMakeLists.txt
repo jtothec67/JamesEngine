@@ -47,8 +47,6 @@ add_library(JamesEngine
 
 	src/JamesEngine/Model.h
 
-	src/JamesEngine/Mesh.h
-
 	src/JamesEngine/Shader.h
 
 	src/JamesEngine/Font.h

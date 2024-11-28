@@ -9,12 +9,20 @@ class Player : public Component
 public:
 	void OnInitialize()
 	{
-		//std::cout << "Player initialize" << std::endl;
+		
 	}
 
 	void OnTick()
 	{
-		//std::cout << "Player tick" << std::endl;
+		if (GetEntity()->GetCore()->GetInput()->GetKeyboard()->IsKey(SDLK_a))
+		{
+			GetEntity()->GetComponent<Transform>()->SetPosition(GetEntity()->GetComponent<Transform>()->GetPosition() + glm::vec3(-0.1f, 0.f, 0.f));
+		}
+
+		if (GetEntity()->GetCore()->GetInput()->GetKeyboard()->IsKey(SDLK_d))
+		{
+			GetEntity()->GetComponent<Transform>()->SetPosition(GetEntity()->GetComponent<Transform>()->GetPosition() + glm::vec3(0.1f, 0.f, 0.f));
+		}
 	}
 };
 
@@ -26,6 +34,7 @@ int main()
 	std::shared_ptr<Entity> ent = core->AddEntity();
 
 	ent->GetComponent<Transform>()->SetPosition(glm::vec3(0.0f, 0.0f, -10.f));
+	ent->GetComponent<Transform>()->SetRotation(glm::vec3(0.0f, 90.0f, 0.f));
 
 	ent->AddComponent<Player>();
 	std::shared_ptr<ModelRenderer> mr = ent->AddComponent<ModelRenderer>();

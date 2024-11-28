@@ -13,6 +13,7 @@ namespace JamesEngine
 		std::shared_ptr<Core> rtn = std::make_shared<Core>();
 		rtn->mWindow = std::make_shared<Window>(800, 600);
 		rtn->mResources = std::make_shared<Resources>();
+		rtn->mInput = std::make_shared<Input>();
 		rtn->mSelf = rtn;
 
 		return rtn;
@@ -22,17 +23,17 @@ namespace JamesEngine
 	{
 		while (true)
 		{
+			if (!mInput->Update())
+			{
+				return;
+			}
+
 			for (size_t ei = 0; ei < mEntities.size(); ++ei)
 			{
 				mEntities[ei]->OnTick();
 			}
 
 			mWindow->Update();
-
-			if (!mInput->Update())
-			{
-				return;
-			}
 
 			mWindow->ClearWindow();
 

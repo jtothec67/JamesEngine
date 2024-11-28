@@ -8,6 +8,11 @@ namespace JamesEngine
 		return mEntity.lock();
 	}
 
+	/*std::shared_ptr<Input> Component::GetInput()
+	{
+		return;
+	}*/
+
 	void Component::Tick()
 	{
 		OnTick();

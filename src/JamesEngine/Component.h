@@ -6,11 +6,13 @@ namespace JamesEngine
 {
 
 	class Entity;
+	class Input;
 
 	class Component
 	{
 	public:
 		std::shared_ptr<Entity> GetEntity();
+		//std::shared_ptr<Input> GetInput();
 
 		virtual void OnInitialize() { }
 		virtual void OnTick() { }

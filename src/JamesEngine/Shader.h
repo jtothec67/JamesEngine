@@ -13,7 +13,7 @@ namespace JamesEngine
 	class Shader : public Resource
 	{
 	public:
-		void OnLoad() { mShader = std::make_shared<Renderer::Shader>(GetPath() + ".png"); }
+		void OnLoad() { mShader = std::make_shared<Renderer::Shader>(GetPath() + ".vert", GetPath() + ".frag"); }
 
 	private:
 		friend class ModelRenderer;

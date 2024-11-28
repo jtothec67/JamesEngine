@@ -12,6 +12,12 @@ namespace JamesEngine
 		void SetPosition(glm::vec3 _position) { mPosition = _position; }
 		glm::vec3 GetPosition() { return mPosition; }
 
+		void SetRotation(glm::vec3 _rotation) { mRotation = _rotation; }
+		glm::vec3 GetRotation() { return mRotation; }
+
+		void SetScale(glm::vec3 _scale) { mScale = _scale; }
+		glm::vec3 GetScale() { return mScale; }
+
 		glm::mat4 GetModel();
 
 		glm::vec3 GetForward()

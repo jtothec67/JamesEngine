@@ -21,6 +21,7 @@ namespace JamesEngine
 		std::shared_ptr<Entity> AddEntity();
 
 		std::shared_ptr<Window> GetWindow() const { return mWindow; }
+		std::shared_ptr<Input> GetInput() const { return mInput; }
 		std::shared_ptr<Resources> GetResources() const { return mResources; }
 
 	private:
