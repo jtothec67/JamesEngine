@@ -1,22 +1,20 @@
 #include "Keyboard.h"
 
-#include <iostream>
-
 namespace JamesEngine
 {
 
 	void Keyboard::Update()
 	{
-		pressedKeys.clear();
-		releasedKeys.clear();
+		mKeysDown.clear();
+		mKeysUp.clear();
 	}
 
 	bool Keyboard::IsKey(int _key)
 	{
-		for (int i = 0; i < keys.size(); ++i)
+		for (int i = 0; i < mKeys.size(); ++i)
 		{
 			
-			if (keys[i] == _key)
+			if (mKeys[i] == _key)
 			{
 				return true;
 			}
@@ -26,9 +24,9 @@ namespace JamesEngine
 
 	bool Keyboard::IsKeyDown(int _key)
 	{
-		for (int i = 0; i < pressedKeys.size(); ++i)
+		for (int i = 0; i < mKeysDown.size(); ++i)
 		{
-			if (pressedKeys[i] == _key)
+			if (mKeysDown[i] == _key)
 			{
 				return true;
 			}
@@ -38,9 +36,9 @@ namespace JamesEngine
 
 	bool Keyboard::IsKeyUp(int _key)
 	{
-		for (int i = 0; i < releasedKeys.size(); ++i)
+		for (int i = 0; i < mKeysUp.size(); ++i)
 		{
-			if (releasedKeys[i] == _key)
+			if (mKeysUp[i] == _key)
 			{
 				return true;
 			}

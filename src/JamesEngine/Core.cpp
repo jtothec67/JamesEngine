@@ -2,6 +2,8 @@
 #include "Entity.h"
 #include "Transform.h"
 #include "Resources.h"
+#include "Window.h"
+#include "Input.h"
 
 #include <iostream>
 
@@ -23,9 +25,19 @@ namespace JamesEngine
 	{
 		while (true)
 		{
-			if (!mInput->Update())
+			mInput->Update();
+			
+			SDL_Event event = {};
+			while (SDL_PollEvent(&event))
 			{
-				return;
+				if (event.type == SDL_QUIT)
+				{
+					return;
+				}
+				else
+				{
+					mInput->HandleInput(event);
+				}
 			}
 
 			for (size_t ei = 0; ei < mEntities.size(); ++ei)

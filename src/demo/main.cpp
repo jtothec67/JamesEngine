@@ -14,15 +14,37 @@ public:
 
 	void OnTick()
 	{
-		if (GetEntity()->GetCore()->GetInput()->GetKeyboard()->IsKey(SDLK_a))
+		if (GetInput()->GetKeyboard()->IsKey(SDLK_a))
 		{
-			GetEntity()->GetComponent<Transform>()->SetPosition(GetEntity()->GetComponent<Transform>()->GetPosition() + glm::vec3(-0.1f, 0.f, 0.f));
+			GetTransform()->SetPosition(GetTransform()->GetPosition() + glm::vec3(-0.1f, 0.f, 0.f));
 		}
 
-		if (GetEntity()->GetCore()->GetInput()->GetKeyboard()->IsKey(SDLK_d))
+		if (GetInput()->GetMouse()->IsButton(SDL_BUTTON_LEFT))
 		{
-			GetEntity()->GetComponent<Transform>()->SetPosition(GetEntity()->GetComponent<Transform>()->GetPosition() + glm::vec3(0.1f, 0.f, 0.f));
+			std::cout << "Mouse x: " << GetInput()->GetMouse()->GetXPosition() << std::endl;
 		}
+
+		if (GetInput()->GetMouse()->IsButton(SDL_BUTTON_RIGHT))
+		{
+			GetTransform()->SetPosition(GetTransform()->GetPosition() + glm::vec3(0.1f, 0.f, 0.f));
+		}
+
+		if (GetInput()->GetKeyboard()->IsKey(SDLK_d))
+		{
+			GetTransform()->SetPosition(GetTransform()->GetPosition() + glm::vec3(0.1f, 0.f, 0.f));
+		}
+
+		if (GetInput()->GetKeyboard()->IsKey(SDLK_w))
+		{
+			GetTransform()->SetPosition(GetTransform()->GetPosition() + glm::vec3(0.f, 0.1f, 0.f));
+		}
+
+		if (GetInput()->GetKeyboard()->IsKey(SDLK_s))
+		{
+			GetTransform()->SetPosition(GetTransform()->GetPosition() + glm::vec3(0.f, -0.1f, 0.f));
+		}
+
+		std::cout << "Mouse delta: " << GetInput()->GetMouse()->GetDelta().x << ", " << GetInput()->GetMouse()->GetDelta().y << std::endl;
 	}
 };
 

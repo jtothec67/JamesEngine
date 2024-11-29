@@ -2,13 +2,11 @@
 
 #include "Component.h"
 
-#include "Renderer/Shader.h"
-
-
 namespace JamesEngine
 {
 	class Model;
 	class Texture;
+	class Shader;
 
 	class ModelRenderer : public Component
 	{
@@ -17,13 +15,15 @@ namespace JamesEngine
 
 		void SetModel(std::shared_ptr<Model> _model) { mModel = _model; }
 		void SetTexture(std::shared_ptr<Texture> _texture) { mTexture = _texture; }
+		void SetShader(std::shared_ptr<Shader> _shader) { mShader = _shader; }
 
+		void OnInitialize();
 		void OnRender();
 
 	private:
 		std::shared_ptr<Model> mModel = nullptr;
 		std::shared_ptr<Texture> mTexture = nullptr;
-		std::shared_ptr<Renderer::Shader> mShader = std::make_shared<Renderer::Shader>("../shaders/ObjShader.vert", "../shaders/ObjShader.frag");
+		std::shared_ptr<Shader> mShader;// = std::make_shared<Shader>("../shaders/ObjShader.vert", "../shaders/ObjShader.frag");
 	};
 
 }

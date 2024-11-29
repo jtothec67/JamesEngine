@@ -1,4 +1,7 @@
 #include "Component.h"
+#include "Entity.h"
+#include "Transform.h"
+#include "Core.h"
 
 namespace JamesEngine
 {
@@ -8,10 +11,15 @@ namespace JamesEngine
 		return mEntity.lock();
 	}
 
-	/*std::shared_ptr<Input> Component::GetInput()
+	std::shared_ptr<Input> Component::GetInput()
 	{
-		return;
-	}*/
+		return GetEntity()->GetCore()->GetInput();
+	}
+
+	std::shared_ptr<Transform> Component::GetTransform()
+	{
+		return GetEntity()->GetComponent<Transform>();
+	}
 
 	void Component::Tick()
 	{

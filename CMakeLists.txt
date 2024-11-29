@@ -56,6 +56,9 @@ add_library(JamesEngine
 
 	src/JamesEngine/Keyboard.h
 	src/JamesEngine/Keyboard.cpp
+
+	src/JamesEngine/Mouse.h
+	src/JamesEngine/Mouse.cpp
 )
 
 target_link_libraries(JamesEngine Renderer)

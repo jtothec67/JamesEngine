@@ -1,37 +1,48 @@
 #include "Input.h"
 
+#include <iostream>
+
 namespace JamesEngine
 {
 
 	Input::Input()
 	{
 		mKeyboard = std::make_shared<Keyboard>();
+		mMouse = std::make_shared<Mouse>();
 	}
 
-	bool Input::Update()
+	void Input::Update()
 	{
 		mKeyboard->Update();
+	}
 
-		SDL_Event event = {};
-		while (SDL_PollEvent(&event))
+	void Input::HandleInput(const SDL_Event& _event)
+	{
+		if (_event.type == SDL_KEYDOWN)
 		{
-			if (event.type == SDL_QUIT)
-			{
-				return false;
-			}
-			else if (event.type == SDL_KEYDOWN)
-			{
-				mKeyboard->keys.push_back(event.key.keysym.sym);
-				mKeyboard->pressedKeys.push_back(event.key.keysym.sym);
-			}
-			else if (event.type == SDL_KEYUP)
-			{
-				mKeyboard->KeyBeenReleased(event.key.keysym.sym);
-				mKeyboard->releasedKeys.push_back(event.key.keysym.sym);
-			}
+			mKeyboard->mKeys.push_back(_event.key.keysym.sym);
+			mKeyboard->mKeysDown.push_back(_event.key.keysym.sym);
 		}
-
-		return true;
+		else if (_event.type == SDL_KEYUP)
+		{
+			mKeyboard->KeyBeenReleased(_event.key.keysym.sym);
+			mKeyboard->mKeysUp.push_back(_event.key.keysym.sym);
+		}
+		else if (_event.type == SDL_MOUSEBUTTONDOWN)
+		{
+			mMouse->mButtons.push_back(_event.button.button);
+			mMouse->mButtonsDown.push_back(_event.button.button);
+		}
+		else if (_event.type == SDL_MOUSEBUTTONUP)
+		{
+			mMouse->ButtonBeenReleased(_event.button.button);
+			mMouse->mButtonsUp.push_back(_event.button.button);
+		}
+		else if (_event.type == SDL_MOUSEMOTION)
+		{
+			mMouse->mXpos = _event.key.keysym.sym;
+			mMouse->mYpos = _event.key.keysym.sym;
+		}
 	}
 
 }

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <SDL2/sdl.h>
-
 #include <vector>
 
 namespace JamesEngine
@@ -10,11 +8,6 @@ namespace JamesEngine
 	class Keyboard
 	{
 	public:
-		Keyboard() {}
-		~Keyboard() {}
-
-		void Update();
-
 		bool IsKey(int _key);
 		bool IsKeyDown(int _key);
 		bool IsKeyUp(int _key);
@@ -22,20 +15,23 @@ namespace JamesEngine
 	private:
 		friend class Input;
 
+		void Update();
+
 		void KeyBeenReleased(int _key)
 		{
-			for (int i = 0; i < keys.size(); ++i)
+			for (int i = 0; i < mKeys.size(); ++i)
 			{
-				if (keys[i] == _key)
+				if (mKeys[i] == _key)
 				{
-					keys.erase(keys.begin() + i);
+					mKeys.erase(mKeys.begin() + i);
+					--i;
 				}
 			}
 		}
 
-		std::vector<int> keys;
-		std::vector<int> pressedKeys;
-		std::vector<int> releasedKeys;
+		std::vector<int> mKeys;
+		std::vector<int> mKeysDown;
+		std::vector<int> mKeysUp;
 	};
 
 }

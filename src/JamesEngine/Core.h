@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Window.h"
-#include "Input.h"
 
 #include <memory>
 #include <vector>
@@ -9,6 +8,7 @@
 namespace JamesEngine
 {
 
+	class Input;
 	class Entity;
 	class Resources;
 

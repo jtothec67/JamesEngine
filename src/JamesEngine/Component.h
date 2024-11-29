@@ -7,12 +7,14 @@ namespace JamesEngine
 
 	class Entity;
 	class Input;
+	class Transform;
 
 	class Component
 	{
 	public:
 		std::shared_ptr<Entity> GetEntity();
-		//std::shared_ptr<Input> GetInput();
+		std::shared_ptr<Input> GetInput();
+		std::shared_ptr<Transform> GetTransform();
 
 		virtual void OnInitialize() { }
 		virtual void OnTick() { }

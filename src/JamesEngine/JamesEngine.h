@@ -11,5 +11,7 @@
 #include "Resources.h"
 #include "Model.h"
 #include "Texture.h"
+#include "Input.h"
+#include "Keyboard.h"
 
 #endif
