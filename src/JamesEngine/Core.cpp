@@ -10,10 +10,10 @@
 namespace JamesEngine
 {
 
-	std::shared_ptr<Core> Core::Initialize()
+	std::shared_ptr<Core> Core::Initialize(glm::ivec2 _windowSize)
 	{
 		std::shared_ptr<Core> rtn = std::make_shared<Core>();
-		rtn->mWindow = std::make_shared<Window>(800, 600);
+		rtn->mWindow = std::make_shared<Window>(_windowSize.x, _windowSize.y);
 		rtn->mResources = std::make_shared<Resources>();
 		rtn->mInput = std::make_shared<Input>();
 		rtn->mSelf = rtn;

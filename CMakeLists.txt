@@ -61,7 +61,7 @@ add_library(JamesEngine
 	src/JamesEngine/Mouse.cpp
 )
 
-target_link_libraries(JamesEngine Renderer)
+target_link_libraries(JamesEngine Renderer openal32)
 
 add_library(Renderer
 	src/Renderer/Font.h

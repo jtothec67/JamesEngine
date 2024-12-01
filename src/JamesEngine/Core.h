@@ -15,7 +15,7 @@ namespace JamesEngine
 	class Core
 	{
 	public:
-		static std::shared_ptr<Core> Initialize();
+		static std::shared_ptr<Core> Initialize(glm::ivec2 _windowSize);
 
 		void Run();
 		std::shared_ptr<Entity> AddEntity();

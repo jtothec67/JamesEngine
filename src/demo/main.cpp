@@ -19,14 +19,14 @@ public:
 			GetTransform()->SetPosition(GetTransform()->GetPosition() + glm::vec3(-0.1f, 0.f, 0.f));
 		}
 
-		if (GetInput()->GetMouse()->IsButton(SDL_BUTTON_LEFT))
+		if (GetInput()->GetMouse()->IsButtonDown(SDL_BUTTON_LEFT))
 		{
 			std::cout << "Mouse x: " << GetInput()->GetMouse()->GetXPosition() << std::endl;
 		}
 
-		if (GetInput()->GetMouse()->IsButton(SDL_BUTTON_RIGHT))
+		if (GetInput()->GetMouse()->IsButtonDown(SDL_BUTTON_RIGHT))
 		{
-			GetTransform()->SetPosition(GetTransform()->GetPosition() + glm::vec3(0.1f, 0.f, 0.f));
+			std::cout << "Mouse y: " << GetInput()->GetMouse()->GetYPosition() << std::endl;
 		}
 
 		if (GetInput()->GetKeyboard()->IsKey(SDLK_d))
@@ -43,15 +43,13 @@ public:
 		{
 			GetTransform()->SetPosition(GetTransform()->GetPosition() + glm::vec3(0.f, -0.1f, 0.f));
 		}
-
-		std::cout << "Mouse delta: " << GetInput()->GetMouse()->GetDelta().x << ", " << GetInput()->GetMouse()->GetDelta().y << std::endl;
 	}
 };
 
 #undef main
 int main()
 {
-	std::shared_ptr<Core> core = Core::Initialize();
+	std::shared_ptr<Core> core = Core::Initialize(glm::ivec2(800,600));
 
 	std::shared_ptr<Entity> ent = core->AddEntity();
 

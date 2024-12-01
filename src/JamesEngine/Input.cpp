@@ -14,11 +14,17 @@ namespace JamesEngine
 	void Input::Update()
 	{
 		mKeyboard->Update();
+		mMouse->Update();
 	}
 
 	void Input::HandleInput(const SDL_Event& _event)
 	{
-		if (_event.type == SDL_KEYDOWN)
+		if (_event.type == SDL_MOUSEMOTION)
+		{
+			mMouse->mXpos = _event.motion.x;
+			mMouse->mYpos = _event.motion.y;
+		}
+		else if (_event.type == SDL_KEYDOWN)
 		{
 			mKeyboard->mKeys.push_back(_event.key.keysym.sym);
 			mKeyboard->mKeysDown.push_back(_event.key.keysym.sym);
@@ -37,11 +43,6 @@ namespace JamesEngine
 		{
 			mMouse->ButtonBeenReleased(_event.button.button);
 			mMouse->mButtonsUp.push_back(_event.button.button);
-		}
-		else if (_event.type == SDL_MOUSEMOTION)
-		{
-			mMouse->mXpos = _event.key.keysym.sym;
-			mMouse->mYpos = _event.key.keysym.sym;
 		}
 	}
 
