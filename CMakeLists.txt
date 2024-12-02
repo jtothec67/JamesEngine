@@ -59,6 +59,14 @@ add_library(JamesEngine
 
 	src/JamesEngine/Mouse.h
 	src/JamesEngine/Mouse.cpp
+
+	src/JamesEngine/Audio.h
+	src/JamesEngine/Audio.cpp
+
+	src/JamesEngine/AudioSource.h
+	src/JamesEngine/AudioSource.cpp
+
+	src/JamesEngine/stb_vorbis.c
 )
 
 target_link_libraries(JamesEngine Renderer openal32)

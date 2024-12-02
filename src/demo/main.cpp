@@ -21,7 +21,7 @@ public:
 
 		if (GetInput()->GetMouse()->IsButtonDown(SDL_BUTTON_LEFT))
 		{
-			std::cout << "Mouse x: " << GetInput()->GetMouse()->GetXPosition() << std::endl;
+			GetEntity()->GetComponent<AudioSource>()->Play();
 		}
 
 		if (GetInput()->GetMouse()->IsButtonDown(SDL_BUTTON_RIGHT))
@@ -61,6 +61,11 @@ int main()
 
 	mr->SetModel(core->GetResources()->Load<Model>("models/car/formula_car"));
 	mr->SetTexture(core->GetResources()->Load<Texture>("models/car/car_02_m"));
+
+	std::shared_ptr<AudioSource> as = ent->AddComponent<AudioSource>();
+
+	as->SetSound("../assets/sounds/dixie_horn.ogg");
+	as->SetLooping(true);
 
 	core->Run();
 }

@@ -2,7 +2,6 @@
 #include "Entity.h"
 #include "Transform.h"
 #include "Resources.h"
-#include "Window.h"
 #include "Input.h"
 
 #include <iostream>
@@ -14,6 +13,7 @@ namespace JamesEngine
 	{
 		std::shared_ptr<Core> rtn = std::make_shared<Core>();
 		rtn->mWindow = std::make_shared<Window>(_windowSize.x, _windowSize.y);
+		rtn->mAudio = std::make_shared<Audio>();
 		rtn->mResources = std::make_shared<Resources>();
 		rtn->mInput = std::make_shared<Input>();
 		rtn->mSelf = rtn;

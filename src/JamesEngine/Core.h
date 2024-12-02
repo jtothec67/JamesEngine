@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Window.h"
+#include "Audio.h"
 
 #include <memory>
 #include <vector>
@@ -26,6 +27,7 @@ namespace JamesEngine
 
 	private:
 		std::shared_ptr<Window> mWindow;
+		std::shared_ptr<Audio> mAudio;
 		std::shared_ptr<Input> mInput;
 		std::shared_ptr<Resources> mResources;
 		std::vector<std::shared_ptr<Entity>> mEntities;
