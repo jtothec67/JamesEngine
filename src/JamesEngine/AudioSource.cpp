@@ -9,11 +9,6 @@
 namespace JamesEngine
 {
 
-	AudioSource::AudioSource()
-	{
-		
-	}
-
 	AudioSource::~AudioSource()
 	{
 		alDeleteSources(1, &mSourceId);
@@ -22,16 +17,17 @@ namespace JamesEngine
 
 	void AudioSource::SetSound(std::string _path)
 	{
-		alDeleteSources(1, &mSourceId);
-		alDeleteBuffers(1, &mBufferId);
+		// Sound data
+		std::vector<unsigned char> data;
 
-		Load_ogg(_path);
+		Load_ogg(_path, data);
 
 		alGenBuffers(1, &mBufferId);
 
-		alBufferData(mBufferId, mFormat, &mBufferData.at(0),
-			static_cast<ALsizei>(mBufferData.size()), mFrequency);
+		alBufferData(mBufferId, mFormat, &data.at(0),
+			static_cast<ALsizei>(data.size()), mFrequency);
 
+		// Sound source
 		alGenSources(1, &mSourceId);
 
 		alSourcei(mSourceId, AL_BUFFER, mBufferId);
@@ -60,7 +56,7 @@ namespace JamesEngine
 		alSourcePlay(mSourceId);
 	}
 
-	void AudioSource::Load_ogg(std::string _path)
+	void AudioSource::Load_ogg(std::string _path, std::vector<unsigned char>& _data)
 	{
 		int channels = 0;
 		int sampleRate = 0;
@@ -85,8 +81,8 @@ namespace JamesEngine
 		}
 
 		// Copy (# samples) * (1 or 2 channels) * (16 bits == 2 bytes == short)
-		mBufferData.resize(samples * channels * sizeof(short));
-		memcpy(&mBufferData.at(0), output, mBufferData.size());
+		_data.resize(samples * channels * sizeof(short));
+		memcpy(&_data.at(0), output, _data.size());
 
 		// Record the sample rate required by OpenAL
 		mFrequency = sampleRate;

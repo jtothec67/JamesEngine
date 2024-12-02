@@ -12,7 +12,6 @@ namespace JamesEngine
 
 	class Model : public Resource
 	{
-
 	public:
 		void OnLoad() { mModel = std::make_shared<Renderer::Model>(GetPath() + ".obj"); }
 

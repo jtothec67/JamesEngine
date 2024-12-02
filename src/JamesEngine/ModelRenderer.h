@@ -23,7 +23,7 @@ namespace JamesEngine
 	private:
 		std::shared_ptr<Model> mModel = nullptr;
 		std::shared_ptr<Texture> mTexture = nullptr;
-		std::shared_ptr<Shader> mShader;// = std::make_shared<Shader>("../shaders/ObjShader.vert", "../shaders/ObjShader.frag");
+		std::shared_ptr<Shader> mShader;
 	};
 
 }

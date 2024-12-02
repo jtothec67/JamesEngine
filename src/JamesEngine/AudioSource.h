@@ -1,10 +1,12 @@
 #pragma once
 
 #include "Component.h"
+#include "Sound.h"
 
 #include <AL/al.h>
 #include <AL/alc.h>
 
+#include <exception>
 #include <vector>
 #include <string>
 
@@ -14,7 +16,7 @@ namespace JamesEngine
 	class AudioSource : public Component
 	{
 	public:
-		AudioSource();
+		AudioSource() { }
 		~AudioSource();
 
 		void SetSound(std::string _path);
@@ -30,15 +32,15 @@ namespace JamesEngine
 		void Play();
 
 	private:
-		void Load_ogg(std::string _path);
+		void Load_ogg(std::string _path, std::vector<unsigned char>& _data);
+
+		std::shared_ptr<Sound> mSound = nullptr;
 
 		ALenum mFormat = 0;
 		ALsizei mFrequency = 0;
 
 		ALuint mBufferId = 0;
 		ALuint mSourceId = 0;
-
-		std::vector<unsigned char> mBufferData;
 
 		bool mLooping = false;
 	};
