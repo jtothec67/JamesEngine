@@ -16,10 +16,10 @@ namespace JamesEngine
 	class AudioSource : public Component
 	{
 	public:
-		AudioSource() { }
+		AudioSource() { alGenSources(1, &mSourceId); }
 		~AudioSource();
 
-		void SetSound(std::string _path);
+		void SetSound(std::shared_ptr<Sound> _sound) { mSound = _sound; alSourcei(mSourceId, AL_BUFFER, mSound->mBufferId); }
 
 		void SetPitch(float _pitch) { alSourcef(mSourceId, AL_PITCH, _pitch); }
 		void SetVolume(float _volume) { alSourcef(mSourceId, AL_GAIN, _volume); }
@@ -32,8 +32,6 @@ namespace JamesEngine
 		void Play();
 
 	private:
-		void Load_ogg(std::string _path, std::vector<unsigned char>& _data);
-
 		std::shared_ptr<Sound> mSound = nullptr;
 
 		ALenum mFormat = 0;

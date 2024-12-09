@@ -66,8 +66,6 @@ add_library(JamesEngine
 	src/JamesEngine/AudioSource.h
 	src/JamesEngine/AudioSource.cpp
 
-	src/JamesEngine/stb_vorbis.c
-
 	src/JamesEngine/Sound.h
 	src/JamesEngine/Sound.cpp
 )

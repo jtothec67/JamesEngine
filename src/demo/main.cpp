@@ -64,7 +64,7 @@ int main()
 
 	std::shared_ptr<AudioSource> as = ent->AddComponent<AudioSource>();
 
-	as->SetSound("../assets/sounds/dixie_horn.ogg");
+	as->SetSound(core->GetResources()->Load<Sound>("sounds/dixie_horn"));
 
 	core->Run();
 }

@@ -3,7 +3,6 @@
 #include "Resource.h"
 
 #include <AL/al.h>
-#include <AL/alc.h>
 
 namespace JamesEngine
 {
@@ -13,12 +12,14 @@ namespace JamesEngine
 	class Sound : public Resource
 	{
 	public:
-		void OnLoad() { }
+		void OnLoad();
 
 	private:
 		friend class AudioSource;
 
 		ALuint mBufferId = 0;
+		ALenum mFormat = 0;
+		ALsizei mFrequency = 0;
 	};
 
 }
