@@ -2,6 +2,9 @@
 #include "Entity.h"
 #include "Transform.h"
 #include "Core.h"
+#include "Input.h"
+#include "Keyboard.h"
+#include "Mouse.h"
 
 namespace JamesEngine
 {
@@ -16,9 +19,29 @@ namespace JamesEngine
 		return GetEntity()->GetCore()->GetInput();
 	}
 
+	std::shared_ptr<Keyboard> Component::GetKeyboard()
+	{
+		return GetEntity()->GetCore()->GetInput()->GetKeyboard();
+	}
+
+	std::shared_ptr<Mouse> Component::GetMouse()
+	{
+		return GetEntity()->GetCore()->GetInput()->GetMouse();
+	}
+
 	std::shared_ptr<Transform> Component::GetTransform()
 	{
 		return GetEntity()->GetComponent<Transform>();
+	}
+
+	glm::vec3 Component::GetPosition()
+	{
+		return GetTransform()->GetPosition();
+	}
+
+	void Component::SetPosition(glm::vec3 _position)
+	{
+		GetTransform()->SetPosition(_position);
 	}
 
 	void Component::Tick()

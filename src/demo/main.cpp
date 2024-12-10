@@ -14,34 +14,34 @@ public:
 
 	void OnTick()
 	{
-		if (GetInput()->GetKeyboard()->IsKey(SDLK_a))
+		if (GetKeyboard()->IsKey(SDLK_a))
 		{
-			GetTransform()->SetPosition(GetTransform()->GetPosition() + glm::vec3(-0.1f, 0.f, 0.f));
+			SetPosition(GetPosition() + glm::vec3(-0.1f, 0.f, 0.f));
 		}
 
-		if (GetInput()->GetMouse()->IsButtonDown(SDL_BUTTON_LEFT))
+		if (GetMouse()->IsButtonDown(SDL_BUTTON_LEFT))
 		{
 			GetEntity()->GetComponent<AudioSource>()->Play();
 		}
 
-		if (GetInput()->GetMouse()->IsButtonDown(SDL_BUTTON_RIGHT))
+		if (GetMouse()->IsButtonDown(SDL_BUTTON_RIGHT))
 		{
-			std::cout << "Mouse y: " << GetInput()->GetMouse()->GetYPosition() << std::endl;
+			std::cout << "Mouse y: " << GetMouse()->GetYPosition() << std::endl;
 		}
 
-		if (GetInput()->GetKeyboard()->IsKey(SDLK_d))
+		if (GetKeyboard()->IsKey(SDLK_d))
 		{
-			GetTransform()->SetPosition(GetTransform()->GetPosition() + glm::vec3(0.1f, 0.f, 0.f));
+			SetPosition(GetPosition() + glm::vec3(0.1f, 0.f, 0.f));
 		}
 
-		if (GetInput()->GetKeyboard()->IsKey(SDLK_w))
+		if (GetKeyboard()->IsKey(SDLK_w))
 		{
-			GetTransform()->SetPosition(GetTransform()->GetPosition() + glm::vec3(0.f, 0.1f, 0.f));
+			SetPosition(GetPosition() + glm::vec3(0.f, 0.1f, 0.f));
 		}
 
-		if (GetInput()->GetKeyboard()->IsKey(SDLK_s))
+		if (GetKeyboard()->IsKey(SDLK_s))
 		{
-			GetTransform()->SetPosition(GetTransform()->GetPosition() + glm::vec3(0.f, -0.1f, 0.f));
+			SetPosition(GetPosition() + glm::vec3(0.f, -0.1f, 0.f));
 		}
 	}
 };

@@ -25,6 +25,9 @@ namespace JamesEngine
 		std::shared_ptr<Input> GetInput() const { return mInput; }
 		std::shared_ptr<Resources> GetResources() const { return mResources; }
 
+		template <typename T>
+		void FindComponents(std::vector<std::shared_ptr<T> >& _out);
+
 	private:
 		std::shared_ptr<Window> mWindow;
 		std::shared_ptr<Audio> mAudio;

@@ -68,6 +68,12 @@ add_library(JamesEngine
 
 	src/JamesEngine/Sound.h
 	src/JamesEngine/Sound.cpp
+
+	src/JamesEngine/BoxCollider.h
+	src/JamesEngine/BoxCollider.cpp
+
+	src/JamesEngine/Rigidbody.h
+	src/JamesEngine/Rigidbody.cpp
 )
 
 target_link_libraries(JamesEngine Renderer openal32)
