@@ -1,14 +1,16 @@
 #include "BoxCollider.h"
 
+#include <iostream>
+
 namespace JamesEngine
 {
 
-	bool BoxCollider::IsColliding(const BoxCollider& _other)
+	bool BoxCollider::IsColliding(std::shared_ptr<BoxCollider> _other)
 	{
 		glm::vec3 a = GetPosition() + mOffset;
-		glm::vec3 b = GetPosition() + _other.mOffset;
+		glm::vec3 b = _other->GetPosition() + _other->mOffset;
 		glm::vec3 ahs = mSize / 2.0f;
-		glm::vec3 bhs = _other.mSize / 2.0f;
+		glm::vec3 bhs = _other->mSize / 2.0f;
 
 		if (a.x > b.x)
 		{

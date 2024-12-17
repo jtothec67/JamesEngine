@@ -51,20 +51,36 @@ int main()
 {
 	std::shared_ptr<Core> core = Core::Initialize(glm::ivec2(800,600));
 
-	std::shared_ptr<Entity> ent = core->AddEntity();
+	std::shared_ptr<Entity> entity = core->AddEntity();
 
-	ent->GetComponent<Transform>()->SetPosition(glm::vec3(0.0f, 0.0f, -10.f));
-	ent->GetComponent<Transform>()->SetRotation(glm::vec3(0.0f, 90.0f, 0.f));
+	entity->GetComponent<Transform>()->SetPosition(glm::vec3(-5.0f, 0.0f, -10.f));
+	entity->GetComponent<Transform>()->SetRotation(glm::vec3(0.0f, 90.0f, 0.f));
 
-	ent->AddComponent<Player>();
-	std::shared_ptr<ModelRenderer> mr = ent->AddComponent<ModelRenderer>();
+	entity->AddComponent<Player>();
+	std::shared_ptr<ModelRenderer> entityModelRenderer = entity->AddComponent<ModelRenderer>();
 
-	mr->SetModel(core->GetResources()->Load<Model>("models/car/formula_car"));
-	mr->SetTexture(core->GetResources()->Load<Texture>("models/car/car_02_m"));
+	entityModelRenderer->SetModel(core->GetResources()->Load<Model>("models/car/formula_car"));
+	entityModelRenderer->SetTexture(core->GetResources()->Load<Texture>("models/car/car_02_m"));
 
-	std::shared_ptr<AudioSource> as = ent->AddComponent<AudioSource>();
+	std::shared_ptr<AudioSource> entityAudioSource = entity->AddComponent<AudioSource>();
 
-	as->SetSound(core->GetResources()->Load<Sound>("sounds/dixie_horn"));
+	entityAudioSource->SetSound(core->GetResources()->Load<Sound>("sounds/dixie_horn"));
+
+	std::shared_ptr<BoxCollider> entityBoxCollider = entity->AddComponent<BoxCollider>();
+	entityBoxCollider->SetOffset(glm::vec3(0, 0.2f, 0.54f));
+	entityBoxCollider->SetSize(glm::vec3(3.2f, 1.7f, 8.4f));
+	entity->AddComponent<Rigidbody>();
+
+	std::shared_ptr<Entity> entity2 = core->AddEntity();
+	entity2->GetComponent<Transform>()->SetPosition(glm::vec3(0.0f, 0.0f, -10.f));
+	entity2->GetComponent<Transform>()->SetRotation(glm::vec3(0.0f, 90.0f, 0.f));
+
+	std::shared_ptr<ModelRenderer> entityModelRenderer2 = entity2->AddComponent<ModelRenderer>();
+
+	entityModelRenderer2->SetModel(core->GetResources()->Load<Model>("curuthers/curuthers"));
+	entityModelRenderer2->SetTexture(core->GetResources()->Load<Texture>("curuthers/Whiskers_diffuse"));
+
+	std::shared_ptr<BoxCollider> entityBoxCollider2 = entity2->AddComponent<BoxCollider>();
 
 	core->Run();
 }

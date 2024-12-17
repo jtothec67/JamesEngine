@@ -5,10 +5,10 @@
 namespace JamesEngine
 {
 
-	class BoxCollider : Component
+	class BoxCollider : public Component
 	{
 	public:
-		bool IsColliding(const BoxCollider& _other);
+		bool IsColliding(std::shared_ptr<BoxCollider> _other);
 
 		void SetSize(glm::vec3 _size) { mSize = _size; }
 		void SetOffset(glm::vec3 _offset) { mOffset = _offset; }

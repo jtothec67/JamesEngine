@@ -14,5 +14,7 @@
 #include "Input.h"
 #include "Keyboard.h"
 #include "AudioSource.h"
+#include "BoxCollider.h"
+#include "Rigidbody.h"
 
 #endif
