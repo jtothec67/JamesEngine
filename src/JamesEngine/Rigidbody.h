@@ -7,7 +7,11 @@ namespace JamesEngine
 
 	class Rigidbody : public Component
 	{
+	public:
 		void OnTick();
+
+	private:
+
 	};
 
 }
