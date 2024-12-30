@@ -54,7 +54,7 @@ namespace JamesEngine
 
 		mShader->mShader->uniform("u_LightPos", glm::vec3(0.f, 0.f, 0.f));
 
-		mShader->mShader->uniform("u_Ambient", glm::vec3(1.f, 1.f, 1.f));
+		mShader->mShader->uniform("u_Ambient", glm::vec3(0.1f, 0.1f, 0.1f));
 
 		mShader->mShader->uniform("u_LightStrength", 1.f);
 

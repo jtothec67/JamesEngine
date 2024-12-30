@@ -2,6 +2,7 @@
 
 #include "Window.h"
 #include "Audio.h"
+#include "Timer.h"
 
 #include <memory>
 #include <vector>
@@ -24,6 +25,8 @@ namespace JamesEngine
 		std::shared_ptr<Window> GetWindow() const { return mWindow; }
 		std::shared_ptr<Input> GetInput() const { return mInput; }
 		std::shared_ptr<Resources> GetResources() const { return mResources; }
+
+		float DeltaTime() { return mDeltaTime; }
 
 		template <typename T>
 		void FindComponents(std::vector<std::shared_ptr<T>>& _out)
@@ -51,6 +54,9 @@ namespace JamesEngine
 		std::shared_ptr<Resources> mResources;
 		std::vector<std::shared_ptr<Entity>> mEntities;
 		std::weak_ptr<Core> mSelf;
+
+		Timer mDeltaTimer;
+		float mDeltaTime = 0.0f;
 	};
 
 }

@@ -25,6 +25,11 @@ namespace JamesEngine
 	{
 		while (true)
 		{
+			mDeltaTime = mDeltaTimer.Stop();
+			mDeltaTimer.Start();
+
+			//std::cout << 1.f / mDeltaTime << std::endl;
+
 			mInput->Update();
 			
 			SDL_Event event = {};

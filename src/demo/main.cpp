@@ -14,9 +14,12 @@ public:
 
 	void OnTick()
 	{
+		float deltaTime = GetEntity()->GetCore()->DeltaTime();
+		float speed = 4.f;
+
 		if (GetKeyboard()->IsKey(SDLK_a))
 		{
-			SetPosition(GetPosition() + glm::vec3(-0.1f, 0.f, 0.f));
+			SetPosition(GetPosition() + glm::vec3(-speed * deltaTime, 0.f, 0.f));
 		}
 
 		if (GetMouse()->IsButtonDown(SDL_BUTTON_LEFT))
@@ -31,17 +34,17 @@ public:
 
 		if (GetKeyboard()->IsKey(SDLK_d))
 		{
-			SetPosition(GetPosition() + glm::vec3(0.1f, 0.f, 0.f));
+			SetPosition(GetPosition() + glm::vec3(speed * deltaTime, 0.f, 0.f));
 		}
 
 		if (GetKeyboard()->IsKey(SDLK_w))
 		{
-			SetPosition(GetPosition() + glm::vec3(0.f, 0.1f, 0.f));
+			SetPosition(GetPosition() + glm::vec3(0.f, speed * deltaTime, 0.f));
 		}
 
 		if (GetKeyboard()->IsKey(SDLK_s))
 		{
-			SetPosition(GetPosition() + glm::vec3(0.f, -0.1f, 0.f));
+			SetPosition(GetPosition() + glm::vec3(0.f, -speed * deltaTime, 0.f));
 		}
 	}
 };

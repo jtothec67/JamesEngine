@@ -74,6 +74,9 @@ add_library(JamesEngine
 
 	src/JamesEngine/Rigidbody.h
 	src/JamesEngine/Rigidbody.cpp
+
+	src/JamesEngine/Timer.h
+	src/JamesEngine/Timer.cpp
 )
 
 target_link_libraries(JamesEngine Renderer openal32)

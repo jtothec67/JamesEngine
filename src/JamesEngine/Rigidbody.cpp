@@ -29,8 +29,8 @@ namespace JamesEngine
 			if (boxCollider->IsColliding(GetEntity()->GetComponent<BoxCollider>()))
 			{
 				// Kludge (*vomit emoji*)
-				float amount = 0.1f;
-				float step = 0.1f;
+				float amount = 0.001f;
+				float step = 0.001f;
 				while (true)
 				{
 					if (!boxCollider->IsColliding(GetEntity()->GetComponent<BoxCollider>())) 
