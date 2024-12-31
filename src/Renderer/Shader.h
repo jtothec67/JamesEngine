@@ -34,6 +34,7 @@ namespace Renderer
 		void drawSkybox(Mesh& _skyboxMesh, Texture& _tex);
 		void drawSkybox(Mesh* _skyboxMesh, Texture* _tex);
 		void drawText(Mesh& _mesh, Font& _font, const std::string& _text, float _x, float _y, float _scale);
+		void drawOutline(Model* _model);
 
 	private:
 		GLuint m_id = 0;

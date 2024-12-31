@@ -2,12 +2,22 @@
 
 #include "Component.h"
 
+#ifdef _DEBUG
+
+#include "Renderer/Model.h"
+#include "Renderer/Shader.h"
+
+#endif // _DEBUG
+
+
 namespace JamesEngine
 {
 
 	class BoxCollider : public Component
 	{
 	public:
+		void OnRender();
+
 		bool IsColliding(std::shared_ptr<BoxCollider> _other);
 
 		void SetSize(glm::vec3 _size) { mSize = _size; }
@@ -16,6 +26,13 @@ namespace JamesEngine
 	private:
 		glm::vec3 mSize{ 1 };
 		glm::vec3 mOffset{ 0 };
+
+#ifdef _DEBUG
+
+		std::shared_ptr<Renderer::Model> mModel = std::make_shared<Renderer::Model>("../assets/shapes/cube.obj");
+		std::shared_ptr<Renderer::Shader> mShader = std::make_shared<Renderer::Shader>("../assets/shaders/OutlineShader.vert","../assets/shaders/OutlineShader.frag");
+
+#endif // _DEBUG
 	};
 
 }

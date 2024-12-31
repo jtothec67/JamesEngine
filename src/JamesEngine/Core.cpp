@@ -23,12 +23,10 @@ namespace JamesEngine
 
 	void Core::Run()
 	{
-		while (true)
+		while (mIsRunning)
 		{
 			mDeltaTime = mDeltaTimer.Stop();
 			mDeltaTimer.Start();
-
-			//std::cout << 1.f / mDeltaTime << std::endl;
 
 			mInput->Update();
 			
@@ -37,7 +35,7 @@ namespace JamesEngine
 			{
 				if (event.type == SDL_QUIT)
 				{
-					return;
+					mIsRunning = false;
 				}
 				else
 				{

@@ -346,4 +346,13 @@ namespace Renderer
 		glBindTexture(GL_TEXTURE_2D, 0);
 		glUseProgram(0);
 	}
+
+	void Shader::drawOutline(Model* _model)
+	{
+		glUseProgram(id());
+		glBindVertexArray(_model->vao_id());
+		glDrawArrays(GL_LINE_LOOP, 0, _model->vertex_count());
+		glBindVertexArray(0);
+		glUseProgram(0);
+	}
 }

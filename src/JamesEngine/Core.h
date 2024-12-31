@@ -26,6 +26,18 @@ namespace JamesEngine
 		std::shared_ptr<Input> GetInput() const { return mInput; }
 		std::shared_ptr<Resources> GetResources() const { return mResources; }
 
+		void SetLightPosition(glm::vec3 _pos) { mLightPos = _pos; }
+		glm::vec3 GetLightPosition() { return mLightPos; }
+
+		void SetLightColor(glm::vec3 _color) { mLightColor = _color; }
+		glm::vec3 GetLightColor() { return mLightColor; }
+
+		void SetAmbient(glm::vec3 _ambient) { mAmbient = _ambient; }
+		glm::vec3 GetAmbient() { return mAmbient; }
+
+		void SetLightStrength(float _strength) { mLightStrength = _strength; }
+		float GetLightStrength() { return mLightStrength; }
+
 		float DeltaTime() { return mDeltaTime; }
 
 		template <typename T>
@@ -57,6 +69,13 @@ namespace JamesEngine
 
 		Timer mDeltaTimer;
 		float mDeltaTime = 0.0f;
+
+		bool mIsRunning = true;
+
+		glm::vec3 mLightPos = glm::vec3(0.f, 0.f, 0.f);
+		glm::vec3 mLightColor = glm::vec3(1.f, 1.f, 1.f);
+		glm::vec3 mAmbient = glm::vec3(0.1f, 0.1f, 0.1f);
+		float mLightStrength = 1.f;
 	};
 
 }

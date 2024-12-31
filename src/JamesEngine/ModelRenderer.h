@@ -17,6 +17,8 @@ namespace JamesEngine
 		void SetTexture(std::shared_ptr<Texture> _texture) { mTexture = _texture; }
 		void SetShader(std::shared_ptr<Shader> _shader) { mShader = _shader; }
 
+		void SetSpecularStrength(float _strength) { mSpecularStrength = _strength; }
+
 		void OnInitialize();
 		void OnRender();
 
@@ -24,6 +26,8 @@ namespace JamesEngine
 		std::shared_ptr<Model> mModel = nullptr;
 		std::shared_ptr<Texture> mTexture = nullptr;
 		std::shared_ptr<Shader> mShader;
+
+		float mSpecularStrength = 1.f;
 	};
 
 }

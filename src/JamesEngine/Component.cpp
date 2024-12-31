@@ -44,6 +44,16 @@ namespace JamesEngine
 		GetTransform()->SetPosition(_position);
 	}
 
+	glm::vec3 Component::GetRotation()
+	{
+		return GetTransform()->GetRotation();
+	}
+
+	void Component::SetRotation(glm::vec3 _rotation)
+	{
+		GetTransform()->SetRotation(_rotation);
+	}
+
 	void Component::Tick()
 	{
 		OnTick();

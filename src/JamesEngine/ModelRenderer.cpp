@@ -32,8 +32,10 @@ namespace JamesEngine
 		if (!mTexture)
 			return;
 
+		std::shared_ptr<Core> core = GetEntity()->GetCore();
+
 		int winWidth, winHeight;
-		GetEntity()->GetCore()->GetWindow()->GetWindowSize(winWidth, winHeight);
+		core->GetWindow()->GetWindowSize(winWidth, winHeight);
 		glm::mat4 projection = glm::perspective(glm::radians(45.f), (float)winWidth / (float)winHeight, 0.1f, 100.f);
 		mShader->mShader->uniform("u_Projection", projection);
 
@@ -50,13 +52,15 @@ namespace JamesEngine
 		
 		mShader->mShader->uniform("u_Model", transform->GetModel());
 
-		mShader->mShader->uniform("u_IsSpecular", false);
+		mShader->mShader->uniform("u_LightPos", core->GetLightPosition());
 
-		mShader->mShader->uniform("u_LightPos", glm::vec3(0.f, 0.f, 0.f));
+		mShader->mShader->uniform("u_LightStrength", core->GetLightStrength());
 
-		mShader->mShader->uniform("u_Ambient", glm::vec3(0.1f, 0.1f, 0.1f));
+		mShader->mShader->uniform("u_LightColor", core->GetLightColor());
 
-		mShader->mShader->uniform("u_LightStrength", 1.f);
+		mShader->mShader->uniform("u_Ambient", core->GetAmbient());
+
+		mShader->mShader->uniform("u_SpecStrength", mSpecularStrength);
 
 		mShader->mShader->draw(mModel->mModel.get(), mTexture->mTexture.get());
 	}

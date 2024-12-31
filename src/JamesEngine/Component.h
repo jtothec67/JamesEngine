@@ -23,6 +23,8 @@ namespace JamesEngine
 		std::shared_ptr<Transform> GetTransform();
 		glm::vec3 GetPosition();
 		void SetPosition(glm::vec3 _position);
+		glm::vec3 GetRotation();
+		void SetRotation(glm::vec3 _rotation);
 
 		virtual void OnInitialize() { }
 		virtual void OnTick() { }
