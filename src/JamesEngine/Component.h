@@ -25,6 +25,10 @@ namespace JamesEngine
 		void SetPosition(glm::vec3 _position);
 		glm::vec3 GetRotation();
 		void SetRotation(glm::vec3 _rotation);
+		glm::vec3 GetScale();
+		void SetScale(glm::vec3 _scale);
+		void Move(glm::vec3 _amount);
+		void Rotate(glm::vec3 _amount);
 
 		virtual void OnInitialize() { }
 		virtual void OnTick() { }

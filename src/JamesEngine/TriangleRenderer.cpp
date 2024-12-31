@@ -2,6 +2,7 @@
 #include "Entity.h"
 #include "Transform.h"
 #include "Core.h"
+#include "Camera.h"
 
 namespace JamesEngine
 {
@@ -21,30 +22,23 @@ namespace JamesEngine
 
 	void TriangleRenderer::OnRender()
 	{
-		int winWidth, winHeight;
-		GetEntity()->GetCore().get()->GetWindow()->GetWindowSize(winWidth, winHeight);
-		glm::mat4 projection = glm::perspective(glm::radians(45.f), (float)winWidth / (float)winHeight, 0.1f, 100.f);
-		mShader->uniform("u_Projection", projection);
+		std::shared_ptr<Camera> camera = GetEntity()->GetCore()->FindComponent<Camera>();
 
-		glm::mat4 view(1.0f);
-		view = glm::translate(view,glm::vec3(0.f, 0.f, 0.f));
-		view = glm::rotate(view, glm::radians(0.f), glm::vec3(0, 1, 0));
-		view = glm::rotate(view, glm::radians(0.f), glm::vec3(1, 0, 0));
-		view = glm::rotate(view, glm::radians(0.f), glm::vec3(0, 0, 1));
-		view = glm::inverse(view);
-		mShader->uniform("u_View", view);
+		if (!camera)
+		{
+			std::cout << "No entity with a camera component found" << std::endl;
+			throw std::exception();
+		}
+
+		mShader->uniform("u_Projection", camera->GetProjectionMatrix());
+
+		mShader->uniform("u_View", camera->GetViewMatrix());
 
 		Transform* transform = GetEntity()->GetComponent<Transform>().get();
 
 		mShader->uniform("u_Model", transform->GetModel());
 
-		mShader->uniform("u_LightPos", glm::vec3(0.f, 0.f, 0.f));
-
 		mShader->uniform("u_Ambient", glm::vec3(1.f, 1.f, 1.f));
-
-		mShader->uniform("u_LightStrength", 1.f);
-
-		mShader->uniform("u_SpecStrength", 0.f);
 
 		mShader->draw(mMesh.get(), mTexture.get());
 	}

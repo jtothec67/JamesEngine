@@ -77,6 +77,9 @@ add_library(JamesEngine
 
 	src/JamesEngine/Timer.h
 	src/JamesEngine/Timer.cpp
+
+	src/JamesEngine/Camera.h
+	src/JamesEngine/Camera.cpp
 )
 
 target_link_libraries(JamesEngine Renderer openal32)

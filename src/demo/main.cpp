@@ -4,9 +4,8 @@
 
 using namespace JamesEngine;
 
-class Player : public Component
+struct Player : public Component
 {
-public:
 	void OnInitialize()
 	{
 		
@@ -16,11 +15,6 @@ public:
 	{
 		float deltaTime = GetEntity()->GetCore()->DeltaTime();
 		float speed = 4.f;
-
-		if (GetKeyboard()->IsKey(SDLK_a))
-		{
-			SetPosition(GetPosition() + glm::vec3(-speed * deltaTime, 0.f, 0.f));
-		}
 
 		if (GetMouse()->IsButtonDown(SDL_BUTTON_LEFT))
 		{
@@ -32,27 +26,76 @@ public:
 			std::cout << "Mouse y: " << GetMouse()->GetYPosition() << std::endl;
 		}
 
+		if (GetKeyboard()->IsKey(SDLK_a))
+		{
+			Move(glm::vec3(-speed * deltaTime, 0.f, 0.f));
+		}
+
 		if (GetKeyboard()->IsKey(SDLK_d))
 		{
-			SetPosition(GetPosition() + glm::vec3(speed * deltaTime, 0.f, 0.f));
+			Move(glm::vec3(speed * deltaTime, 0.f, 0.f));
 		}
 
 		if (GetKeyboard()->IsKey(SDLK_w))
 		{
-			SetPosition(GetPosition() + glm::vec3(0.f, speed * deltaTime, 0.f));
+			Move(glm::vec3(0.f, speed * deltaTime, 0.f));
 		}
 
 		if (GetKeyboard()->IsKey(SDLK_s))
 		{
-			SetPosition(GetPosition() + glm::vec3(0.f, -speed * deltaTime, 0.f));
+			Move(glm::vec3(0.f, -speed * deltaTime, 0.f));
 		}
 	}
 };
+
+struct CameraController : public Component
+{
+	void OnTick()
+	{
+		float deltaTime = GetEntity()->GetCore()->DeltaTime();
+		float speed = 4.f;
+
+		if (GetKeyboard()->IsKey(SDLK_LEFT))
+		{
+			Move(glm::vec3(-speed * deltaTime, 0.f, 0.f));
+		}
+
+		if (GetKeyboard()->IsKey(SDLK_RIGHT))
+		{
+			Move(glm::vec3(speed * deltaTime, 0.f, 0.f));
+		}
+
+		if (GetKeyboard()->IsKey(SDLK_UP))
+		{
+			Move(glm::vec3(0.f, 0.f, -speed * deltaTime));
+		}
+
+		if (GetKeyboard()->IsKey(SDLK_DOWN))
+		{
+			Move(glm::vec3(0.f, 0.f, speed * deltaTime));
+		}
+
+		if (GetKeyboard()->IsKey(SDLK_q))
+		{
+			Move(glm::vec3(0.f, -speed * deltaTime, 0.f));
+		}
+
+		if (GetKeyboard()->IsKey(SDLK_e))
+		{
+			Move(glm::vec3(0.f, speed * deltaTime, 0.f));
+		}
+	}
+};
+
 
 #undef main
 int main()
 {
 	std::shared_ptr<Core> core = Core::Initialize(glm::ivec2(800,600));
+
+	std::shared_ptr<Entity> camera = core->AddEntity();
+	camera->AddComponent<Camera>();
+	camera->AddComponent<CameraController>();
 
 	std::shared_ptr<Entity> player = core->AddEntity();
 

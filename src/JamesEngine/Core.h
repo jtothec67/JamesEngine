@@ -59,6 +59,27 @@ namespace JamesEngine
 			}
 		}
 
+		template <typename T>
+		std::shared_ptr<T> FindComponent()
+		{
+			for (size_t ei = 0; ei < mEntities.size(); ++ei)
+			{
+				std::shared_ptr<Entity> e = mEntities.at(ei);
+				for (size_t ci = 0; ci < e->mComponents.size(); ++ci)
+				{
+					std::shared_ptr<Component> c = e->mComponents.at(ci);
+					std::shared_ptr<T> t = std::dynamic_pointer_cast<T>(c);
+
+					if (t)
+					{
+						return t;
+					}
+				}
+			}
+
+			return nullptr;
+		}
+
 	private:
 		std::shared_ptr<Window> mWindow;
 		std::shared_ptr<Audio> mAudio;

@@ -54,6 +54,26 @@ namespace JamesEngine
 		GetTransform()->SetRotation(_rotation);
 	}
 
+	glm::vec3 Component::GetScale()
+	{
+		return GetTransform()->GetScale();
+	}
+
+	void Component::SetScale(glm::vec3 _scale)
+	{
+		GetTransform()->SetScale(_scale);
+	}
+
+	void Component::Move(glm::vec3 _amount)
+	{
+		GetTransform()->Move(_amount);
+	}
+
+	void Component::Rotate(glm::vec3 _amount)
+	{
+		GetTransform()->Rotate(_amount);
+	}
+
 	void Component::Tick()
 	{
 		OnTick();
