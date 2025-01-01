@@ -36,13 +36,7 @@ namespace JamesEngine
 
 		std::shared_ptr<Core> core = GetEntity()->GetCore();
 
-		std::shared_ptr<Camera> camera = core->FindComponent<Camera>();
-
-		if (!camera)
-		{
-			std::cout << "No entity with a camera component found" << std::endl;
-			throw std::exception();
-		}
+		std::shared_ptr<Camera> camera = core->GetCamera();
 
 		mShader->mShader->uniform("u_Projection", camera->GetProjectionMatrix());
 

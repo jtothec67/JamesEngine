@@ -22,13 +22,7 @@ namespace JamesEngine
 
 	void TriangleRenderer::OnRender()
 	{
-		std::shared_ptr<Camera> camera = GetEntity()->GetCore()->FindComponent<Camera>();
-
-		if (!camera)
-		{
-			std::cout << "No entity with a camera component found" << std::endl;
-			throw std::exception();
-		}
+		std::shared_ptr<Camera> camera = GetEntity()->GetCore()->GetCamera();
 
 		mShader->uniform("u_Projection", camera->GetProjectionMatrix());
 

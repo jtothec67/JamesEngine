@@ -13,6 +13,7 @@ namespace JamesEngine
 	class Input;
 	class Entity;
 	class Resources;
+	class Camera;
 
 	class Core
 	{
@@ -40,6 +41,8 @@ namespace JamesEngine
 
 		float DeltaTime() { return mDeltaTime; }
 
+		std::shared_ptr<Camera> GetCamera();
+
 		template <typename T>
 		void FindComponents(std::vector<std::shared_ptr<T>>& _out)
 		{
@@ -59,6 +62,7 @@ namespace JamesEngine
 			}
 		}
 
+		// Returns the first component of type T found in the entities (useful if you know only one exists)
 		template <typename T>
 		std::shared_ptr<T> FindComponent()
 		{

@@ -3,6 +3,7 @@
 #include "Transform.h"
 #include "Resources.h"
 #include "Input.h"
+#include "Camera.h"
 
 #include <iostream>
 
@@ -69,6 +70,31 @@ namespace JamesEngine
 		rtn->mCore = mSelf;
 
 		mEntities.push_back(rtn);
+
+		return rtn;
+	}
+
+	// Returns the camera with the highest priority, if both have the same priority, the first one found is returned
+	std::shared_ptr<Camera> Core::GetCamera()
+	{
+		std::vector<std::shared_ptr<Camera>> cameras;
+		FindComponents(cameras);
+
+		if (cameras.size() == 0)
+		{
+			std::cout << "No entity with a camera component found" << std::endl;
+			throw std::exception();
+			return nullptr;
+		}
+		
+		std::shared_ptr<Camera> rtn = cameras[0];
+		for (size_t i = 1; i < cameras.size(); ++i)
+		{
+			if (cameras[i]->GetPriority() > rtn->GetPriority())
+			{
+				rtn = cameras[i];
+			}
+		}
 
 		return rtn;
 	}

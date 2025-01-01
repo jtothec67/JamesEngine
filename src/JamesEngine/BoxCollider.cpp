@@ -21,13 +21,7 @@ namespace JamesEngine
 	{
 #ifdef _DEBUG
 
-		std::shared_ptr<Camera> camera = GetEntity()->GetCore()->FindComponent<Camera>();
-
-		if (!camera)
-		{
-			std::cout << "No entity with a camera component found" << std::endl;
-			throw std::exception();
-		}
+		std::shared_ptr<Camera> camera = GetEntity()->GetCore()->GetCamera();
 
 		mShader->uniform("projection", camera->GetProjectionMatrix());
 
@@ -38,6 +32,8 @@ namespace JamesEngine
 		mModelMatrix = glm::scale(mModelMatrix, glm::vec3(mSize.x/2, mSize.y/2, mSize.z/2));
 
 		mShader->uniform("model", mModelMatrix);
+
+		mShader->uniform("outlineWidth", 1.f);
 
 		glDisable(GL_DEPTH_TEST);
 
