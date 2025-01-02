@@ -16,7 +16,9 @@ namespace JamesEngine
 	class BoxCollider : public Component
 	{
 	public:
+#ifdef _DEBUG
 		void OnRender();
+#endif // _DEBUG
 
 		bool IsColliding(std::shared_ptr<BoxCollider> _other);
 

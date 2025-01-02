@@ -17,10 +17,9 @@
 namespace JamesEngine
 {
 
+#ifdef _DEBUG
 	void BoxCollider::OnRender()
 	{
-#ifdef _DEBUG
-
 		std::shared_ptr<Camera> camera = GetEntity()->GetCore()->GetCamera();
 
 		mShader->uniform("projection", camera->GetProjectionMatrix());
@@ -35,15 +34,15 @@ namespace JamesEngine
 
 		mShader->uniform("outlineWidth", 1.f);
 
+		mShader->uniform("outlineColor", glm::vec3(0, 1, 0));
+
 		glDisable(GL_DEPTH_TEST);
 
 		mShader->drawOutline(mModel.get());
 
 		glEnable(GL_DEPTH_TEST);
-		
-
-#endif // _DEBUG
 	}
+#endif // _DEBUG
 
 	bool BoxCollider::IsColliding(std::shared_ptr<BoxCollider> _other)
 	{

@@ -74,7 +74,7 @@ namespace JamesEngine
 		return rtn;
 	}
 
-	// Returns the camera with the highest priority, if both have the same priority, the first one found is returned
+	// Returns the camera with the highest priority, if both have the same priority the first one found is returned
 	std::shared_ptr<Camera> Core::GetCamera()
 	{
 		std::vector<std::shared_ptr<Camera>> cameras;

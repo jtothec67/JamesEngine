@@ -21,7 +21,7 @@ namespace JamesEngine
 	private:
 		float mFov = 60.f;
 		float mNearClip = 0.1f;
-		float mFarClip = 100.f;
+		float mFarClip = 200.f;
 
 		// Higher priotity, more important
 		float mPriority = 1.f;

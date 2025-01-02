@@ -14,7 +14,7 @@ struct Player : public Component
 	void OnTick()
 	{
 		float deltaTime = GetEntity()->GetCore()->DeltaTime();
-		float speed = 4.f;
+		float speed = 40.f;
 
 		if (GetMouse()->IsButtonDown(SDL_BUTTON_LEFT))
 		{
@@ -53,16 +53,16 @@ struct CameraController : public Component
 	void OnTick()
 	{
 		float deltaTime = GetEntity()->GetCore()->DeltaTime();
-		float speed = 4.f;
+		float speed = 40.f;
 
 		if (GetKeyboard()->IsKey(SDLK_LEFT))
 		{
-			Move(glm::vec3(-speed * deltaTime, 0.f, 0.f));
+			Rotate(glm::vec3(0.f, speed * deltaTime, 0.f));
 		}
 
 		if (GetKeyboard()->IsKey(SDLK_RIGHT))
 		{
-			Move(glm::vec3(speed * deltaTime, 0.f, 0.f));
+			Rotate(glm::vec3(0.f, -speed * deltaTime, 0.f));
 		}
 
 		if (GetKeyboard()->IsKey(SDLK_UP))
@@ -120,7 +120,7 @@ int main()
 	entityModelRenderer->SetModel(core->GetResources()->Load<Model>("models/car/formula_car"));
 	entityModelRenderer->SetTexture(core->GetResources()->Load<Texture>("models/car/car_02_m"));
 	std::shared_ptr<AudioSource> entityAudioSource = player->AddComponent<AudioSource>();
-	entityAudioSource->SetSound(core->GetResources()->Load<Sound>("sounds/dixie_horn"));
+	entityAudioSource->SetSound(core->GetResources()->Load<Sound>("sounds/dixie_horn_mono"));
 	std::shared_ptr<BoxCollider> entityBoxCollider = player->AddComponent<BoxCollider>();
 	entityBoxCollider->SetOffset(glm::vec3(0, 0.2f, 0.54f));
 	entityBoxCollider->SetSize(glm::vec3(3.2f, 1.7f, 8.4f));
