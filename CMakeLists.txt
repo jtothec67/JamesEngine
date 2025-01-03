@@ -80,6 +80,9 @@ add_library(JamesEngine
 
 	src/JamesEngine/Camera.h
 	src/JamesEngine/Camera.cpp
+
+	src/JamesEngine/GUI.h
+	src/JamesEngine/GUI.cpp
 )
 
 target_link_libraries(JamesEngine Renderer openal32)

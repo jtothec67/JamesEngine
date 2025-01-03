@@ -29,6 +29,11 @@ namespace JamesEngine
 		return GetEntity()->GetCore()->GetInput()->GetMouse();
 	}
 
+	std::shared_ptr<GUI> Component::GetGUI()
+	{
+		return GetEntity()->GetCore()->GetGUI();
+	}
+
 	std::shared_ptr<Transform> Component::GetTransform()
 	{
 		return GetEntity()->GetComponent<Transform>();
@@ -82,6 +87,11 @@ namespace JamesEngine
 	void Component::Render()
 	{
 		OnRender();
+	}
+
+	void Component::GUI()
+	{
+		OnGUI();
 	}
 
 }

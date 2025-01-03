@@ -1,9 +1,11 @@
 #include "Core.h"
+
 #include "Entity.h"
 #include "Transform.h"
 #include "Resources.h"
 #include "Input.h"
 #include "Camera.h"
+#include "Timer.h"
 
 #include <iostream>
 
@@ -16,6 +18,7 @@ namespace JamesEngine
 		rtn->mWindow = std::make_shared<Window>(_windowSize.x, _windowSize.y);
 		rtn->mAudio = std::make_shared<Audio>();
 		rtn->mResources = std::make_shared<Resources>();
+		rtn->mGUI = std::make_shared<GUI>(rtn);
 		rtn->mInput = std::make_shared<Input>();
 		rtn->mSelf = rtn;
 
@@ -24,10 +27,14 @@ namespace JamesEngine
 
 	void Core::Run()
 	{
+		Timer mDeltaTimer;
+
 		while (mIsRunning)
 		{
 			mDeltaTime = mDeltaTimer.Stop();
 			mDeltaTimer.Start();
+
+			std::cout << "FPS: " << 1.0f / mDeltaTime << std::endl;
 
 			mInput->Update();
 			
@@ -57,6 +64,15 @@ namespace JamesEngine
 			{
 				mEntities[ei]->OnRender();
 			}
+
+			glDisable(GL_DEPTH_TEST);
+
+			for (size_t ei = 0; ei < mEntities.size(); ++ei)
+			{
+				mEntities[ei]->OnGUI();
+			}
+
+			glEnable(GL_DEPTH_TEST);
 
 			mWindow->SwapWindows();
 		}

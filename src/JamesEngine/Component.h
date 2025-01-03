@@ -11,6 +11,7 @@ namespace JamesEngine
 	class Input;
 	class Keyboard;
 	class Mouse;
+	class GUI;
 	class Transform;
 
 	class Component
@@ -20,7 +21,9 @@ namespace JamesEngine
 		std::shared_ptr<Input> GetInput();
 		std::shared_ptr<Keyboard> GetKeyboard();
 		std::shared_ptr<Mouse> GetMouse();
+		std::shared_ptr<GUI> GetGUI();
 		std::shared_ptr<Transform> GetTransform();
+
 		glm::vec3 GetPosition();
 		void SetPosition(glm::vec3 _position);
 		glm::vec3 GetRotation();
@@ -33,6 +36,7 @@ namespace JamesEngine
 		virtual void OnInitialize() { }
 		virtual void OnTick() { }
 		virtual void OnRender() { }
+		virtual void OnGUI() { }
 
 	private:
 		friend class JamesEngine::Entity;
@@ -41,5 +45,6 @@ namespace JamesEngine
 
 		void Tick();
 		void Render();
+		void GUI();
 	};
 }

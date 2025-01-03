@@ -17,5 +17,6 @@
 #include "BoxCollider.h"
 #include "Rigidbody.h"
 #include "Camera.h"
+#include "GUI.h"
 
 #endif

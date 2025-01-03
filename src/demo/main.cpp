@@ -46,6 +46,19 @@ struct Player : public Component
 			Move(glm::vec3(0.f, -speed * deltaTime, 0.f));
 		}
 	}
+
+	void OnGUI()
+	{
+		int buttonAction = GetGUI()->Button(glm::vec2(0, 0), glm::vec2(100, 100), GetEntity()->GetCore()->GetResources()->Load<Texture>("models/car/car_02_m"));
+		if (buttonAction == 1)
+		{
+			std::cout << "Mouse over button" << std::endl;
+		}
+		else if (buttonAction == 2)
+		{
+			std::cout << "Button clicked" << std::endl;
+		}
+	}
 };
 
 struct CameraController : public Component

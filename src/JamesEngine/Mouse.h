@@ -16,6 +16,7 @@ namespace JamesEngine
 		int GetXPosition() { return mXpos; }
 		int GetYPosition() { return mYpos; }
 
+		glm::ivec2 GetPosition() { return glm::vec2(mXpos, mYpos); }
 		glm::ivec2 GetDelta() { return mDelta; }
 
 	private:

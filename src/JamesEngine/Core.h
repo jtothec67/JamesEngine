@@ -2,7 +2,7 @@
 
 #include "Window.h"
 #include "Audio.h"
-#include "Timer.h"
+#include "GUI.h"
 
 #include <memory>
 #include <vector>
@@ -26,6 +26,7 @@ namespace JamesEngine
 		std::shared_ptr<Window> GetWindow() const { return mWindow; }
 		std::shared_ptr<Input> GetInput() const { return mInput; }
 		std::shared_ptr<Resources> GetResources() const { return mResources; }
+		std::shared_ptr<GUI> GetGUI() const { return mGUI; }
 
 		void SetLightPosition(glm::vec3 _pos) { mLightPos = _pos; }
 		glm::vec3 GetLightPosition() { return mLightPos; }
@@ -43,6 +44,7 @@ namespace JamesEngine
 
 		std::shared_ptr<Camera> GetCamera();
 
+		// Returns all components of type T found in the entities
 		template <typename T>
 		void FindComponents(std::vector<std::shared_ptr<T>>& _out)
 		{
@@ -88,16 +90,16 @@ namespace JamesEngine
 		std::shared_ptr<Window> mWindow;
 		std::shared_ptr<Audio> mAudio;
 		std::shared_ptr<Input> mInput;
+		std::shared_ptr<GUI> mGUI;
 		std::shared_ptr<Resources> mResources;
 		std::vector<std::shared_ptr<Entity>> mEntities;
 		std::weak_ptr<Core> mSelf;
 
-		Timer mDeltaTimer;
 		float mDeltaTime = 0.0f;
 
 		bool mIsRunning = true;
 
-		glm::vec3 mLightPos = glm::vec3(0.f, 0.f, 0.f);
+		glm::vec3 mLightPos = glm::vec3(0.f, 20.f, 0.f);
 		glm::vec3 mLightColor = glm::vec3(1.f, 1.f, 1.f);
 		glm::vec3 mAmbient = glm::vec3(0.1f, 0.1f, 0.1f);
 		float mLightStrength = 1.f;

@@ -51,6 +51,7 @@ namespace JamesEngine
 
 		void OnTick();
 		void OnRender();
+		void OnGUI();
 	};
 
 }
