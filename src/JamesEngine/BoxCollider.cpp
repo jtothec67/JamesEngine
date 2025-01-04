@@ -9,7 +9,7 @@
 #include <glm/glm.hpp>
 #include <glm/ext/matrix_transform.hpp>
 
-#endif // _DEBUG
+#endif
 
 
 #include <iostream>
@@ -42,7 +42,7 @@ namespace JamesEngine
 
 		glEnable(GL_DEPTH_TEST);
 	}
-#endif // _DEBUG
+#endif
 
 	bool BoxCollider::IsColliding(std::shared_ptr<BoxCollider> _other)
 	{

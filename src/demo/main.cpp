@@ -26,22 +26,22 @@ struct Player : public Component
 			std::cout << "Mouse y: " << GetMouse()->GetYPosition() << std::endl;
 		}
 
-		if (GetKeyboard()->IsKey(SDLK_a))
+		if (GetKeyboard()->IsKey(SDLK_RIGHT	))
 		{
 			Move(glm::vec3(-speed * deltaTime, 0.f, 0.f));
 		}
 
-		if (GetKeyboard()->IsKey(SDLK_d))
+		if (GetKeyboard()->IsKey(SDLK_LEFT))
 		{
 			Move(glm::vec3(speed * deltaTime, 0.f, 0.f));
 		}
 
-		if (GetKeyboard()->IsKey(SDLK_w))
+		if (GetKeyboard()->IsKey(SDLK_UP))
 		{
 			Move(glm::vec3(0.f, speed * deltaTime, 0.f));
 		}
 
-		if (GetKeyboard()->IsKey(SDLK_s))
+		if (GetKeyboard()->IsKey(SDLK_DOWN))
 		{
 			Move(glm::vec3(0.f, -speed * deltaTime, 0.f));
 		}
@@ -49,15 +49,23 @@ struct Player : public Component
 
 	void OnGUI()
 	{
+		int width, height;
+		GetEntity()->GetCore()->GetWindow()->GetWindowSize(width, height);
+
+		GetGUI()->Image(glm::vec2(0, height - 100), glm::vec2(100, 100), GetEntity()->GetCore()->GetResources()->Load<Texture>("models/car/car_02_m"));
+
 		int buttonAction = GetGUI()->Button(glm::vec2(0, 0), glm::vec2(100, 100), GetEntity()->GetCore()->GetResources()->Load<Texture>("models/car/car_02_m"));
 		if (buttonAction == 1)
 		{
-			std::cout << "Mouse over button" << std::endl;
+			//std::cout << "Mouse over button" << std::endl;
+			GetGUI()->Button(glm::vec2(0, 0), glm::vec2(100, 100), GetEntity()->GetCore()->GetResources()->Load<Texture>("curuthers/Whiskers_diffuse"));
 		}
 		else if (buttonAction == 2)
 		{
 			std::cout << "Button clicked" << std::endl;
 		}
+
+		GetGUI()->Text(glm::vec2(0, height / 2), 0.5, glm::vec3(0.f, 0.f, 0.f), "Hello World", GetEntity()->GetCore()->GetResources()->Load<Font>("fonts/munro"));
 	}
 };
 
@@ -68,34 +76,34 @@ struct CameraController : public Component
 		float deltaTime = GetEntity()->GetCore()->DeltaTime();
 		float speed = 40.f;
 
-		if (GetKeyboard()->IsKey(SDLK_LEFT))
+		if (GetKeyboard()->IsKey(SDLK_a))
 		{
-			Rotate(glm::vec3(0.f, speed * deltaTime, 0.f));
+			Move(-GetTransform()->GetRight() * speed * deltaTime);
 		}
 
-		if (GetKeyboard()->IsKey(SDLK_RIGHT))
+		if (GetKeyboard()->IsKey(SDLK_d))
 		{
-			Rotate(glm::vec3(0.f, -speed * deltaTime, 0.f));
+			Move(GetTransform()->GetRight() * speed * deltaTime);
 		}
 
-		if (GetKeyboard()->IsKey(SDLK_UP))
+		if (GetKeyboard()->IsKey(SDLK_w))
 		{
-			Move(glm::vec3(0.f, 0.f, -speed * deltaTime));
+			Move(GetTransform()->GetForward() * speed * deltaTime);
 		}
 
-		if (GetKeyboard()->IsKey(SDLK_DOWN))
+		if (GetKeyboard()->IsKey(SDLK_s))
 		{
-			Move(glm::vec3(0.f, 0.f, speed * deltaTime));
+			Move(-GetTransform()->GetForward() * speed * deltaTime);
 		}
 
 		if (GetKeyboard()->IsKey(SDLK_q))
 		{
-			Move(glm::vec3(0.f, -speed * deltaTime, 0.f));
+			Rotate(glm::vec3(0.f, speed * deltaTime, 0.f));
 		}
 
 		if (GetKeyboard()->IsKey(SDLK_e))
 		{
-			Move(glm::vec3(0.f, speed * deltaTime, 0.f));
+			Rotate(glm::vec3(0.f, -speed * deltaTime, 0.f));
 		}
 
 		if (GetKeyboard()->IsKey(SDLK_p))
@@ -122,12 +130,12 @@ int main()
 
 	std::shared_ptr<Entity> camera2 = core->AddEntity();
 	camera2->AddComponent<Camera>();
-	camera2->GetComponent<Transform>()->SetPosition(glm::vec3(0.f, 0.f, -20.f));
+	camera2->GetComponent<Transform>()->SetPosition(glm::vec3(0.f, 0.f, 20.f));
 	camera2->GetComponent<Transform>()->SetRotation(glm::vec3(0.f, 180.f, 0.f));
 
 	std::shared_ptr<Entity> player = core->AddEntity();
-	player->GetComponent<Transform>()->SetPosition(glm::vec3(-5.f, 0.f, -10.f));
-	player->GetComponent<Transform>()->SetRotation(glm::vec3(0.f, 0.f, 0.f));
+	player->GetComponent<Transform>()->SetPosition(glm::vec3(-5.f, 0.f, 10.f));
+	player->GetComponent<Transform>()->SetRotation(glm::vec3(0.f, 180.f, 0.f));
 	player->AddComponent<Player>();
 	std::shared_ptr<ModelRenderer> entityModelRenderer = player->AddComponent<ModelRenderer>();
 	entityModelRenderer->SetModel(core->GetResources()->Load<Model>("models/car/formula_car"));
@@ -139,7 +147,7 @@ int main()
 	entityBoxCollider->SetSize(glm::vec3(3.2f, 1.7f, 8.4f));
 
 	std::shared_ptr<Entity> cat = core->AddEntity();
-	cat->GetComponent<Transform>()->SetPosition(glm::vec3(0.f, 0.f, -10.f));
+	cat->GetComponent<Transform>()->SetPosition(glm::vec3(0.f, 0.f, 10.f));
 	cat->GetComponent<Transform>()->SetRotation(glm::vec3(0.f, 90.f, 0.f));
 	cat->AddComponent<Rigidbody>();
 	std::shared_ptr<ModelRenderer> entityModelRenderer2 = cat->AddComponent<ModelRenderer>();

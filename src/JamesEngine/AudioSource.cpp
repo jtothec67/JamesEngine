@@ -10,7 +10,7 @@
 #include <glm/glm.hpp>
 #include <glm/ext/matrix_transform.hpp>
 
-#endif // _DEBUG
+#endif
 
 namespace JamesEngine
 {
@@ -64,11 +64,7 @@ namespace JamesEngine
 
 		mShader->uniform("outlineColor", glm::vec3(0, 0, 1));
 
-		glDisable(GL_DEPTH_TEST);
-
 		mShader->drawOutline(mModel.get());
-
-		glEnable(GL_DEPTH_TEST);
 
 
 		glm::mat4 mModelMatrix2 = glm::mat4(1.f);
@@ -77,13 +73,10 @@ namespace JamesEngine
 
 		mShader->uniform("model", mModelMatrix2);
 
-		glDisable(GL_DEPTH_TEST);
 
 		mShader->drawOutline(mModel.get());
-
-		glEnable(GL_DEPTH_TEST);
 	}
-#endif // _DEBUG
+#endif
 
 	bool AudioSource::IsPlaying()
 	{

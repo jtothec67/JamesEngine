@@ -7,7 +7,7 @@
 #include "Renderer/Model.h"
 #include "Renderer/Shader.h"
 
-#endif // _DEBUG
+#endif
 
 
 namespace JamesEngine
@@ -18,7 +18,7 @@ namespace JamesEngine
 	public:
 #ifdef _DEBUG
 		void OnRender();
-#endif // _DEBUG
+#endif
 
 		bool IsColliding(std::shared_ptr<BoxCollider> _other);
 
@@ -34,7 +34,7 @@ namespace JamesEngine
 		std::shared_ptr<Renderer::Model> mModel = std::make_shared<Renderer::Model>("../assets/shapes/cube.obj");
 		std::shared_ptr<Renderer::Shader> mShader = std::make_shared<Renderer::Shader>("../assets/shaders/OutlineShader.vert","../assets/shaders/OutlineShader.frag");
 
-#endif // _DEBUG
+#endif
 	};
 
 }

@@ -17,6 +17,7 @@ namespace JamesEngine
 
 	private:
 		friend class ModelRenderer;
+		friend class GUI;
 
 		std::shared_ptr<Renderer::Font> mFont;
 	};

@@ -3,6 +3,7 @@
 #include "Core.h"
 #include "Input.h"
 #include "Texture.h"
+#include "Font.h"
 
 namespace JamesEngine
 {
@@ -38,8 +39,8 @@ namespace JamesEngine
         model = glm::scale(model, glm::vec3(_size.x, _size.y, 1));
         mShader->uniform("u_Model", model);
 
-        int width = 800;
-        int height = 600;
+        int width, height;
+        mCore.lock()->GetWindow()->GetWindowSize(width, height);
 
         glm::mat4 uiProjection = glm::ortho(0.0f, (float)width, 0.0f, (float)height, 0.0f, 1.0f);
         mShader->uniform("u_Projection", uiProjection);
@@ -68,9 +69,39 @@ namespace JamesEngine
             }
 		}
 
-
-
 		return 0;
+	}
+
+    void GUI::Image(glm::vec2 _position, glm::vec2 _size, std::shared_ptr<Texture> _texture)
+	{
+		glm::mat4 model(1.0f);
+		model = glm::translate(model, glm::vec3(_position.x, _position.y, 0));
+		model = glm::scale(model, glm::vec3(_size.x, _size.y, 1));
+		mShader->uniform("u_Model", model);
+
+        int width, height;
+        mCore.lock()->GetWindow()->GetWindowSize(width, height);
+
+		glm::mat4 uiProjection = glm::ortho(0.0f, (float)width, 0.0f, (float)height, 0.0f, 1.0f);
+		mShader->uniform("u_Projection", uiProjection);
+
+		mShader->uniform("u_View", glm::mat4(1.0f));
+
+		mShader->draw(mRect.get(), _texture->mTexture.get());
+	}
+
+    void GUI::Text(glm::vec2 _position, float _size, glm::vec3 _colour, std::string _text, std::shared_ptr<Font> _font)
+	{
+        int width, height;
+        mCore.lock()->GetWindow()->GetWindowSize(width, height);
+
+        glm::mat4 uiProjection = glm::ortho(0.0f, (float)width, 0.0f, (float)height, 0.0f, 1.0f);
+        mFontShader->uniform("u_Projection", uiProjection);
+
+        mFontShader->uniform("u_TextColour", _colour);
+
+        mFontShader->drawText(*mTextRect, *_font->mFont.get(), _text, _position.x, _position.y, _size);
+
 	}
 
 }

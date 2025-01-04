@@ -18,5 +18,6 @@
 #include "Rigidbody.h"
 #include "Camera.h"
 #include "GUI.h"
+#include "Font.h"
 
 #endif
