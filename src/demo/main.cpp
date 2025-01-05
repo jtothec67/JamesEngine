@@ -47,25 +47,29 @@ struct Player : public Component
 		}
 	}
 
+	bool showText = true;
+
 	void OnGUI()
 	{
 		int width, height;
 		GetEntity()->GetCore()->GetWindow()->GetWindowSize(width, height);
 
-		GetGUI()->Image(glm::vec2(0, height - 100), glm::vec2(100, 100), GetEntity()->GetCore()->GetResources()->Load<Texture>("models/car/car_02_m"));
+		GetGUI()->Image(glm::vec2(width, height), glm::vec2(100, 100), GetEntity()->GetCore()->GetResources()->Load<Texture>("models/car/car_02_m"));
 
-		int buttonAction = GetGUI()->Button(glm::vec2(0, 0), glm::vec2(100, 100), GetEntity()->GetCore()->GetResources()->Load<Texture>("models/car/car_02_m"));
+		int buttonAction = GetGUI()->Button(glm::vec2(100, 100), glm::vec2(100, 100), GetEntity()->GetCore()->GetResources()->Load<Texture>("models/car/car_02_m"));
 		if (buttonAction == 1)
 		{
-			//std::cout << "Mouse over button" << std::endl;
-			GetGUI()->Button(glm::vec2(0, 0), glm::vec2(100, 100), GetEntity()->GetCore()->GetResources()->Load<Texture>("curuthers/Whiskers_diffuse"));
+			GetGUI()->Button(glm::vec2(100, 100), glm::vec2(100, 100), GetEntity()->GetCore()->GetResources()->Load<Texture>("curuthers/Whiskers_diffuse"));
 		}
 		else if (buttonAction == 2)
 		{
-			std::cout << "Button clicked" << std::endl;
+			showText = false;
 		}
 
-		GetGUI()->Text(glm::vec2(0, height / 2), 0.5, glm::vec3(0.f, 0.f, 0.f), "Hello World", GetEntity()->GetCore()->GetResources()->Load<Font>("fonts/munro"));
+		GetGUI()->Text(glm::vec2(100, 100), 25, glm::vec3(0.f, 0.f, 0.f), "Remove\n  Text?", GetEntity()->GetCore()->GetResources()->Load<Font>("fonts/munro"));
+
+		if (showText)
+			GetGUI()->Text(glm::vec2(width / 2, height / 2), 100, glm::vec3(0.f, 0.f, 0.f), "  Hello World\nWorld Helloooo", GetEntity()->GetCore()->GetResources()->Load<Font>("fonts/munro"));
 	}
 };
 
