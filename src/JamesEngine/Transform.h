@@ -11,6 +11,8 @@ namespace JamesEngine
 	public:
 		glm::mat4 GetModel();
 
+		void SetParent(std::shared_ptr<Entity> _parent) { mParent = _parent; }
+
 		void SetPosition(glm::vec3 _position) { mPosition = _position; }
 		glm::vec3 GetPosition() { return mPosition; }
 
@@ -31,5 +33,7 @@ namespace JamesEngine
 		glm::vec3 mPosition{ 0.f };
 		glm::vec3 mRotation{ 0.f };
 		glm::vec3 mScale{ 1.f };
+
+		std::weak_ptr<Entity> mParent;
 	};
 }

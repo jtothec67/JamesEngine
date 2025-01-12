@@ -36,36 +36,36 @@ namespace JamesEngine
 					if (!boxCollider->IsColliding(GetEntity()->GetComponent<BoxCollider>())) 
 						break;
 
-					SetPosition(GetPosition() + glm::vec3(amount, 0, 0));
+					Move(glm::vec3(amount, 0, 0));
 					if (!boxCollider->IsColliding(GetEntity()->GetComponent<BoxCollider>())) 
 						break;
 
-					SetPosition(GetPosition() - glm::vec3(amount, 0, 0));
-					SetPosition(GetPosition() - glm::vec3(amount, 0, 0));
+					Move(-glm::vec3(amount, 0, 0));
+					Move(-glm::vec3(amount, 0, 0));
 					if (!boxCollider->IsColliding(GetEntity()->GetComponent<BoxCollider>())) 
 						break;
 
-					SetPosition(GetPosition() + glm::vec3(amount, 0, 0));
-					SetPosition(GetPosition() + glm::vec3(0, 0, amount));
+					Move(glm::vec3(amount, 0, 0));
+					Move(glm::vec3(0, 0, amount));
 					if (!boxCollider->IsColliding(GetEntity()->GetComponent<BoxCollider>())) 
 						break;
 
-					SetPosition(GetPosition() - glm::vec3(0, 0, amount));
-					SetPosition(GetPosition() - glm::vec3(0, 0, amount));
+					Move(-glm::vec3(0, 0, amount));
+					Move(-glm::vec3(0, 0, amount));
 					if (!boxCollider->IsColliding(GetEntity()->GetComponent<BoxCollider>())) 
 						break;
 
-					SetPosition(GetPosition() + glm::vec3(0, 0, amount));
-					SetPosition(GetPosition() + glm::vec3(0, amount, 0));
+					Move(glm::vec3(0, 0, amount));
+					Move(glm::vec3(0, amount, 0));
 					if (!boxCollider->IsColliding(GetEntity()->GetComponent<BoxCollider>())) 
 						break;
 
-					SetPosition(GetPosition() - glm::vec3(0, amount, 0));
-					SetPosition(GetPosition() - glm::vec3(0, amount, 0));
+					Move(-glm::vec3(0, amount, 0));
+					Move(-glm::vec3(0, amount, 0));
 					if (!boxCollider->IsColliding(GetEntity()->GetComponent<BoxCollider>())) 
 						break;
 
-					SetPosition(GetPosition() + glm::vec3(0, amount, 0));
+					Move(glm::vec3(0, amount, 0));
 					amount += step;
 				}
 

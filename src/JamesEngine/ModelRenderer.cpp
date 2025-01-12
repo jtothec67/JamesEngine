@@ -16,11 +16,6 @@
 namespace JamesEngine
 {
 
-	ModelRenderer::ModelRenderer()
-	{
-
-	}
-
 	void ModelRenderer::OnInitialize()
 	{
 		mShader = GetEntity()->GetCore()->GetResources()->Load<Shader>("shaders/ObjShader");

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+
 #include <memory>
 #include <vector>
 
@@ -41,6 +43,8 @@ namespace JamesEngine
 			return nullptr;
 		}
 
+		void Destroy();
+
 	private:
 		friend class JamesEngine::Core;
 
@@ -48,6 +52,8 @@ namespace JamesEngine
 		std::weak_ptr<Entity> mSelf;
 
 		std::vector<std::shared_ptr<Component>> mComponents;
+
+		bool alive = true;
 
 		void OnTick();
 		void OnRender();

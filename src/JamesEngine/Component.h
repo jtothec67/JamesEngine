@@ -13,11 +13,13 @@ namespace JamesEngine
 	class Mouse;
 	class GUI;
 	class Transform;
+	class Core;
 
 	class Component
 	{
 	public:
 		std::shared_ptr<Entity> GetEntity();
+		std::shared_ptr<Core> GetCore();
 		std::shared_ptr<Input> GetInput();
 		std::shared_ptr<Keyboard> GetKeyboard();
 		std::shared_ptr<Mouse> GetMouse();
@@ -37,6 +39,7 @@ namespace JamesEngine
 		virtual void OnTick() { }
 		virtual void OnRender() { }
 		virtual void OnGUI() { }
+		virtual void OnDestroy() { }
 
 	private:
 		friend class JamesEngine::Entity;
@@ -46,5 +49,6 @@ namespace JamesEngine
 		void Tick();
 		void Render();
 		void GUI();
+		void Destroy();
 	};
 }

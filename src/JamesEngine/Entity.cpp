@@ -5,6 +5,7 @@
 
 namespace JamesEngine
 {
+
 	std::shared_ptr<Core> Entity::GetCore()
 	{
 		return mCore.lock();
@@ -33,4 +34,18 @@ namespace JamesEngine
 			mComponents.at(ci)->GUI();
 		}
 	}
+
+	void Entity::Destroy()
+	{
+		if (alive)
+		{
+			alive = false;
+
+			for (size_t ci = 0; ci < mComponents.size(); ci++)
+			{
+				mComponents.at(ci)->Destroy();
+			}
+		}
+	}
+
 }

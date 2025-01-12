@@ -1,12 +1,13 @@
 #include "Transform.h"
+#include "Entity.h"
 
 #include <glm/ext/matrix_transform.hpp>
 
 namespace JamesEngine
 {
 
-	glm::mat4 Transform::GetModel()
-	{
+    glm::mat4 Transform::GetModel()
+    {
 		glm::mat4 modelMatrix = glm::mat4(1.f);
 		modelMatrix = glm::translate(modelMatrix, mPosition);
 		modelMatrix = glm::rotate(modelMatrix, glm::radians(mRotation.x), glm::vec3(1, 0, 0));
@@ -14,8 +15,11 @@ namespace JamesEngine
 		modelMatrix = glm::rotate(modelMatrix, glm::radians(mRotation.z), glm::vec3(0, 0, 1));
 		modelMatrix = glm::scale(modelMatrix, mScale);
 
+		if (auto parent = mParent.lock()) // Use weak_ptr's lock() to get shared_ptr
+			return parent->GetComponent<Transform>()->GetModel() * modelMatrix;
+
 		return modelMatrix;
-	}
+    }
 
 	glm::vec3 Transform::GetForward()
 	{

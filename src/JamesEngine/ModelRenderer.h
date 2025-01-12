@@ -11,8 +11,6 @@ namespace JamesEngine
 	class ModelRenderer : public Component
 	{
 	public:
-		ModelRenderer();
-
 		void SetModel(std::shared_ptr<Model> _model) { mModel = _model; }
 		void SetTexture(std::shared_ptr<Texture> _texture) { mTexture = _texture; }
 		void SetShader(std::shared_ptr<Shader> _shader) { mShader = _shader; }

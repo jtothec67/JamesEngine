@@ -20,6 +20,7 @@ namespace JamesEngine
 		rtn->mResources = std::make_shared<Resources>();
 		rtn->mGUI = std::make_shared<GUI>(rtn);
 		rtn->mInput = std::make_shared<Input>();
+
 		rtn->mSelf = rtn;
 
 		return rtn;
@@ -54,6 +55,15 @@ namespace JamesEngine
 			for (size_t ei = 0; ei < mEntities.size(); ++ei)
 			{
 				mEntities[ei]->OnTick();
+			}
+
+			for (size_t ei = 0; ei < mEntities.size(); ei++)
+			{
+				if (mEntities.at(ei)->alive == false)
+				{
+					mEntities.erase(mEntities.begin() + ei);
+					ei--;
+				}
 			}
 
 			mWindow->Update();

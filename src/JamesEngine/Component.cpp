@@ -14,6 +14,11 @@ namespace JamesEngine
 		return mEntity.lock();
 	}
 
+	std::shared_ptr<Core> Component::GetCore()
+	{
+		return GetEntity()->GetCore();
+	}
+
 	std::shared_ptr<Input> Component::GetInput()
 	{
 		return GetEntity()->GetCore()->GetInput();
@@ -92,6 +97,11 @@ namespace JamesEngine
 	void Component::GUI()
 	{
 		OnGUI();
+	}
+
+	void Component::Destroy()
+	{
+		OnDestroy();
 	}
 
 }
