@@ -10,7 +10,7 @@ struct Player : public Component
 	void OnTick()
 	{
 		float deltaTime = GetEntity()->GetCore()->DeltaTime();
-		float speed = 40.f;
+		float speed = 20.f;
 
 		if (GetMouse()->IsButtonDown(SDL_BUTTON_LEFT))
 		{
@@ -160,6 +160,7 @@ int main()
 		std::shared_ptr<BoxCollider> entityBoxCollider = player->AddComponent<BoxCollider>();
 		entityBoxCollider->SetOffset(glm::vec3(0, 0.2f, 0.54f));
 		entityBoxCollider->SetSize(glm::vec3(3.2f, 1.7f, 8.4f));
+		player->SetTag("Player");
 
 		std::shared_ptr<Entity> cat = core->AddEntity();
 		cat->GetComponent<Transform>()->SetPosition(glm::vec3(0.f, 0.f, 10.f));

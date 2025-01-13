@@ -129,4 +129,41 @@ namespace JamesEngine
 		return rtn;
 	}
 
+	std::vector<std::shared_ptr<Entity>> Core::GetEntitiesByTag(std::string _tag)
+	{
+		std::vector<std::shared_ptr<Entity>> rtn;
+
+		for (size_t i = 0; i < mEntities.size(); ++i)
+		{
+			if (mEntities[i]->GetTag() == _tag)
+			{
+				rtn.push_back(mEntities[i]);
+			}
+		}
+
+		if (rtn.size() == 0)
+		{
+			std::cout << "No entities with tag " << _tag << " found" << std::endl;
+		}
+
+		return rtn;
+	}
+
+	std::shared_ptr<Entity> Core::GetEntityByTag(std::string _tag)
+	{
+		std::vector<std::shared_ptr<Entity>> rtn;
+
+		for (size_t i = 0; i < mEntities.size(); ++i)
+		{
+			if (mEntities[i]->GetTag() == _tag)
+			{
+				return mEntities[i];
+			}
+		}
+
+		std::cout << "No entity with tag " << _tag << " found" << std::endl;
+
+		return nullptr;
+	}
+
 }

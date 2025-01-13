@@ -2,6 +2,7 @@
 
 #include <iostream>
 
+#include <string>
 #include <memory>
 #include <vector>
 
@@ -15,6 +16,9 @@ namespace JamesEngine
 	{
 	public:
 		std::shared_ptr<Core> GetCore();
+
+		std::string GetTag() { return mTag; }
+		void SetTag(std::string _tag) { mTag = _tag; }
 
 		template<typename T, typename... Args>
 		std::shared_ptr<T> AddComponent(Args&&... args)
@@ -52,6 +56,8 @@ namespace JamesEngine
 		std::weak_ptr<Entity> mSelf;
 
 		std::vector<std::shared_ptr<Component>> mComponents;
+
+		std::string mTag = "Default";
 
 		bool alive = true;
 

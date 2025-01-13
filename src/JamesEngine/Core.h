@@ -16,12 +16,29 @@ namespace JamesEngine
 	class Camera;
 	class Skybox;
 
+	/**
+	 * @class Core
+	 * @brief The main class for initializing and running the engine.
+	 */
 	class Core
 	{
 	public:
+		/**
+		 * @brief Initializes the Core with a given window size.
+		 * @param _windowSize The initial size of the window.
+		 * @return A shared pointer to the initialized Core.
+		 */
 		static std::shared_ptr<Core> Initialize(glm::ivec2 _windowSize);
 
+		/**
+		 * @brief Runs the main loop of the engine.
+		 */
 		void Run();
+
+		/**
+		 * @brief Adds a new entity to the engine.
+		 * @return A shared pointer to the newly added entity.
+		 */
 		std::shared_ptr<Entity> AddEntity();
 
 		std::shared_ptr<Window> GetWindow() const { return mWindow; }
@@ -42,11 +59,37 @@ namespace JamesEngine
 		void SetLightStrength(float _strength) { mLightStrength = _strength; }
 		float GetLightStrength() { return mLightStrength; }
 
+		/**
+		 * @brief Gets the delta time.
+		 * @return The time taken for the last frame to update and draw.
+		 */
 		float DeltaTime() { return mDeltaTime; }
 
+		/**
+		 * @brief Gets the current camera with the highest priority.
+		 * @return A shared pointer to the camera.
+		 */
 		std::shared_ptr<Camera> GetCamera();
 
-		// Returns all components of type T found in the entities
+		/**
+		 * @brief Finds all entities with tag _tag in the entities.
+		 * @param _tag A tag to identify entities.
+		 * @return A vector of shared pointers to the found entities.
+		 */
+		std::vector<std::shared_ptr<Entity>> GetEntitiesByTag(std::string _tag);
+
+		/**
+		* @brief Finds the first entity with tag _tag in the entities. Useful if you know there is only one.
+		* @param _tag A tag to identify entities.
+		* @return A shared pointer to the found entity, or nullptr if not found.
+		*/
+		std::shared_ptr<Entity> GetEntityByTag(std::string _tag);
+
+		/**
+		 * @brief Finds all components of type T in the entities.
+		 * @tparam T The type of components to find.
+		 * @param _out A vector to store the found components.
+		 */
 		template <typename T>
 		void FindComponents(std::vector<std::shared_ptr<T>>& _out)
 		{
@@ -66,7 +109,11 @@ namespace JamesEngine
 			}
 		}
 
-		// Returns the first component of type T found in the entities (useful if you know only one exists)
+		/**
+		 * @brief Finds the first component of type T in the entities. Useful if you know there is only one.
+		 * @tparam T The type of component to find.
+		 * @return A shared pointer to the found component, or nullptr if not found.
+		 */
 		template <typename T>
 		std::shared_ptr<T> FindComponent()
 		{
