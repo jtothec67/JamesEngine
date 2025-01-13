@@ -72,12 +72,12 @@ namespace JamesEngine
 
 			mWindow->ClearWindow();
 
+			mSkybox->RenderSkybox();
+
 			for (size_t ei = 0; ei < mEntities.size(); ++ei)
 			{
 				mEntities[ei]->OnRender();
 			}
-
-			mSkybox->RenderSkybox();
 
 			glDisable(GL_DEPTH_TEST);
 
