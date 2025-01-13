@@ -83,6 +83,12 @@ add_library(JamesEngine
 
 	src/JamesEngine/GUI.h
 	src/JamesEngine/GUI.cpp
+
+	src/JamesEngine/SkyboxTexture.h
+	src/JamesEngine/SkyboxTexture.cpp
+
+	src/JamesEngine/Skybox.h
+	src/JamesEngine/Skybox.cpp
 )
 
 target_link_libraries(JamesEngine Renderer openal32)

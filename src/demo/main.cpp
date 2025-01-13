@@ -137,6 +137,8 @@ int main()
 	// Scope to ensure the entities aren't being held in main if they're destroyed
 	{
 
+		core->GetSkybox()->SetTexture(core->GetResources()->Load<SkyboxTexture>("skyboxes/test"));
+
 		std::shared_ptr<Entity> camera = core->AddEntity();
 		camera->AddComponent<Camera>();
 		camera->AddComponent<CameraController>();

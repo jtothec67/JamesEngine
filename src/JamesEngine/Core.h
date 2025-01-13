@@ -14,6 +14,7 @@ namespace JamesEngine
 	class Entity;
 	class Resources;
 	class Camera;
+	class Skybox;
 
 	class Core
 	{
@@ -27,6 +28,7 @@ namespace JamesEngine
 		std::shared_ptr<Input> GetInput() const { return mInput; }
 		std::shared_ptr<Resources> GetResources() const { return mResources; }
 		std::shared_ptr<GUI> GetGUI() const { return mGUI; }
+		std::shared_ptr<Skybox> GetSkybox() const { return mSkybox; }
 
 		void SetLightPosition(glm::vec3 _pos) { mLightPos = _pos; }
 		glm::vec3 GetLightPosition() { return mLightPos; }
@@ -91,6 +93,7 @@ namespace JamesEngine
 		std::shared_ptr<Audio> mAudio;
 		std::shared_ptr<Input> mInput;
 		std::shared_ptr<GUI> mGUI;
+		std::shared_ptr<Skybox> mSkybox;
 		std::shared_ptr<Resources> mResources;
 		std::vector<std::shared_ptr<Entity>> mEntities;
 		std::weak_ptr<Core> mSelf;

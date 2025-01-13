@@ -39,6 +39,13 @@ namespace Renderer
 			throw std::exception();
 		}
 
+		std::cout << "Skybox path 1: " << _facePaths.at(0) << "\n";
+		std::cout << "Skybox path 2: " << _facePaths.at(1) << "\n";
+		std::cout << "Skybox path 3: " << _facePaths.at(2) << "\n";
+		std::cout << "Skybox path 4: " << _facePaths.at(3) << "\n";
+		std::cout << "Skybox path 5: " << _facePaths.at(4) << "\n";
+		std::cout << "Skybox path 6: " << _facePaths.at(5) << "\n";
+
 		m_syboxFaces = _facePaths;
 		skybox = true;
 	}

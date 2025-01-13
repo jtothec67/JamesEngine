@@ -19,5 +19,6 @@
 #include "Camera.h"
 #include "GUI.h"
 #include "Font.h"
+#include "Skybox.h"
 
 #endif

@@ -6,6 +6,7 @@
 #include "Input.h"
 #include "Camera.h"
 #include "Timer.h"
+#include "Skybox.h"
 
 #include <iostream>
 
@@ -19,6 +20,7 @@ namespace JamesEngine
 		rtn->mAudio = std::make_shared<Audio>();
 		rtn->mResources = std::make_shared<Resources>();
 		rtn->mGUI = std::make_shared<GUI>(rtn);
+		rtn->mSkybox = std::make_shared<Skybox>();
 		rtn->mInput = std::make_shared<Input>();
 
 		rtn->mSelf = rtn;
@@ -74,6 +76,8 @@ namespace JamesEngine
 			{
 				mEntities[ei]->OnRender();
 			}
+
+			mSkybox->RenderSkybox();
 
 			glDisable(GL_DEPTH_TEST);
 
