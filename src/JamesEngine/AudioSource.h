@@ -18,7 +18,7 @@ namespace JamesEngine
 	class AudioSource : public Component
 	{
 	public:
-		AudioSource() { alGenSources(1, &mSourceId); }
+		AudioSource();
 		~AudioSource();
 
 		void OnTick();
@@ -34,13 +34,13 @@ namespace JamesEngine
 
 		void SetOffset(glm::vec3 _offset) { mOffset = _offset; }
 
-		void SetPitch(float _pitch) { mPitch = _pitch; }
-		void SetGain(float _gain) { mGain = _gain; }
+		void SetPitch(float _pitch) { mPitch = _pitch; alSourcef(mSourceId, AL_PITCH, mPitch); }
+		void SetGain(float _gain) { mGain = _gain; alSourcef(mSourceId, AL_GAIN, mGain); }
 		void SetLooping(bool _looping) { mLooping = _looping; }
 
-		void SetReferenceDistance(float _referenceDistance) { mReferenceDistance = _referenceDistance; }
-		void SetMaxDistance(float _maxDistance) { mMaxDistance = _maxDistance; }
-		void SetRolloffFactor(float _rollOffFactor) { mRollOffFactor = _rollOffFactor; }
+		void SetMinimumDistance(float _minimumDistance) { mMinimumDistance = _minimumDistance; alSourcef(mSourceId, AL_REFERENCE_DISTANCE, mMinimumDistance); }
+		void SetMaxDistance(float _maxDistance) { mMaxDistance = _maxDistance; alSourcef(mSourceId, AL_MAX_DISTANCE, mMaxDistance); }
+		void SetRolloffFactor(float _rollOffFactor) { mRollOffFactor = _rollOffFactor; alSourcef(mSourceId, AL_ROLLOFF_FACTOR, mRollOffFactor); }
 
 	private:
 		std::shared_ptr<Sound> mSound = nullptr;
@@ -55,12 +55,12 @@ namespace JamesEngine
 
 		bool mLooping = false;
 
-		float mPitch = 1.f;
-		float mGain = 1.f;
+		float mPitch;
+		float mGain;
 
-		float mReferenceDistance = 10.f;
-		float mMaxDistance = 100.f;
-		float mRollOffFactor = 1.f;
+		float mMaxDistance;
+		float mMinimumDistance;
+		float mRollOffFactor;
 
 #ifdef _DEBUG
 

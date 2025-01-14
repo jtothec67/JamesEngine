@@ -9,9 +9,6 @@ namespace JamesEngine
 	{
 	public:
 		void OnTick();
-
-	private:
-
 	};
 
 }

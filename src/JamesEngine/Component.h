@@ -40,6 +40,7 @@ namespace JamesEngine
 		virtual void OnRender() { }
 		virtual void OnGUI() { }
 		virtual void OnDestroy() { }
+		virtual void OnCollision() { }
 
 	private:
 		friend class JamesEngine::Entity;
@@ -50,5 +51,6 @@ namespace JamesEngine
 		void Render();
 		void GUI();
 		void Destroy();
+		void Collision();
 	};
 }

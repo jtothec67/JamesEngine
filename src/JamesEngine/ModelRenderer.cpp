@@ -37,8 +37,7 @@ namespace JamesEngine
 
 		mShader->mShader->uniform("u_View", camera->GetViewMatrix());
 
-		std::shared_ptr<Transform> transform = GetEntity()->GetComponent<Transform>();
-		mShader->mShader->uniform("u_Model", transform->GetModel());
+		mShader->mShader->uniform("u_Model", GetEntity()->GetComponent<Transform>()->GetModel());
 
 		mShader->mShader->uniform("u_LightPos", core->GetLightPosition());
 

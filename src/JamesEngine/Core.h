@@ -35,12 +35,6 @@ namespace JamesEngine
 		 */
 		void Run();
 
-		/**
-		 * @brief Adds a new entity to the engine.
-		 * @return A shared pointer to the newly added entity.
-		 */
-		std::shared_ptr<Entity> AddEntity();
-
 		std::shared_ptr<Window> GetWindow() const { return mWindow; }
 		std::shared_ptr<Input> GetInput() const { return mInput; }
 		std::shared_ptr<Resources> GetResources() const { return mResources; }
@@ -60,6 +54,12 @@ namespace JamesEngine
 		float GetLightStrength() { return mLightStrength; }
 
 		/**
+		 * @brief Adds a new entity to the engine.
+		 * @return A shared pointer to the newly added entity.
+		 */
+		std::shared_ptr<Entity> AddEntity();
+
+		/**
 		 * @brief Gets the delta time.
 		 * @return The time taken for the last frame to update and draw.
 		 */
@@ -70,6 +70,11 @@ namespace JamesEngine
 		 * @return A shared pointer to the camera.
 		 */
 		std::shared_ptr<Camera> GetCamera();
+
+		/**
+		 * @brief Destroys all entities in the scene. (Make sure to add entities after or the engine sof tlocks itself.)
+		 */
+		void DestroyAllEntities();
 
 		/**
 		 * @brief Finds all entities with tag _tag in the entities.

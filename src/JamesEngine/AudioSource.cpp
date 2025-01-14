@@ -15,6 +15,20 @@
 namespace JamesEngine
 {
 
+	AudioSource::AudioSource()
+	{
+		alGenSources(1, &mSourceId);
+		
+		alDistanceModel(AL_LINEAR_DISTANCE_CLAMPED);
+
+		SetPitch(1.f);
+		SetGain(1.f);
+
+		SetMinimumDistance(10.f);
+		SetMaxDistance(100.f);
+		SetRolloffFactor(1.f);
+	}
+
 	AudioSource::~AudioSource()
 	{
 		alDeleteSources(1, &mSourceId);
@@ -24,22 +38,10 @@ namespace JamesEngine
 	{
 		std::shared_ptr<Core> core = GetEntity()->GetCore();
 		glm::vec3 cameraPosition = core->GetCamera()->GetPosition();
+
 		alListener3f(AL_POSITION, cameraPosition.x, cameraPosition.y, cameraPosition.z);
+
 		alSource3f(mSourceId, AL_POSITION, GetPosition().x + mOffset.x, GetPosition().y + mOffset.y, GetPosition().z + mOffset.z);
-
-		if (glm::distance(GetPosition() + mOffset, cameraPosition) > mMaxDistance)
-		{
-			alSourcef(mSourceId, AL_GAIN, 0.0f);
-		}
-		else
-		{
-			alSourcef(mSourceId, AL_GAIN, mGain);
-		}
-
-		alSourcef(mSourceId, AL_PITCH, mPitch);
-		alSourcef(mSourceId, AL_REFERENCE_DISTANCE, mReferenceDistance);
-		alSourcef(mSourceId, AL_MAX_DISTANCE, mMaxDistance);
-		alSourcef(mSourceId, AL_ROLLOFF_FACTOR, mRollOffFactor);
 
 		if (mLooping && !IsPlaying())
 			Play();
@@ -69,7 +71,7 @@ namespace JamesEngine
 
 		glm::mat4 mModelMatrix2 = glm::mat4(1.f);
 		mModelMatrix2 = glm::translate(mModelMatrix2, GetPosition() + mOffset);
-		mModelMatrix2 = glm::scale(mModelMatrix2, glm::vec3(mReferenceDistance, mReferenceDistance, mReferenceDistance));
+		mModelMatrix2 = glm::scale(mModelMatrix2, glm::vec3(mMinimumDistance, mMinimumDistance, mMinimumDistance));
 
 		mShader->uniform("model", mModelMatrix2);
 
@@ -90,7 +92,8 @@ namespace JamesEngine
 
 	void AudioSource::Play()
 	{
-		alSourcePlay(mSourceId);
+		if (mSound != nullptr)
+			alSourcePlay(mSourceId);
 	}
 
 }

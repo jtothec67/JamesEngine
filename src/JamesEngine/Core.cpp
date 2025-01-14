@@ -20,7 +20,7 @@ namespace JamesEngine
 		rtn->mAudio = std::make_shared<Audio>();
 		rtn->mResources = std::make_shared<Resources>();
 		rtn->mGUI = std::make_shared<GUI>(rtn);
-		rtn->mSkybox = std::make_shared<Skybox>();
+		rtn->mSkybox = std::make_shared<Skybox>(rtn);
 		rtn->mInput = std::make_shared<Input>();
 
 		rtn->mSelf = rtn;
@@ -61,7 +61,7 @@ namespace JamesEngine
 
 			for (size_t ei = 0; ei < mEntities.size(); ei++)
 			{
-				if (mEntities.at(ei)->alive == false)
+				if (mEntities.at(ei)->mAlive == false)
 				{
 					mEntities.erase(mEntities.begin() + ei);
 					ei--;
@@ -127,6 +127,14 @@ namespace JamesEngine
 		}
 
 		return rtn;
+	}
+
+	void Core::DestroyAllEntities()
+	{
+		for (size_t i = 0; i < mEntities.size(); ++i)
+		{
+			mEntities[i]->Destroy();
+		}
 	}
 
 	std::vector<std::shared_ptr<Entity>> Core::GetEntitiesByTag(std::string _tag)

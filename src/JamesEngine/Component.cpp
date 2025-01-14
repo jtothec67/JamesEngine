@@ -104,4 +104,9 @@ namespace JamesEngine
 		OnDestroy();
 	}
 
+	void Component::Collision()
+	{
+		OnCollision();
+	}
+
 }

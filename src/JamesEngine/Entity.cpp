@@ -37,9 +37,9 @@ namespace JamesEngine
 
 	void Entity::Destroy()
 	{
-		if (alive)
+		if (mAlive)
 		{
-			alive = false;
+			mAlive = false;
 
 			for (size_t ci = 0; ci < mComponents.size(); ci++)
 			{

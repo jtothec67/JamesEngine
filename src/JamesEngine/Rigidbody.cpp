@@ -28,6 +28,16 @@ namespace JamesEngine
 			// Check if colliding
 			if (boxCollider->IsColliding(GetEntity()->GetComponent<BoxCollider>()))
 			{
+				for (size_t ci = 0; ci < GetEntity()->mComponents.size(); ci++)
+				{
+					GetEntity()->mComponents.at(ci)->OnCollision();
+				}
+
+				for (size_t ci = 0; ci < boxCollider->GetEntity()->mComponents.size(); ci++)
+				{
+					boxCollider->GetEntity()->mComponents.at(ci)->OnCollision();
+				}
+
 				// Kludge (*vomit emoji*)
 				float amount = 0.001f;
 				float step = 0.001f;

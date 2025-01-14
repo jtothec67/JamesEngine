@@ -50,7 +50,8 @@ namespace JamesEngine
 		void Destroy();
 
 	private:
-		friend class JamesEngine::Core;
+		friend class Core;
+		friend class Rigidbody;
 
 		std::weak_ptr<Core> mCore;
 		std::weak_ptr<Entity> mSelf;
@@ -59,7 +60,7 @@ namespace JamesEngine
 
 		std::string mTag = "Default";
 
-		bool alive = true;
+		bool mAlive = true;
 
 		void OnTick();
 		void OnRender();

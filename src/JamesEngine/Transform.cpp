@@ -6,17 +6,42 @@
 namespace JamesEngine
 {
 
+	glm::vec3 Transform::GetPosition()
+	{
+		if (auto parent = mParent.lock()) // Use weak_ptr's lock() to get shared_ptr
+			return mPosition + parent->GetComponent<Transform>()->GetPosition();
+
+		return mPosition;
+	}
+
+	glm::vec3 Transform::GetRotation()
+	{
+		if (auto parent = mParent.lock())
+			return mRotation + parent->GetComponent<Transform>()->GetRotation();
+
+		return mRotation;
+	}
+
+	glm::vec3 Transform::GetScale()
+	{
+		if (auto parent = mParent.lock())
+			return mScale * parent->GetComponent<Transform>()->GetScale();
+
+		return mScale;
+	}
+
     glm::mat4 Transform::GetModel()
     {
 		glm::mat4 modelMatrix = glm::mat4(1.f);
-		modelMatrix = glm::translate(modelMatrix, mPosition);
-		modelMatrix = glm::rotate(modelMatrix, glm::radians(mRotation.x), glm::vec3(1, 0, 0));
-		modelMatrix = glm::rotate(modelMatrix, glm::radians(mRotation.y), glm::vec3(0, 1, 0));
-		modelMatrix = glm::rotate(modelMatrix, glm::radians(mRotation.z), glm::vec3(0, 0, 1));
-		modelMatrix = glm::scale(modelMatrix, mScale);
+		modelMatrix = glm::translate(modelMatrix, GetPosition());
+		glm::vec3 rotation = GetRotation();
+		modelMatrix = glm::rotate(modelMatrix, glm::radians(rotation.x), glm::vec3(1, 0, 0));
+		modelMatrix = glm::rotate(modelMatrix, glm::radians(rotation.y), glm::vec3(0, 1, 0));
+		modelMatrix = glm::rotate(modelMatrix, glm::radians(rotation.z), glm::vec3(0, 0, 1));
+		modelMatrix = glm::scale(modelMatrix, GetScale());
 
-		if (auto parent = mParent.lock()) // Use weak_ptr's lock() to get shared_ptr
-			return parent->GetComponent<Transform>()->GetModel() * modelMatrix;
+		/*if (auto parent = mParent.lock())
+			return parent->GetComponent<Transform>()->GetModel() * modelMatrix;*/
 
 		return modelMatrix;
     }

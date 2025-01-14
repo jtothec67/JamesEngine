@@ -6,7 +6,6 @@ using namespace JamesEngine;
 
 struct Player : public Component
 {
-
 	void OnTick()
 	{
 		float deltaTime = GetEntity()->GetCore()->DeltaTime();
@@ -77,6 +76,11 @@ struct Player : public Component
 		if (showText)
 			GetGUI()->Text(glm::vec2(width / 2, height / 2), 100, glm::vec3(0.f, 0.f, 0.f), "  Hello World\nWorld Helloooo",GetCore()->GetResources()->Load<Font>("fonts/munro"));
 	}
+
+	void OnCollision()
+	{
+		
+	}
 };
 
 struct CameraController : public Component
@@ -137,7 +141,7 @@ int main()
 	// Scope to ensure the entities aren't being held in main if they're destroyed
 	{
 
-		core->GetSkybox()->SetTexture(core->GetResources()->Load<SkyboxTexture>("skyboxes/test"));
+		core->GetSkybox()->SetTexture(core->GetResources()->Load<SkyboxTexture>("skyboxes/sky"));
 
 		std::shared_ptr<Entity> camera = core->AddEntity();
 		camera->AddComponent<Camera>();
@@ -157,6 +161,7 @@ int main()
 		entityModelRenderer->SetTexture(core->GetResources()->Load<Texture>("models/car/car_02_m"));
 		std::shared_ptr<AudioSource> entityAudioSource = player->AddComponent<AudioSource>();
 		entityAudioSource->SetSound(core->GetResources()->Load<Sound>("sounds/dixie_horn_mono"));
+		//entityAudioSource->SetLooping(true);
 		std::shared_ptr<BoxCollider> entityBoxCollider = player->AddComponent<BoxCollider>();
 		entityBoxCollider->SetOffset(glm::vec3(0, 0.2f, 0.54f));
 		entityBoxCollider->SetSize(glm::vec3(3.2f, 1.7f, 8.4f));
@@ -171,7 +176,7 @@ int main()
 		entityModelRenderer2->SetTexture(core->GetResources()->Load<Texture>("curuthers/Whiskers_diffuse"));
 		std::shared_ptr<BoxCollider> entityBoxCollider2 = cat->AddComponent<BoxCollider>();
 
-		//cat->GetComponent<Transform>()->SetParent(player);
+		cat->GetComponent<Transform>()->SetParent(player);
 
 	}
 
