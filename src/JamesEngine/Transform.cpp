@@ -9,7 +9,21 @@ namespace JamesEngine
 	glm::vec3 Transform::GetPosition()
 	{
 		if (auto parent = mParent.lock()) // Use weak_ptr's lock() to get shared_ptr
-			return mPosition + parent->GetComponent<Transform>()->GetPosition();
+		{
+			glm::vec3 parentPosition = parent->GetComponent<Transform>()->GetPosition();
+			glm::vec3 parentRotation = parent->GetComponent<Transform>()->GetRotation();
+
+			// Create a rotation matrix from the parent's rotation
+			glm::mat4 rotationMatrix = glm::mat4(1.0f);
+			rotationMatrix = glm::rotate(rotationMatrix, glm::radians(parentRotation.x), glm::vec3(1, 0, 0));
+			rotationMatrix = glm::rotate(rotationMatrix, glm::radians(parentRotation.y), glm::vec3(0, 1, 0));
+			rotationMatrix = glm::rotate(rotationMatrix, glm::radians(parentRotation.z), glm::vec3(0, 0, 1));
+
+			// Apply the parent's rotation to the child's position
+			glm::vec4 rotatedPosition = rotationMatrix * glm::vec4(mPosition, 1.0f);
+
+			return glm::vec3(rotatedPosition) + parentPosition;
+		}
 
 		return mPosition;
 	}
