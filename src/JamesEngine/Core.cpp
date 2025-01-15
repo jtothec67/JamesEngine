@@ -35,6 +35,13 @@ namespace JamesEngine
 		while (mIsRunning)
 		{
 			mDeltaTime = mDeltaTimer.Stop();
+
+			if (mDeltaTimeZero)
+			{
+				mDeltaTime = 0.f;
+				mDeltaTimeZero = false;
+			}
+
 			mDeltaTimer.Start();
 
 			//std::cout << "FPS: " << 1.0f / mDeltaTime << std::endl;
@@ -135,6 +142,8 @@ namespace JamesEngine
 		{
 			mEntities[i]->Destroy();
 		}
+
+		mDeltaTimeZero = true;
 	}
 
 	std::vector<std::shared_ptr<Entity>> Core::GetEntitiesByTag(std::string _tag)

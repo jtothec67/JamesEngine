@@ -34,6 +34,10 @@ namespace JamesEngine
 		 * @brief Runs the main loop of the engine.
 		 */
 		void Run();
+		/**
+		 * @brief Stops the execution of the engine.
+		 */
+		void End() { mIsRunning = false; }
 
 		std::shared_ptr<Window> GetWindow() const { return mWindow; }
 		std::shared_ptr<Input> GetInput() const { return mInput; }
@@ -158,6 +162,8 @@ namespace JamesEngine
 		glm::vec3 mLightColor = glm::vec3(1.f, 1.f, 1.f);
 		glm::vec3 mAmbient = glm::vec3(0.1f, 0.1f, 0.1f);
 		float mLightStrength = 1.f;
+
+		bool mDeltaTimeZero = false;
 	};
 
 }

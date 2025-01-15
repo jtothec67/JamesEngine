@@ -63,9 +63,9 @@ namespace JamesEngine
 	glm::vec3 Transform::GetForward()
 	{
 		glm::vec3 forward;
-		forward.x = sin(glm::radians(mRotation.y)) * cos(glm::radians(mRotation.x));
-		forward.y = sin(glm::radians(mRotation.x));
-		forward.z = cos(glm::radians(mRotation.y)) * cos(glm::radians(mRotation.x));
+		forward.x = sin(glm::radians(GetRotation().y)) * cos(glm::radians(GetRotation().x));
+		forward.y = sin(glm::radians(GetRotation().x));
+		forward.z = cos(glm::radians(GetRotation().y)) * cos(glm::radians(GetRotation().x));
 
 		return glm::normalize(forward);
 	}
@@ -73,9 +73,9 @@ namespace JamesEngine
 	glm::vec3 Transform::GetRight()
 	{
 		glm::vec3 right;
-		right.x = sin(glm::radians(mRotation.y - 90)) * cos(glm::radians(mRotation.x));
-		right.y = sin(glm::radians(mRotation.x));
-		right.z = cos(glm::radians(mRotation.y - 90)) * cos(glm::radians(mRotation.x));
+		right.x = sin(glm::radians(GetRotation().y - 90)) * cos(glm::radians(GetRotation().x));
+		right.y = sin(glm::radians(GetRotation().x));
+		right.z = cos(glm::radians(GetRotation().y - 90)) * cos(glm::radians(GetRotation().x));
 
 		return glm::normalize(right);
 	}
@@ -83,9 +83,9 @@ namespace JamesEngine
 	glm::vec3 Transform::GetUp()
 	{
 		glm::vec3 up;
-		up.x = sin(glm::radians(mRotation.y)) * cos(glm::radians(mRotation.x + 90));
-		up.y = sin(glm::radians(mRotation.x + 90));
-		up.z = cos(glm::radians(mRotation.y)) * cos(glm::radians(mRotation.x + 90));
+		up.x = sin(glm::radians(GetRotation().y)) * cos(glm::radians(GetRotation().x + 90));
+		up.y = sin(glm::radians(GetRotation().x + 90));
+		up.z = cos(glm::radians(GetRotation().y)) * cos(glm::radians(GetRotation().x + 90));
 
 		return glm::normalize(up);
 	}

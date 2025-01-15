@@ -2,6 +2,7 @@
 
 #include <glm/glm.hpp>
 
+#include <string>
 #include <memory>
 
 namespace JamesEngine
@@ -15,6 +16,10 @@ namespace JamesEngine
 	class Transform;
 	class Core;
 
+	/**
+	 * @class Component
+	 * @brief Base class for all components.
+	 */
 	class Component
 	{
 	public:
@@ -35,12 +40,31 @@ namespace JamesEngine
 		void Move(glm::vec3 _amount);
 		void Rotate(glm::vec3 _amount);
 
+		/**
+		 * @brief Called when the component is initialized.
+		 */
 		virtual void OnInitialize() { }
+		/**
+		 * @brief Called every tick.
+		 */
 		virtual void OnTick() { }
+		/**
+		 * @brief Called after OnTick().
+		 */
 		virtual void OnRender() { }
+		/**
+		 * @brief Called After OnRender().
+		 */
 		virtual void OnGUI() { }
+		/**
+		 * @brief Called when the entity the component is attatched to is destroyed.
+		 */
 		virtual void OnDestroy() { }
-		virtual void OnCollision() { }
+		/**
+		 * @brief Called on both colliders when two colliders collide, as long as at least one has a rigid body.
+		 * @param _tag The tag of the entity it collided with.
+		 */
+		virtual void OnCollision(std::string _tag) { }
 
 	private:
 		friend class JamesEngine::Entity;
@@ -51,6 +75,6 @@ namespace JamesEngine
 		void Render();
 		void GUI();
 		void Destroy();
-		void Collision();
+		void Collision(std::string _tag);
 	};
 }

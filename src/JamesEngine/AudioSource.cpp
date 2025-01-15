@@ -24,8 +24,8 @@ namespace JamesEngine
 		SetPitch(1.f);
 		SetGain(1.f);
 
-		SetMinimumDistance(10.f);
-		SetMaxDistance(100.f);
+		SetMinimumDistance(5.f);
+		SetMaxDistance(30.f);
 		SetRolloffFactor(1.f);
 	}
 
@@ -38,8 +38,17 @@ namespace JamesEngine
 	{
 		std::shared_ptr<Core> core = GetEntity()->GetCore();
 		glm::vec3 cameraPosition = core->GetCamera()->GetPosition();
+		glm::vec3 cameraForward = core->GetCamera()->GetTransform()->GetForward(); // Assuming you have a method to get the forward vector
+		glm::vec3 cameraUp = core->GetCamera()->GetTransform()->GetUp();
 
 		alListener3f(AL_POSITION, cameraPosition.x, cameraPosition.y, cameraPosition.z);
+
+		float orientation[] = {
+		cameraForward.x, cameraForward.y, cameraForward.z,
+		cameraUp.x, cameraUp.y, cameraUp.z
+		};
+		alListenerfv(AL_ORIENTATION, orientation);
+
 
 		alSource3f(mSourceId, AL_POSITION, GetPosition().x + mOffset.x, GetPosition().y + mOffset.y, GetPosition().z + mOffset.z);
 
