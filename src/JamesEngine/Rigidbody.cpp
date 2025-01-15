@@ -19,16 +19,16 @@ namespace JamesEngine
 		GetEntity()->GetCore()->FindComponents(boxColliders);
 
 		// Iterate through all box colliders to see if we're colliding with any
-		for (auto boxCollider : boxColliders)
+		for (auto otherBoxCollider : boxColliders)
 		{
 			// Skip if it is ourself
-			if (boxCollider->GetTransform() == GetTransform())
+			if (otherBoxCollider->GetTransform() == GetTransform())
 				continue;
 
 			// Check if colliding
-			if (boxCollider->IsColliding(GetEntity()->GetComponent<BoxCollider>()))
+			if (otherBoxCollider->IsColliding(GetEntity()->GetComponent<BoxCollider>()))
 			{
-				std::string otherTag = boxCollider->GetEntity()->GetTag();
+				std::string otherTag = otherBoxCollider->GetEntity()->GetTag();
 				
 				for (size_t ci = 0; ci < GetEntity()->mComponents.size(); ci++)
 				{
@@ -36,9 +36,9 @@ namespace JamesEngine
 				}
 
 				std::string thisTag = GetEntity()->GetTag();
-				for (size_t ci = 0; ci < boxCollider->GetEntity()->mComponents.size(); ci++)
+				for (size_t ci = 0; ci < otherBoxCollider->GetEntity()->mComponents.size(); ci++)
 				{
-					boxCollider->GetEntity()->mComponents.at(ci)->OnCollision(thisTag);
+					otherBoxCollider->GetEntity()->mComponents.at(ci)->OnCollision(thisTag);
 				}
 
 				// Kludge (*vomit emoji*)
@@ -49,36 +49,36 @@ namespace JamesEngine
 
 				while (true)
 				{
-					if (!boxCollider->IsColliding(boxCollider))
+					if (!otherBoxCollider->IsColliding(boxCollider))
 						break;
 
 					Move(glm::vec3(amount, 0, 0));
-					if (!boxCollider->IsColliding(boxCollider))
+					if (!otherBoxCollider->IsColliding(boxCollider))
 						break;
 
 					Move(-glm::vec3(amount, 0, 0));
 					Move(-glm::vec3(amount, 0, 0));
-					if (!boxCollider->IsColliding(boxCollider))
+					if (!otherBoxCollider->IsColliding(boxCollider))
 						break;
 
 					Move(glm::vec3(amount, 0, 0));
 					Move(glm::vec3(0, 0, amount));
-					if (!boxCollider->IsColliding(boxCollider))
+					if (!otherBoxCollider->IsColliding(boxCollider))
 						break;
 
 					Move(-glm::vec3(0, 0, amount));
 					Move(-glm::vec3(0, 0, amount));
-					if (!boxCollider->IsColliding(boxCollider))
+					if (!otherBoxCollider->IsColliding(boxCollider))
 						break;
 
 					Move(glm::vec3(0, 0, amount));
 					Move(glm::vec3(0, amount, 0));
-					if (!boxCollider->IsColliding(boxCollider))
+					if (!otherBoxCollider->IsColliding(boxCollider))
 						break;
 
 					Move(-glm::vec3(0, amount, 0));
 					Move(-glm::vec3(0, amount, 0));
-					if (!boxCollider->IsColliding(boxCollider))
+					if (!otherBoxCollider->IsColliding(boxCollider))
 						break;
 
 					Move(glm::vec3(0, amount, 0));
