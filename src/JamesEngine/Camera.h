@@ -11,11 +11,11 @@ namespace JamesEngine
 		glm::mat4 GetViewMatrix();
 		glm::mat4 GetProjectionMatrix();
 
-		void SetFov(float fov) { mFov = fov; }
-		void SetNearClip(float nearClip) { mNearClip = nearClip; }
-		void SetFarClip(float farClip) { mFarClip = farClip; }
+		void SetFov(float _fov) { mFov = _fov; }
+		void SetNearClip(float _nearClip) { mNearClip = _nearClip; }
+		void SetFarClip(float _farClip) { mFarClip = _farClip; }
 
-		void SetPriority(float priority) { mPriority = priority; }
+		void SetPriority(float _priority) { mPriority = _priority; }
 		float GetPriority() { return mPriority; }
 
 	private:

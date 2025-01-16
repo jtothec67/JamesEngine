@@ -21,4 +21,6 @@
 #include "Font.h"
 #include "Skybox.h"
 
+using namespace glm;
+
 #endif

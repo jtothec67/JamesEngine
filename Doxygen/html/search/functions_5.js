@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['run_0',['Run',['../class_james_engine_1_1_core.html#ab46101d5599a47ce79fbc28a512c9285',1,'JamesEngine::Core']]]
+  ['initialize_0',['Initialize',['../class_james_engine_1_1_core.html#ab506dbe8278d4ff1cd66c51c91f78a7b',1,'JamesEngine::Core']]]
 ];

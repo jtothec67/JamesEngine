@@ -119,14 +119,14 @@ $(function(){initNavTree('_model_renderer_8h_source.html',''); initResizable(tru
 <div class="line"><a id="l00011" name="l00011"></a><span class="lineno"><a class="line" href="class_james_engine_1_1_model_renderer.html">   11</a></span>    <span class="keyword">class </span><a class="code hl_class" href="class_james_engine_1_1_model_renderer.html">ModelRenderer</a> : <span class="keyword">public</span> <a class="code hl_class" href="class_james_engine_1_1_component.html">Component</a></div>
 <div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span>    {</div>
 <div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span>    <span class="keyword">public</span>:</div>
-<div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span>        <span class="keywordtype">void</span> SetModel(std::shared_ptr&lt;Model&gt; _model) { mModel = _model; }</div>
-<div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span>        <span class="keywordtype">void</span> SetTexture(std::shared_ptr&lt;Texture&gt; _texture) { mTexture = _texture; }</div>
-<div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span>        <span class="keywordtype">void</span> SetShader(std::shared_ptr&lt;Shader&gt; _shader) { mShader = _shader; }</div>
-<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span> </div>
-<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span>        <span class="keywordtype">void</span> SetSpecularStrength(<span class="keywordtype">float</span> _strength) { mSpecularStrength = _strength; }</div>
-<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span> </div>
-<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span>        <span class="keywordtype">void</span> OnInitialize();</div>
-<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span>        <span class="keywordtype">void</span> OnRender();</div>
+<div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span>        <span class="keywordtype">void</span> <a class="code hl_function" href="class_james_engine_1_1_model_renderer.html#aa33e5b9b9aee7610929ca9ebde4a1c18">OnInitialize</a>();</div>
+<div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span>        <span class="keywordtype">void</span> <a class="code hl_function" href="class_james_engine_1_1_model_renderer.html#abfd050c06f8163863daeb2d61359e8ad">OnRender</a>();</div>
+<div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span> </div>
+<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span>        <span class="keywordtype">void</span> SetModel(std::shared_ptr&lt;Model&gt; _model) { mModel = _model; }</div>
+<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span>        <span class="keywordtype">void</span> SetTexture(std::shared_ptr&lt;Texture&gt; _texture) { mTexture = _texture; }</div>
+<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span>        <span class="keywordtype">void</span> SetShader(std::shared_ptr&lt;Shader&gt; _shader) { mShader = _shader; }</div>
+<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span> </div>
+<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span>        <span class="keywordtype">void</span> SetSpecularStrength(<span class="keywordtype">float</span> _strength) { mSpecularStrength = _strength; }</div>
 <div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span> </div>
 <div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span>    <span class="keyword">private</span>:</div>
 <div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span>        std::shared_ptr&lt;Model&gt; mModel = <span class="keyword">nullptr</span>;</div>
@@ -138,9 +138,11 @@ $(function(){initNavTree('_model_renderer_8h_source.html',''); initResizable(tru
 </div>
 <div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span> </div>
 <div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>}</div>
-<div class="ttc" id="aclass_james_engine_1_1_component_html"><div class="ttname"><a href="class_james_engine_1_1_component.html">JamesEngine::Component</a></div><div class="ttdef"><b>Definition</b> Component.h:19</div></div>
+<div class="ttc" id="aclass_james_engine_1_1_component_html"><div class="ttname"><a href="class_james_engine_1_1_component.html">JamesEngine::Component</a></div><div class="ttdoc">Base class for all components.</div><div class="ttdef"><b>Definition</b> Component.h:24</div></div>
 <div class="ttc" id="aclass_james_engine_1_1_model_html"><div class="ttname"><a href="class_james_engine_1_1_model.html">JamesEngine::Model</a></div><div class="ttdef"><b>Definition</b> Model.h:14</div></div>
 <div class="ttc" id="aclass_james_engine_1_1_model_renderer_html"><div class="ttname"><a href="class_james_engine_1_1_model_renderer.html">JamesEngine::ModelRenderer</a></div><div class="ttdef"><b>Definition</b> ModelRenderer.h:12</div></div>
+<div class="ttc" id="aclass_james_engine_1_1_model_renderer_html_aa33e5b9b9aee7610929ca9ebde4a1c18"><div class="ttname"><a href="class_james_engine_1_1_model_renderer.html#aa33e5b9b9aee7610929ca9ebde4a1c18">JamesEngine::ModelRenderer::OnInitialize</a></div><div class="ttdeci">void OnInitialize()</div><div class="ttdoc">Called when the component is initialized.</div><div class="ttdef"><b>Definition</b> ModelRenderer.cpp:19</div></div>
+<div class="ttc" id="aclass_james_engine_1_1_model_renderer_html_abfd050c06f8163863daeb2d61359e8ad"><div class="ttname"><a href="class_james_engine_1_1_model_renderer.html#abfd050c06f8163863daeb2d61359e8ad">JamesEngine::ModelRenderer::OnRender</a></div><div class="ttdeci">void OnRender()</div><div class="ttdoc">Called after OnTick().</div><div class="ttdef"><b>Definition</b> ModelRenderer.cpp:24</div></div>
 <div class="ttc" id="aclass_james_engine_1_1_shader_html"><div class="ttname"><a href="class_james_engine_1_1_shader.html">JamesEngine::Shader</a></div><div class="ttdef"><b>Definition</b> Shader.h:14</div></div>
 <div class="ttc" id="aclass_james_engine_1_1_texture_html"><div class="ttname"><a href="class_james_engine_1_1_texture.html">JamesEngine::Texture</a></div><div class="ttdef"><b>Definition</b> Texture.h:15</div></div>
 </div><!-- fragment --></div><!-- contents -->

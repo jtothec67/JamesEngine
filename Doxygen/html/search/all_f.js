@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['window_0',['Window',['../class_james_engine_1_1_window.html',1,'JamesEngine']]]
+  ['vertex_0',['Vertex',['../struct_renderer_1_1_vertex.html',1,'Renderer']]]
 ];

@@ -40,7 +40,7 @@ namespace JamesEngine
 
 		void SetMinimumDistance(float _minimumDistance) { mMinimumDistance = _minimumDistance; alSourcef(mSourceId, AL_REFERENCE_DISTANCE, mMinimumDistance); }
 		void SetMaxDistance(float _maxDistance) { mMaxDistance = _maxDistance; alSourcef(mSourceId, AL_MAX_DISTANCE, mMaxDistance); }
-		void SetRolloffFactor(float _rollOffFactor) { mRollOffFactor = _rollOffFactor; alSourcef(mSourceId, AL_ROLLOFF_FACTOR, mRollOffFactor); }
+		void SetRollOffFactor(float _rollOffFactor) { mRollOffFactor = _rollOffFactor; alSourcef(mSourceId, AL_ROLLOFF_FACTOR, mRollOffFactor); }
 
 	private:
 		std::shared_ptr<Sound> mSound = nullptr;

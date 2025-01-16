@@ -26,7 +26,7 @@ namespace JamesEngine
 
 		SetMinimumDistance(5.f);
 		SetMaxDistance(30.f);
-		SetRolloffFactor(1.f);
+		SetRollOffFactor(1.f);
 	}
 
 	AudioSource::~AudioSource()

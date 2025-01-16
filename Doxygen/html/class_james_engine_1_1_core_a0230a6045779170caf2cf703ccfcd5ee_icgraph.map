@@ -1,0 +1,5 @@
+<map id="JamesEngine::Core::FindComponents" name="JamesEngine::Core::FindComponents">
+<area shape="rect" id="Node000001" title="Finds all components of type T in the entities." alt="" coords="198,5,342,48"/>
+<area shape="rect" id="Node000002" href="$class_james_engine_1_1_core.html#a95c50110f8bef91407b968ff244d9841" title="Gets the current camera with the highest priority." alt="" coords="5,5,150,48"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="182,29,150,29,150,24,182,24"/>
+</map>

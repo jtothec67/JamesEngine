@@ -4,7 +4,7 @@ var hierarchy =
     [ "Renderer::Character", "struct_renderer_1_1_character.html", null ],
     [ "Codebook", "struct_codebook.html", null ],
     [ "JamesEngine::Component", "class_james_engine_1_1_component.html", [
-      [ "CameraController", "struct_camera_controller.html", null ],
+      [ "Collectable", "struct_collectable.html", null ],
       [ "JamesEngine::AudioSource", "class_james_engine_1_1_audio_source.html", null ],
       [ "JamesEngine::BoxCollider", "class_james_engine_1_1_box_collider.html", null ],
       [ "JamesEngine::Camera", "class_james_engine_1_1_camera.html", null ],
@@ -12,6 +12,7 @@ var hierarchy =
       [ "JamesEngine::Rigidbody", "class_james_engine_1_1_rigidbody.html", null ],
       [ "JamesEngine::Transform", "class_james_engine_1_1_transform.html", null ],
       [ "JamesEngine::TriangleRenderer", "class_james_engine_1_1_triangle_renderer.html", null ],
+      [ "MenuCamera", "struct_menu_camera.html", null ],
       [ "Player", "struct_player.html", null ]
     ] ],
     [ "JamesEngine::Core", "class_james_engine_1_1_core.html", null ],
