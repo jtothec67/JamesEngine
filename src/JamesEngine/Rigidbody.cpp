@@ -32,13 +32,13 @@ namespace JamesEngine
 				
 				for (size_t ci = 0; ci < GetEntity()->mComponents.size(); ci++)
 				{
-					GetEntity()->mComponents.at(ci)->OnCollision(otherTag);
+					GetEntity()->mComponents.at(ci)->OnCollision(otherBoxCollider->GetEntity());
 				}
 
 				std::string thisTag = GetEntity()->GetTag();
 				for (size_t ci = 0; ci < otherBoxCollider->GetEntity()->mComponents.size(); ci++)
 				{
-					otherBoxCollider->GetEntity()->mComponents.at(ci)->OnCollision(thisTag);
+					otherBoxCollider->GetEntity()->mComponents.at(ci)->OnCollision(GetEntity());
 				}
 
 				// Kludge (*vomit emoji*)

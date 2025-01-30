@@ -104,9 +104,4 @@ namespace JamesEngine
 		OnDestroy();
 	}
 
-	void Component::Collision(std::string _tag)
-	{
-		OnCollision(_tag);
-	}
-
 }

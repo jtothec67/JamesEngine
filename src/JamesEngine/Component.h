@@ -64,7 +64,7 @@ namespace JamesEngine
 		 * @brief Called on both colliders when two colliders collide, as long as at least one has a rigid body.
 		 * @param _tag The tag of the entity it collided with.
 		 */
-		virtual void OnCollision(std::string _tag) { }
+		virtual void OnCollision(std::shared_ptr<Entity> _collidedEntity) { }
 
 	private:
 		friend class JamesEngine::Entity;
@@ -75,6 +75,5 @@ namespace JamesEngine
 		void Render();
 		void GUI();
 		void Destroy();
-		void Collision(std::string _tag);
 	};
 }
