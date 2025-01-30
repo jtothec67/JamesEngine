@@ -3,6 +3,7 @@
 #include <SDL2/sdl.h>
 #include <GL/glew.h>
 #include <glm/glm.hpp>
+#include <string>
 #include <memory>
 
 namespace JamesEngine
@@ -27,6 +28,14 @@ namespace JamesEngine
 		void ActivateVSync(bool _activate) { SDL_GL_SetSwapInterval(_activate ? 1 : 0); mVSync = _activate; }
 
 		bool IsVSyncActive() { return mVSync; }
+
+		void HideMouse(bool _hide) { SDL_ShowCursor(_hide ? SDL_DISABLE : SDL_ENABLE); }
+
+		void RelativeMouseMode(bool _relative) { SDL_SetRelativeMouseMode(_relative ? SDL_TRUE : SDL_FALSE); }
+
+		void SetMousePosition(int _x, int _y) { SDL_WarpMouseInWindow(mRaw, _x, _y); }
+
+		void SetWindowTitle(std::string _title) { SDL_SetWindowTitle(mRaw, _title.c_str()); }
 
 	private:
 		SDL_Window* mRaw;

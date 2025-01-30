@@ -19,6 +19,11 @@ namespace JamesEngine
 
 	void Input::HandleInput(const SDL_Event& _event)
 	{
+		if (_event.type != SDL_MOUSEMOTION)
+		{
+			mMouse->mDelta = glm::ivec2(0);
+		}
+
 		if (_event.type == SDL_MOUSEMOTION)
 		{
 			mMouse->mXpos = _event.motion.x;

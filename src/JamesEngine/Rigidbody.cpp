@@ -4,6 +4,7 @@
 #include "Core.h"
 #include "Component.h"
 #include "Transform.h"
+#include "Collider.h"
 #include "BoxCollider.h"
 
 #include <vector>
@@ -14,71 +15,71 @@ namespace JamesEngine
 
 	void Rigidbody::OnTick()
 	{
-		// Get all box colliders in the scene
-		std::vector<std::shared_ptr<BoxCollider>> boxColliders;
-		GetEntity()->GetCore()->FindComponents(boxColliders);
+		// Get all colliders in the scene
+		std::vector<std::shared_ptr<Collider>> colliders;
+		GetEntity()->GetCore()->FindComponents(colliders);
 
-		// Iterate through all box colliders to see if we're colliding with any
-		for (auto otherBoxCollider : boxColliders)
+		// Iterate through all colliders to see if we're colliding with any
+		for (auto otherCollider : colliders)
 		{
 			// Skip if it is ourself
-			if (otherBoxCollider->GetTransform() == GetTransform())
+			if (otherCollider->GetTransform() == GetTransform())
 				continue;
 
 			// Check if colliding
-			if (otherBoxCollider->IsColliding(GetEntity()->GetComponent<BoxCollider>()))
+			if (otherCollider->IsColliding(GetEntity()->GetComponent<Collider>()))
 			{
-				std::string otherTag = otherBoxCollider->GetEntity()->GetTag();
+				std::string otherTag = otherCollider->GetEntity()->GetTag();
 				
 				for (size_t ci = 0; ci < GetEntity()->mComponents.size(); ci++)
 				{
-					GetEntity()->mComponents.at(ci)->OnCollision(otherBoxCollider->GetEntity());
+					GetEntity()->mComponents.at(ci)->OnCollision(otherCollider->GetEntity());
 				}
 
 				std::string thisTag = GetEntity()->GetTag();
-				for (size_t ci = 0; ci < otherBoxCollider->GetEntity()->mComponents.size(); ci++)
+				for (size_t ci = 0; ci < otherCollider->GetEntity()->mComponents.size(); ci++)
 				{
-					otherBoxCollider->GetEntity()->mComponents.at(ci)->OnCollision(GetEntity());
+					otherCollider->GetEntity()->mComponents.at(ci)->OnCollision(GetEntity());
 				}
 
 				// Kludge (*vomit emoji*)
 				float amount = 0.001f;
 				float step = 0.001f;
 
-				std::shared_ptr<BoxCollider> boxCollider = GetEntity()->GetComponent<BoxCollider>();
+				std::shared_ptr<Collider> collider = GetEntity()->GetComponent<Collider>();
 
 				while (true)
 				{
-					if (!otherBoxCollider->IsColliding(boxCollider))
+					if (!otherCollider->IsColliding(collider))
 						break;
 
 					Move(glm::vec3(amount, 0, 0));
-					if (!otherBoxCollider->IsColliding(boxCollider))
+					if (!otherCollider->IsColliding(collider))
 						break;
 
 					Move(-glm::vec3(amount, 0, 0));
 					Move(-glm::vec3(amount, 0, 0));
-					if (!otherBoxCollider->IsColliding(boxCollider))
+					if (!otherCollider->IsColliding(collider))
 						break;
 
 					Move(glm::vec3(amount, 0, 0));
 					Move(glm::vec3(0, 0, amount));
-					if (!otherBoxCollider->IsColliding(boxCollider))
+					if (!otherCollider->IsColliding(collider))
 						break;
 
 					Move(-glm::vec3(0, 0, amount));
 					Move(-glm::vec3(0, 0, amount));
-					if (!otherBoxCollider->IsColliding(boxCollider))
+					if (!otherCollider->IsColliding(collider))
 						break;
 
 					Move(glm::vec3(0, 0, amount));
 					Move(glm::vec3(0, amount, 0));
-					if (!otherBoxCollider->IsColliding(boxCollider))
+					if (!otherCollider->IsColliding(collider))
 						break;
 
 					Move(-glm::vec3(0, amount, 0));
 					Move(-glm::vec3(0, amount, 0));
-					if (!otherBoxCollider->IsColliding(boxCollider))
+					if (!otherCollider->IsColliding(collider))
 						break;
 
 					Move(glm::vec3(0, amount, 0));

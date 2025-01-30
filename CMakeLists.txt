@@ -69,8 +69,13 @@ add_library(JamesEngine
 	src/JamesEngine/Sound.h
 	src/JamesEngine/Sound.cpp
 
+	src/JamesEngine/Collider.h
+
 	src/JamesEngine/BoxCollider.h
 	src/JamesEngine/BoxCollider.cpp
+
+	src/JamesEngine/SphereCollider.h
+	src/JamesEngine/SphereCollider.cpp
 
 	src/JamesEngine/Rigidbody.h
 	src/JamesEngine/Rigidbody.cpp

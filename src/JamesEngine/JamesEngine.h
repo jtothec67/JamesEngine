@@ -15,6 +15,7 @@
 #include "Keyboard.h"
 #include "AudioSource.h"
 #include "BoxCollider.h"
+#include "SphereCollider.h"
 #include "Rigidbody.h"
 #include "Camera.h"
 #include "GUI.h"
