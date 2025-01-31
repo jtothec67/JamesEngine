@@ -14,10 +14,10 @@ namespace JamesEngine
 	{
 	public:
 #ifdef _DEBUG
-		void OnRender();
+		void OnGUI();
 #endif
 
-		bool IsColliding(std::shared_ptr<Collider> _other);
+		bool IsColliding(std::shared_ptr<Collider> _other, glm::vec3& _collisionPoint);
 
 		void SetSize(glm::vec3 _size) { mSize = _size; }
 		glm::vec3 GetSize() { return mSize; }

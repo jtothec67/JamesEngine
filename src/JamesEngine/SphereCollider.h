@@ -14,10 +14,10 @@ namespace JamesEngine
 	{
 	public:
 #ifdef _DEBUG
-		void OnRender();
+		void OnGUI();
 #endif
 
-		bool IsColliding(std::shared_ptr<Collider> _other);
+		bool IsColliding(std::shared_ptr<Collider> _other, glm::vec3& _collisionPoint);
 
 		void SetRadius(float _radius) { mRadius = _radius; }
 		float GetRadius() { return mRadius; }

@@ -26,8 +26,9 @@ namespace JamesEngine
 			if (otherCollider->GetTransform() == GetTransform())
 				continue;
 
+			glm::vec3 collisionPoint;
 			// Check if colliding
-			if (otherCollider->IsColliding(GetEntity()->GetComponent<Collider>()))
+			if (otherCollider->IsColliding(GetEntity()->GetComponent<Collider>(), collisionPoint))
 			{
 				std::string otherTag = otherCollider->GetEntity()->GetTag();
 				
@@ -50,36 +51,36 @@ namespace JamesEngine
 
 				while (true)
 				{
-					if (!otherCollider->IsColliding(collider))
+					if (!otherCollider->IsColliding(collider, collisionPoint))
 						break;
 
 					Move(glm::vec3(amount, 0, 0));
-					if (!otherCollider->IsColliding(collider))
+					if (!otherCollider->IsColliding(collider, collisionPoint))
 						break;
 
 					Move(-glm::vec3(amount, 0, 0));
 					Move(-glm::vec3(amount, 0, 0));
-					if (!otherCollider->IsColliding(collider))
+					if (!otherCollider->IsColliding(collider, collisionPoint))
 						break;
 
 					Move(glm::vec3(amount, 0, 0));
 					Move(glm::vec3(0, 0, amount));
-					if (!otherCollider->IsColliding(collider))
+					if (!otherCollider->IsColliding(collider, collisionPoint))
 						break;
 
 					Move(-glm::vec3(0, 0, amount));
 					Move(-glm::vec3(0, 0, amount));
-					if (!otherCollider->IsColliding(collider))
+					if (!otherCollider->IsColliding(collider, collisionPoint))
 						break;
 
 					Move(glm::vec3(0, 0, amount));
 					Move(glm::vec3(0, amount, 0));
-					if (!otherCollider->IsColliding(collider))
+					if (!otherCollider->IsColliding(collider, collisionPoint))
 						break;
 
 					Move(-glm::vec3(0, amount, 0));
 					Move(-glm::vec3(0, amount, 0));
-					if (!otherCollider->IsColliding(collider))
+					if (!otherCollider->IsColliding(collider, collisionPoint))
 						break;
 
 					Move(glm::vec3(0, amount, 0));

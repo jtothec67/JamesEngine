@@ -14,19 +14,23 @@ namespace JamesEngine
 	{
 	public:
 #ifdef _DEBUG
-		virtual void OnRender() {}
+		virtual void OnGUI() {}
 #endif
 
-		virtual bool IsColliding(std::shared_ptr<Collider> _other) = 0;
+		virtual bool IsColliding(std::shared_ptr<Collider> _other, glm::vec3& _collisionPoint) = 0;
 
-		void SetOffset(glm::vec3 _offset) { mOffset = _offset; }
-		glm::vec3 GetOffset() { return mOffset; }
+		void SetPositionOffset(glm::vec3 _offset) { mPositionOffset = _offset; }
+		glm::vec3 GetPositionOffset() { return mPositionOffset; }
+
+		void SetRotationOffset(glm::vec3 _rotation) { mRotationOffset = _rotation; }
+		glm::vec3 GetRotationOffset() { return mRotationOffset; }
 
 	private:
 		friend class BoxCollider;
 		friend class SphereCollider;
 
-		glm::vec3 mOffset{ 0 };
+		glm::vec3 mPositionOffset{ 0 };
+		glm::vec3 mRotationOffset{ 0 };
 
 #ifdef _DEBUG
 		std::shared_ptr<Renderer::Shader> mShader = std::make_shared<Renderer::Shader>("../assets/shaders/OutlineShader.vert", "../assets/shaders/OutlineShader.frag");
