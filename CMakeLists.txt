@@ -40,7 +40,6 @@ add_library(JamesEngine
 	src/JamesEngine/Resource.cpp
 
 	src/JamesEngine/Resources.h
-	src/JamesEngine/Resources.cpp
 
 	src/JamesEngine/Texture.h
 	src/JamesEngine/Texture.cpp
@@ -77,6 +76,9 @@ add_library(JamesEngine
 	src/JamesEngine/SphereCollider.h
 	src/JamesEngine/SphereCollider.cpp
 
+	src/JamesEngine/ModelCollider.h
+	src/JamesEngine/ModelCollider.cpp
+
 	src/JamesEngine/Rigidbody.h
 	src/JamesEngine/Rigidbody.cpp
 
@@ -94,6 +96,9 @@ add_library(JamesEngine
 
 	src/JamesEngine/Skybox.h
 	src/JamesEngine/Skybox.cpp
+
+	src/JamesEngine/MathsHelper.h
+	src/JamesEngine/MathsHelper.cpp
 )
 
 target_link_libraries(JamesEngine Renderer openal32)

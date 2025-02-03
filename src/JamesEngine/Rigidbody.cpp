@@ -86,7 +86,6 @@ namespace JamesEngine
 					Move(glm::vec3(0, amount, 0));
 					amount += step;
 				}
-
 			}
 		}
 	}

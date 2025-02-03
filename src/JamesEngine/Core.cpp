@@ -44,7 +44,7 @@ namespace JamesEngine
 
 			mDeltaTimer.Start();
 
-			//std::cout << "FPS: " << 1.0f / mDeltaTime << std::endl;
+			std::cout << "FPS: " << 1.0f / mDeltaTime << std::endl;
 
 			mInput->Update();
 			

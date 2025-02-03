@@ -17,6 +17,9 @@ namespace JamesEngine
 
 	private:
 		friend class ModelRenderer;
+		friend class ModelCollider;
+		friend class SphereCollider;
+		friend class BoxCollider;
 
 		std::shared_ptr<Renderer::Model> mModel;
 	};

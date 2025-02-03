@@ -2,6 +2,8 @@
 
 #include "Core.h"
 #include "SphereCollider.h"
+#include "ModelCollider.h"
+#include "MathsHelper.h"
 
 #ifdef _DEBUG
 #include "Camera.h"
@@ -162,6 +164,62 @@ namespace JamesEngine
                 return true;
             }
 		}
+
+		// We are box, other is model
+		std::shared_ptr<ModelCollider> otherModel = std::dynamic_pointer_cast<ModelCollider>(_other);
+        if (otherModel)
+        {
+            // Get the box's world parameters.
+            glm::vec3 boxPos = GetPosition() + GetPositionOffset();
+            glm::vec3 boxRotation = GetRotation() + GetRotationOffset();
+            glm::vec3 boxSize = GetSize();
+            glm::vec3 boxHalfSize = boxSize * 0.5f;
+
+            // Build the box's rotation matrix (from Euler angles).
+            glm::mat4 boxRotMatrix = glm::mat4(1.0f);
+            boxRotMatrix = glm::rotate(boxRotMatrix, glm::radians(boxRotation.x), glm::vec3(1, 0, 0));
+            boxRotMatrix = glm::rotate(boxRotMatrix, glm::radians(boxRotation.y), glm::vec3(0, 1, 0));
+            boxRotMatrix = glm::rotate(boxRotMatrix, glm::radians(boxRotation.z), glm::vec3(0, 0, 1));
+            // Inverse rotation (since the rotation matrix is orthonormal, the inverse is its transpose)
+            glm::mat4 invBoxRotMatrix = glm::transpose(boxRotMatrix);
+
+            // Build the model's world transformation matrix.
+            glm::vec3 modelPos = otherModel->GetPosition() + otherModel->GetPositionOffset();
+            glm::vec3 modelScale = otherModel->GetScale();
+            glm::vec3 modelRotation = otherModel->GetRotation() + otherModel->GetRotationOffset();
+            glm::mat4 modelMatrix = glm::mat4(1.0f);
+            modelMatrix = glm::translate(modelMatrix, modelPos);
+            modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.x), glm::vec3(1, 0, 0));
+            modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.y), glm::vec3(0, 1, 0));
+            modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.z), glm::vec3(0, 0, 1));
+            modelMatrix = glm::scale(modelMatrix, modelScale);
+
+            // Test each triangle face of the model against the box.
+            for (const auto& face : otherModel->GetModel()->mModel->GetFaces())
+            {
+                // Transform triangle vertices into world space.
+                glm::vec3 a = glm::vec3(modelMatrix * glm::vec4(face.a.position, 1.0f));
+                glm::vec3 b = glm::vec3(modelMatrix * glm::vec4(face.b.position, 1.0f));
+                glm::vec3 c = glm::vec3(modelMatrix * glm::vec4(face.c.position, 1.0f));
+
+                // Transform the vertices into the box's local space.
+                glm::vec3 aLocal = glm::vec3(invBoxRotMatrix * glm::vec4(a - boxPos, 1.0f));
+                glm::vec3 bLocal = glm::vec3(invBoxRotMatrix * glm::vec4(b - boxPos, 1.0f));
+                glm::vec3 cLocal = glm::vec3(invBoxRotMatrix * glm::vec4(c - boxPos, 1.0f));
+                glm::vec3 triVerts[3] = { aLocal, bLocal, cLocal };
+
+                // Use the SAT-based triangle-box test.
+                if (Maths::TriBoxOverlap(triVerts, boxHalfSize))
+                {
+                    // Compute an approximate collision point.
+                    // Here we take the closest point on the triangle (in world space)
+                    // to the box center.
+                    glm::vec3 closestPoint = Maths::ClosestPointOnTriangle(boxPos, a, b, c);
+                    _collisionPoint = closestPoint;
+                    return true;
+                }
+            }
+        }
 
 		return false;
 	}

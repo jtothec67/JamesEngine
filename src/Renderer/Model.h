@@ -29,7 +29,6 @@ namespace Renderer
         float get_height() const;
         float get_length() const;
 
-    private:
         struct Vertex
         {
             Vertex();
@@ -46,6 +45,9 @@ namespace Renderer
             Vertex c;
         };
 
+        const std::vector<Model::Face>& GetFaces() const;
+
+    private:
         std::vector<Face> m_faces;
         GLuint m_vaoid = 0;
         GLuint m_vboid = 0;
@@ -450,6 +452,11 @@ namespace Renderer
     inline float Model::get_length() const
     {
         return m_length;
+    }
+
+    inline const std::vector<Model::Face>& Model::GetFaces() const
+    {
+        return m_faces;
     }
 
 }

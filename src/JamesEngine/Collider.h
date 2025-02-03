@@ -25,7 +25,7 @@ namespace JamesEngine
 		void SetRotationOffset(glm::vec3 _rotation) { mRotationOffset = _rotation; }
 		glm::vec3 GetRotationOffset() { return mRotationOffset; }
 
-	private:
+	protected:
 		friend class BoxCollider;
 		friend class SphereCollider;
 

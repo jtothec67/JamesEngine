@@ -2,6 +2,8 @@
 
 #include "Core.h"
 #include "BoxCollider.h"
+#include "ModelCollider.h"
+#include "MathsHelper.h"
 
 #ifdef _DEBUG
 #include "Camera.h"
@@ -101,6 +103,49 @@ namespace JamesEngine
 				return true;
 			}
 			return false;
+		}
+
+		// We are sphere, other is model
+		std::shared_ptr<ModelCollider> otherModel = std::dynamic_pointer_cast<ModelCollider>(_other);
+		if (otherModel)
+		{
+			// Get sphere world position and radius.
+			glm::vec3 spherePos = GetPosition() + GetPositionOffset();
+			float sphereRadius = GetRadius();
+			float sphereRadiusSq = sphereRadius * sphereRadius;
+
+			// Build the model's world transformation matrix.
+			glm::vec3 modelPos = otherModel->GetPosition() + otherModel->GetPositionOffset();
+			glm::vec3 modelScale = otherModel->GetScale();
+			glm::vec3 modelRotation = otherModel->GetRotation() + otherModel->GetRotationOffset();
+
+			glm::mat4 modelMatrix = glm::mat4(1.0f);
+			modelMatrix = glm::translate(modelMatrix, modelPos);
+			modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.x), glm::vec3(1, 0, 0));
+			modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.y), glm::vec3(0, 1, 0));
+			modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.z), glm::vec3(0, 0, 1));
+			modelMatrix = glm::scale(modelMatrix, modelScale);
+
+			// Iterate over each triangle face of the model.
+			for (const auto& face : otherModel->GetModel()->mModel->GetFaces())
+			{
+				// Transform each vertex into world space.
+				glm::vec3 a = glm::vec3(modelMatrix * glm::vec4(face.a.position, 1.0f));
+				glm::vec3 b = glm::vec3(modelMatrix * glm::vec4(face.b.position, 1.0f));
+				glm::vec3 c = glm::vec3(modelMatrix * glm::vec4(face.c.position, 1.0f));
+
+				// Compute the closest point on this triangle to the sphere center.
+				glm::vec3 closestPoint = Maths::ClosestPointOnTriangle(spherePos, a, b, c);
+
+				// Check if the distance from the sphere's center to this point is within the radius.
+				glm::vec3 diff = spherePos - closestPoint;
+				float distanceSq = glm::dot(diff, diff);
+				if (distanceSq <= sphereRadiusSq)
+				{
+					_collisionPoint = closestPoint;
+					return true;
+				}
+			}
 		}
 
 		return false;
