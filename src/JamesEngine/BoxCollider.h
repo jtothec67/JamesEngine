@@ -10,7 +10,7 @@
 namespace JamesEngine
 {
 
-	class BoxCollider : public Collider
+	class BoxCollider : public Collider, public std::enable_shared_from_this<BoxCollider>
 	{
 	public:
 #ifdef _DEBUG

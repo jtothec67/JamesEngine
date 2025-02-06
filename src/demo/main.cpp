@@ -48,8 +48,10 @@ struct boxController : public Component
 			moving = !moving;
 
 		if (moving)
-			//GetTransform()->Rotate(glm::vec3(0, 45, 0) * speed * GetCore()->DeltaTime());
-			GetTransform()->Move(glm::vec3(1, 0, 0) * speed * GetCore()->DeltaTime());
+		{
+			GetTransform()->Rotate(glm::vec3(0, 45, 0) * speed * GetCore()->DeltaTime());
+			GetTransform()->Move(glm::vec3(1, 0, 0) * -speed * GetCore()->DeltaTime());
+		}
 	}
 
 	void OnCollision(std::shared_ptr<Entity> ent)
@@ -75,7 +77,7 @@ int main()
 		cameraEntity->AddComponent<freelookCamController>();
 
 		std::shared_ptr<Entity> boxEntity = core->AddEntity();
-		boxEntity->GetComponent<Transform>()->SetPosition(vec3(-2, 2, 10));
+		boxEntity->GetComponent<Transform>()->SetPosition(vec3(4, 3, 10));
 		boxEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
 		std::shared_ptr<ModelRenderer> boxMR = boxEntity->AddComponent<ModelRenderer>();
 		boxMR->SetModel(core->GetResources()->Load<Model>("shapes/cube"));
@@ -86,15 +88,16 @@ int main()
 		
 
 		std::shared_ptr<Entity> mouseEntity = core->AddEntity();
-		mouseEntity->GetComponent<Transform>()->SetPosition(vec3(2, 0, 10));
-		mouseEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
+		mouseEntity->GetComponent<Transform>()->SetPosition(vec3(0, 0, 10));
+		mouseEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, -15));
 		std::shared_ptr<ModelRenderer> mouseMR = mouseEntity->AddComponent<ModelRenderer>();
 		mouseMR->SetModel(core->GetResources()->Load<Model>("models/curuthers/curuthers"));
 		mouseMR->SetTexture(core->GetResources()->Load<Texture>("models/curuthers/Whiskers_diffuse"));
 		std::shared_ptr<ModelCollider> mouseCollider = mouseEntity->AddComponent<ModelCollider>();
 		mouseCollider->SetModel(core->GetResources()->Load<Model>("models/curuthers/curuthers"));
 		mouseCollider->SetRotationOffset(vec3(0, 0, 0));
-		mouseEntity->AddComponent<Rigidbody>();
+
+		boxEntity->AddComponent<Rigidbody>();
 	}
 
 	core->Run();

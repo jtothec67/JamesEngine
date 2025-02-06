@@ -5,6 +5,8 @@
 #include "ModelCollider.h"
 #include "MathsHelper.h"
 
+#include <iostream>
+
 #ifdef _DEBUG
 #include "Camera.h"
 #include "Entity.h"
@@ -15,7 +17,6 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/euler_angles.hpp>
-#include <iostream>
 
 namespace JamesEngine
 {
@@ -194,8 +195,8 @@ namespace JamesEngine
             modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.z), glm::vec3(0, 0, 1));
             modelMatrix = glm::scale(modelMatrix, modelScale);
 
-            // Test each triangle face of the model against the box.
-            for (const auto& face : otherModel->GetModel()->mModel->GetFaces())
+            std::vector<Renderer::Model::Face> faces = otherModel->GetTriangles(boxPos, boxRotation, boxSize);
+            for (const auto& face : faces)
             {
                 // Transform triangle vertices into world space.
                 glm::vec3 a = glm::vec3(modelMatrix * glm::vec4(face.a.position, 1.0f));

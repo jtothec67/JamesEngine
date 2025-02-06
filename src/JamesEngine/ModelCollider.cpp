@@ -6,6 +6,9 @@
 
 #include "MathsHelper.h"
 
+#include <iostream>
+#include <algorithm>
+
 #ifdef _DEBUG
 #include "Camera.h"
 #include "Entity.h"
@@ -16,7 +19,6 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/euler_angles.hpp>
-#include <iostream>
 
 namespace JamesEngine
 {
@@ -90,8 +92,9 @@ namespace JamesEngine
             modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.z), glm::vec3(0, 0, 1));
             modelMatrix = glm::scale(modelMatrix, modelScale);
 
-            // Iterate over each triangle face of the model.
-            for (const auto& face : mModel->mModel->GetFaces())
+            // Test returned triangle faces of the model's BVH against the sphere.
+            std::vector<Renderer::Model::Face> faces = GetTriangles(spherePos, glm::vec3(0), glm::vec3(sphereRadius * 2));
+            for (const auto& face : faces)
             {
                 // Transform each vertex into world space.
                 glm::vec3 a = glm::vec3(modelMatrix * glm::vec4(face.a.position, 1.0f));
@@ -141,8 +144,9 @@ namespace JamesEngine
             modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.z), glm::vec3(0, 0, 1));
             modelMatrix = glm::scale(modelMatrix, modelScale);
 
-            // Test each triangle face of the model against the box.
-            for (const auto& face : mModel->mModel->GetFaces())
+            // Test returned triangle faces of the model's BVH against the box.
+			std::vector<Renderer::Model::Face> faces = GetTriangles(boxPos, boxRotation, boxSize);
+            for (const auto& face : faces)
             {
                 // Transform triangle vertices into world space.
                 glm::vec3 a = glm::vec3(modelMatrix * glm::vec4(face.a.position, 1.0f));
@@ -168,65 +172,176 @@ namespace JamesEngine
             }
 		}
 
-		// We are model, other is model
-        // DO NOT DO THIS
-        std::shared_ptr<ModelCollider> otherModel = std::dynamic_pointer_cast<ModelCollider>(_other);
-        if (otherModel)
+		return false;
+    }
+
+
+    // --- BVH Building ---
+
+    // Recursively builds a BVH node from a set of faces.
+    std::unique_ptr<ModelCollider::BVHNode> ModelCollider::BuildBVH(const std::vector<Renderer::Model::Face>& faces, unsigned int leafThreshold)
+    {
+        auto node = std::make_unique<BVHNode>();
+
+        // Compute the AABB that contains all triangles in this node.
+        glm::vec3 aabbMin(FLT_MAX);
+        glm::vec3 aabbMax(-FLT_MAX);
+
+        for (const auto& face : faces)
         {
-			std::cout << "Model to model collision is very slow! Are you sure you meant to do this? You can comment this line out and continue if you did." << std::endl;
+            // Use each vertex position from the face (in model local space)
+            aabbMin = glm::min(aabbMin, face.a.position);
+            aabbMin = glm::min(aabbMin, face.b.position);
+            aabbMin = glm::min(aabbMin, face.c.position);
 
-            // Build world transform for "this" model.
-            glm::vec3 modelPos = GetPosition() + GetPositionOffset();
-            glm::vec3 modelScale = GetScale();
-            glm::vec3 modelRotation = GetRotation() + GetRotationOffset();
-            glm::mat4 modelMatrix = glm::mat4(1.0f);
-            modelMatrix = glm::translate(modelMatrix, modelPos);
-            modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.x), glm::vec3(1, 0, 0));
-            modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.y), glm::vec3(0, 1, 0));
-            modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.z), glm::vec3(0, 0, 1));
-            modelMatrix = glm::scale(modelMatrix, modelScale);
+            aabbMax = glm::max(aabbMax, face.a.position);
+            aabbMax = glm::max(aabbMax, face.b.position);
+            aabbMax = glm::max(aabbMax, face.c.position);
+        }
+        node->aabbMin = aabbMin;
+        node->aabbMax = aabbMax;
 
-            // Build world transform for the other model.
-            glm::vec3 otherModelPos = otherModel->GetPosition() + otherModel->GetPositionOffset();
-            glm::vec3 otherModelScale = otherModel->GetScale();
-            glm::vec3 otherModelRotation = otherModel->GetRotation() + otherModel->GetRotationOffset();
-            glm::mat4 otherModelMatrix = glm::mat4(1.0f);
-            otherModelMatrix = glm::translate(otherModelMatrix, otherModelPos);
-            otherModelMatrix = glm::rotate(otherModelMatrix, glm::radians(otherModelRotation.x), glm::vec3(1, 0, 0));
-            otherModelMatrix = glm::rotate(otherModelMatrix, glm::radians(otherModelRotation.y), glm::vec3(0, 1, 0));
-            otherModelMatrix = glm::rotate(otherModelMatrix, glm::radians(otherModelRotation.z), glm::vec3(0, 0, 1));
-            otherModelMatrix = glm::scale(otherModelMatrix, otherModelScale);
+        // If the number of faces is small enough, make this a leaf.
+        if (faces.size() <= leafThreshold)
+        {
+            node->triangles = faces;
+            return node;
+        }
 
-            // Get faces for each model.
-            const std::vector<Renderer::Model::Face>& facesA = mModel->mModel->GetFaces();
-            const std::vector<Renderer::Model::Face>& facesB = otherModel->mModel->mModel->GetFaces();
+        // Otherwise, choose the axis along which the AABB is widest.
+        glm::vec3 extent = aabbMax - aabbMin;
+        int axis = 0;
+        if (extent.y > extent.x && extent.y > extent.z)
+            axis = 1;
+        else if (extent.z > extent.x && extent.z > extent.y)
+            axis = 2;
 
-            // Test every triangle from this model against every triangle from the other model.
-            for (const auto& faceA : facesA)
+        // Copy and sort the faces by the centroid along the chosen axis.
+        std::vector<Renderer::Model::Face> sortedFaces = faces;
+        std::sort(sortedFaces.begin(), sortedFaces.end(),
+            [axis](const Renderer::Model::Face& f1, const Renderer::Model::Face& f2)
             {
-                glm::vec3 A0 = glm::vec3(modelMatrix * glm::vec4(faceA.a.position, 1.0f));
-                glm::vec3 A1 = glm::vec3(modelMatrix * glm::vec4(faceA.b.position, 1.0f));
-                glm::vec3 A2 = glm::vec3(modelMatrix * glm::vec4(faceA.c.position, 1.0f));
+                glm::vec3 centroid1 = (f1.a.position + f1.b.position + f1.c.position) / 3.0f;
+                glm::vec3 centroid2 = (f2.a.position + f2.b.position + f2.c.position) / 3.0f;
+                return centroid1[axis] < centroid2[axis];
+            });
 
-                for (const auto& faceB : facesB)
+        size_t mid = sortedFaces.size() / 2;
+        std::vector<Renderer::Model::Face> leftFaces(sortedFaces.begin(), sortedFaces.begin() + mid);
+        std::vector<Renderer::Model::Face> rightFaces(sortedFaces.begin() + mid, sortedFaces.end());
+
+        // Recursively build child nodes.
+        node->left = BuildBVH(leftFaces, leafThreshold);
+        node->right = BuildBVH(rightFaces, leafThreshold);
+
+        return node;
+    }
+
+    // --- BVH Query ---
+
+    // Recursively traverses the BVH and adds any triangles in nodes whose AABB
+    // overlaps the query AABB.
+    void ModelCollider::QueryBVH(const BVHNode* node, const glm::vec3& queryMin, const glm::vec3& queryMax, std::vector<Renderer::Model::Face>& outTriangles)
+    {
+        if (!node)
+            return;
+
+        // Check for overlap between node's AABB and the query AABB.
+        if (node->aabbMax.x < queryMin.x || node->aabbMin.x > queryMax.x ||
+            node->aabbMax.y < queryMin.y || node->aabbMin.y > queryMax.y ||
+            node->aabbMax.z < queryMin.z || node->aabbMin.z > queryMax.z)
+        {
+            return; // No overlap.
+        }
+
+        // If this is a leaf node, add all its triangles.
+        if (!node->left && !node->right)
+        {
+            outTriangles.insert(outTriangles.end(), node->triangles.begin(), node->triangles.end());
+            return;
+        }
+
+        // Otherwise, query both children.
+        if (node->left)
+            QueryBVH(node->left.get(), queryMin, queryMax, outTriangles);
+        if (node->right)
+            QueryBVH(node->right.get(), queryMin, queryMax, outTriangles);
+    }
+
+    // --- GetTriangles using BVH ---
+
+    std::vector<Renderer::Model::Face> ModelCollider::GetTriangles(const glm::vec3& boxPos, const glm::vec3& boxRotation, const glm::vec3& boxSize, unsigned int _leafThreshold)
+    {
+        std::vector<Renderer::Model::Face> result;
+        if (mModel == nullptr)
+            return result;
+
+        // (Re)build the BVH if it hasn’t been built yet or if the leaf threshold has changed.
+        if (!mBVHRoot || mBVHLeafThreshold != _leafThreshold)
+        {
+            mBVHLeafThreshold = _leafThreshold;
+            const std::vector<Renderer::Model::Face>& faces = mModel->mModel->GetFaces();
+            mBVHRoot = BuildBVH(faces, mBVHLeafThreshold);
+        }
+
+        // Compute the world transformation for this model.
+        glm::vec3 modelPos = GetPosition() + GetPositionOffset();
+        glm::vec3 modelScale = GetScale();
+        glm::vec3 modelRotation = GetRotation() + GetRotationOffset();
+
+        glm::mat4 modelMatrix = glm::mat4(1.0f);
+        modelMatrix = glm::translate(modelMatrix, modelPos);
+        modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.x), glm::vec3(1, 0, 0));
+        modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.y), glm::vec3(0, 1, 0));
+        modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.z), glm::vec3(0, 0, 1));
+        modelMatrix = glm::scale(modelMatrix, modelScale);
+
+        // Transform the box parameters (which are defined in world space) into the model's local space.
+        // First, compute the inverse model matrix.
+        glm::mat4 invModelMatrix = glm::inverse(modelMatrix);
+
+        // Compute the eight corners of the box in world space.
+        glm::vec3 halfSize = boxSize * 0.5f;
+        std::vector<glm::vec3> corners;
+        corners.reserve(8);
+        for (int x = -1; x <= 1; x += 2)
+        {
+            for (int y = -1; y <= 1; y += 2)
+            {
+                for (int z = -1; z <= 1; z += 2)
                 {
-                    glm::vec3 B0 = glm::vec3(otherModelMatrix * glm::vec4(faceB.a.position, 1.0f));
-                    glm::vec3 B1 = glm::vec3(otherModelMatrix * glm::vec4(faceB.b.position, 1.0f));
-                    glm::vec3 B2 = glm::vec3(otherModelMatrix * glm::vec4(faceB.c.position, 1.0f));
-
-                    if (Maths::TrianglesIntersect(A0, A1, A2, B0, B1, B2))
-                    {
-                        // For an approximate collision point, take the midpoint between the triangle centroids.
-                        glm::vec3 centroidA = (A0 + A1 + A2) / 3.0f;
-                        glm::vec3 centroidB = (B0 + B1 + B2) / 3.0f;
-                        _collisionPoint = (centroidA + centroidB) * 0.5f;
-                        return true;
-                    }
+                    corners.push_back(glm::vec3(x * halfSize.x, y * halfSize.y, z * halfSize.z));
                 }
             }
         }
 
-		return false;
-    }
+        // Build the box's rotation matrix (from its Euler angles).
+        glm::mat4 boxRotMatrix = glm::mat4(1.0f);
+        boxRotMatrix = glm::rotate(boxRotMatrix, glm::radians(boxRotation.x), glm::vec3(1, 0, 0));
+        boxRotMatrix = glm::rotate(boxRotMatrix, glm::radians(boxRotation.y), glm::vec3(0, 1, 0));
+        boxRotMatrix = glm::rotate(boxRotMatrix, glm::radians(boxRotation.z), glm::vec3(0, 0, 1));
 
+        // Transform each corner: first rotate, then translate, then bring into model space.
+        for (auto& corner : corners)
+        {
+            // Apply the box’s rotation and translation.
+            corner = glm::vec3(boxRotMatrix * glm::vec4(corner, 1.0f)) + boxPos;
+            // Transform from world space into model local space.
+            corner = glm::vec3(invModelMatrix * glm::vec4(corner, 1.0f));
+        }
+
+        // Compute an axis–aligned bounding box (AABB) from the transformed corners.
+        glm::vec3 queryMin = corners[0];
+        glm::vec3 queryMax = corners[0];
+        for (size_t i = 1; i < corners.size(); ++i)
+        {
+            queryMin = glm::min(queryMin, corners[i]);
+            queryMax = glm::max(queryMax, corners[i]);
+        }
+
+        // Query the BVH for triangles that might intersect the box.
+        QueryBVH(mBVHRoot.get(), queryMin, queryMax, result);
+
+        return result;
+    }
 }

@@ -126,8 +126,9 @@ namespace JamesEngine
 			modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.z), glm::vec3(0, 0, 1));
 			modelMatrix = glm::scale(modelMatrix, modelScale);
 
-			// Iterate over each triangle face of the model.
-			for (const auto& face : otherModel->GetModel()->mModel->GetFaces())
+			// Test returned triangle faces of the model's BVH against the sphere.
+			std::vector<Renderer::Model::Face> faces = otherModel->GetTriangles(spherePos, glm::vec3(0), glm::vec3(sphereRadius * 2));
+			for (const auto& face : faces)
 			{
 				// Transform each vertex into world space.
 				glm::vec3 a = glm::vec3(modelMatrix * glm::vec4(face.a.position, 1.0f));
