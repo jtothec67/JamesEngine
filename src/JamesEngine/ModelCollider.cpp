@@ -237,8 +237,8 @@ namespace JamesEngine
         return node;
     }
 
+    
     // --- BVH Query ---
-
     // Recursively traverses the BVH and adds any triangles in nodes whose AABB
     // overlaps the query AABB.
     void ModelCollider::QueryBVH(const BVHNode* node, const glm::vec3& queryMin, const glm::vec3& queryMax, std::vector<Renderer::Model::Face>& outTriangles)

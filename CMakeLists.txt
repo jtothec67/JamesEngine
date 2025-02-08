@@ -99,6 +99,9 @@ add_library(JamesEngine
 
 	src/JamesEngine/MathsHelper.h
 	src/JamesEngine/MathsHelper.cpp
+
+	src/JamesEngine/LightManager.h
+	src/JamesEngine/LightManager.cpp
 )
 
 target_link_libraries(JamesEngine Renderer openal32)

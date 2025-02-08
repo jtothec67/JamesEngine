@@ -145,6 +145,43 @@ namespace Renderer
 		glUseProgram(0);
 	}
 
+	void Shader::uniform(const std::string& _name, const glm::vec4& value)
+	{
+		// Find uniform locations
+		GLint loc = glGetUniformLocation(id(), _name.c_str());
+
+		glUseProgram(id());
+		glUniform4fv(loc, 1, glm::value_ptr(value));
+		glUseProgram(0);
+	}
+
+	void Shader::uniform(const std::string& _name, std::vector<int> value)
+	{
+		// Find uniform locations
+		GLint loc = glGetUniformLocation(id(), _name.c_str());
+		glUseProgram(id());
+		glUniform1iv(loc, value.size(), value.data());
+		glUseProgram(0);
+	}
+
+	void Shader::uniform(const std::string& _name, std::vector<float> value)
+	{
+		// Find uniform locations
+		GLint loc = glGetUniformLocation(id(), _name.c_str());
+		glUseProgram(id());
+		glUniform1fv(loc, value.size(), value.data());
+		glUseProgram(0);
+	}
+
+	void Shader::uniform(const std::string& _name, std::vector<glm::vec3> value)
+	{
+		// Find uniform locations
+		GLint loc = glGetUniformLocation(id(), _name.c_str());
+		glUseProgram(id());
+		glUniform3fv(loc, value.size(), glm::value_ptr(value[0]));
+		glUseProgram(0);
+	}
+
 	void Shader::draw(Model* _model, Texture* _tex)
 	{
 		glUseProgram(id());

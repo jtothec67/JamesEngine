@@ -20,6 +20,7 @@ namespace JamesEngine
 		rtn->mAudio = std::make_shared<Audio>();
 		rtn->mResources = std::make_shared<Resources>();
 		rtn->mGUI = std::make_shared<GUI>(rtn);
+		rtn->mLightManager = std::make_shared<LightManager>();
 		rtn->mSkybox = std::make_shared<Skybox>(rtn);
 		rtn->mInput = std::make_shared<Input>();
 

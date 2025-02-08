@@ -22,6 +22,7 @@
 #include "GUI.h"
 #include "Font.h"
 #include "Skybox.h"
+#include "LightManager.h"
 
 using namespace glm;
 

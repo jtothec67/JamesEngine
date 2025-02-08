@@ -8,6 +8,7 @@
 #include "Core.h"
 #include "Resources.h"
 #include "Camera.h"
+#include "LightManager.h"
 
 #include <glm/glm.hpp>
 #include <iostream>
@@ -39,13 +40,24 @@ namespace JamesEngine
 
 		mShader->mShader->uniform("u_Model", GetEntity()->GetComponent<Transform>()->GetModel());
 
-		mShader->mShader->uniform("u_LightPos", core->GetLightPosition());
+		std::vector<std::shared_ptr<Light>> lights = core->GetLightManager()->GetLights();
 
-		mShader->mShader->uniform("u_LightStrength", core->GetLightStrength());
+		std::vector<glm::vec3> positions;
+		std::vector<glm::vec3> colors;
+		std::vector<float> strengths;
 
-		mShader->mShader->uniform("u_LightColor", core->GetLightColor());
+		for (const auto& light : lights)
+		{
+			positions.push_back(light->position);
+			colors.push_back(light->colour);
+			strengths.push_back(light->strength);
+		}
 
-		mShader->mShader->uniform("u_Ambient", core->GetAmbient());
+		mShader->mShader->uniform("u_LightPositions", positions);
+		mShader->mShader->uniform("u_LightColors", colors);
+		mShader->mShader->uniform("u_LightStrengths", strengths);
+
+		mShader->mShader->uniform("u_Ambient", core->GetLightManager()->GetAmbient());
 
 		mShader->mShader->uniform("u_SpecStrength", mSpecularStrength);
 

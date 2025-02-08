@@ -3,6 +3,7 @@
 #include "Window.h"
 #include "Audio.h"
 #include "GUI.h"
+#include "LightManager.h"
 
 #include <memory>
 #include <vector>
@@ -43,19 +44,8 @@ namespace JamesEngine
 		std::shared_ptr<Input> GetInput() const { return mInput; }
 		std::shared_ptr<Resources> GetResources() const { return mResources; }
 		std::shared_ptr<GUI> GetGUI() const { return mGUI; }
+		std::shared_ptr<LightManager> GetLightManager() const { return mLightManager; }
 		std::shared_ptr<Skybox> GetSkybox() const { return mSkybox; }
-
-		void SetLightPosition(glm::vec3 _pos) { mLightPos = _pos; }
-		glm::vec3 GetLightPosition() { return mLightPos; }
-
-		void SetLightColor(glm::vec3 _color) { mLightColor = _color; }
-		glm::vec3 GetLightColor() { return mLightColor; }
-
-		void SetAmbient(glm::vec3 _ambient) { mAmbient = _ambient; }
-		glm::vec3 GetAmbient() { return mAmbient; }
-
-		void SetLightStrength(float _strength) { mLightStrength = _strength; }
-		float GetLightStrength() { return mLightStrength; }
 
 		/**
 		 * @brief Adds a new entity to the engine.
@@ -149,6 +139,7 @@ namespace JamesEngine
 		std::shared_ptr<Audio> mAudio;
 		std::shared_ptr<Input> mInput;
 		std::shared_ptr<GUI> mGUI;
+		std::shared_ptr<LightManager> mLightManager;
 		std::shared_ptr<Skybox> mSkybox;
 		std::shared_ptr<Resources> mResources;
 		std::vector<std::shared_ptr<Entity>> mEntities;
@@ -158,11 +149,12 @@ namespace JamesEngine
 
 		bool mIsRunning = true;
 
-		glm::vec3 mLightPos = glm::vec3(0.f, 20.f, 0.f);
+		/*glm::vec3 mLightPos = glm::vec3(0.f, 20.f, 0.f);
 		glm::vec3 mLightColor = glm::vec3(1.f, 1.f, 1.f);
 		glm::vec3 mAmbient = glm::vec3(0.1f, 0.1f, 0.1f);
-		float mLightStrength = 1.f;
+		float mLightStrength = 1.f;*/
 
+		// Used when loading scenes to ensure first frame doesn't have a large delta time
 		bool mDeltaTimeZero = false;
 	};
 

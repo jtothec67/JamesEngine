@@ -70,7 +70,8 @@ int main()
 
 		core->GetSkybox()->SetTexture(core->GetResources()->Load<SkyboxTexture>("skyboxes/sky"));
 
-		core->SetAmbient(vec3(1.f));
+		core->GetLightManager()->AddLight("light1", vec3(0, 20, 0), vec3(1, 1, 1), 1.f);
+		core->GetLightManager()->SetAmbient(vec3(1.f));
 
 		std::shared_ptr<Entity> cameraEntity = core->AddEntity();
 		std::shared_ptr<Camera> camera = cameraEntity->AddComponent<Camera>();
@@ -98,6 +99,7 @@ int main()
 		mouseCollider->SetRotationOffset(vec3(0, 0, 0));
 
 		boxEntity->AddComponent<Rigidbody>();
+
 	}
 
 	core->Run();
