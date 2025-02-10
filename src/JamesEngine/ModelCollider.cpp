@@ -26,6 +26,9 @@ namespace JamesEngine
 #ifdef _DEBUG
     void ModelCollider::OnGUI()
     {
+		if (!mDebugVisual)
+			return;
+
         if (mModel == nullptr)
             return;
 

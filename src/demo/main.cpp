@@ -85,6 +85,7 @@ int main()
 		boxMR->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
 		std::shared_ptr<BoxCollider> boxCollider = boxEntity->AddComponent<BoxCollider>();
 		boxCollider->SetSize(vec3(2, 2, 2));
+		boxCollider->SetDebugVisual(false);
 		boxEntity->AddComponent<boxController>();
 		
 

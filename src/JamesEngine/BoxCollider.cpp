@@ -24,6 +24,9 @@ namespace JamesEngine
 #ifdef _DEBUG
 	void BoxCollider::OnGUI()
 	{
+		if (!mDebugVisual)
+			return;
+
 		std::shared_ptr<Camera> camera = GetEntity()->GetCore()->GetCamera();
 
 		mShader->uniform("projection", camera->GetProjectionMatrix());

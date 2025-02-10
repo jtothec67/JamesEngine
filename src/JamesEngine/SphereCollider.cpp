@@ -23,6 +23,9 @@ namespace JamesEngine
 #ifdef _DEBUG
 	void SphereCollider::OnGUI()
 	{
+		if (!mDebugVisual)
+			return;
+
 		std::shared_ptr<Camera> camera = GetEntity()->GetCore()->GetCamera();
 
 		mShader->uniform("projection", camera->GetProjectionMatrix());
