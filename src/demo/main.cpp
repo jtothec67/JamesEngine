@@ -50,7 +50,7 @@ struct boxController : public Component
 		if (moving)
 		{
 			GetTransform()->Rotate(glm::vec3(0, 45, 0) * speed * GetCore()->DeltaTime());
-			GetTransform()->Move(glm::vec3(1, 0, 0) * -speed * GetCore()->DeltaTime());
+			GetTransform()->Move(glm::vec3(-1, 0, 0) * -speed * GetCore()->DeltaTime());
 		}
 	}
 
@@ -78,26 +78,26 @@ int main()
 		cameraEntity->AddComponent<freelookCamController>();
 
 		std::shared_ptr<Entity> boxEntity = core->AddEntity();
-		boxEntity->GetComponent<Transform>()->SetPosition(vec3(4, 3, 10));
-		boxEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
+		boxEntity->GetComponent<Transform>()->SetPosition(vec3(-4, 2, 10));
+		boxEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 90));
 		std::shared_ptr<ModelRenderer> boxMR = boxEntity->AddComponent<ModelRenderer>();
-		boxMR->SetModel(core->GetResources()->Load<Model>("shapes/cube"));
+		boxMR->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
 		boxMR->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
-		std::shared_ptr<BoxCollider> boxCollider = boxEntity->AddComponent<BoxCollider>();
-		boxCollider->SetSize(vec3(2, 2, 2));
-		boxCollider->SetDebugVisual(false);
+		std::shared_ptr<ModelCollider> boxCollider = boxEntity->AddComponent<ModelCollider>();
+		boxCollider->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
 		boxEntity->AddComponent<boxController>();
 		
 
 		std::shared_ptr<Entity> mouseEntity = core->AddEntity();
 		mouseEntity->GetComponent<Transform>()->SetPosition(vec3(0, 0, 10));
-		mouseEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, -15));
+		mouseEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, -20));
 		std::shared_ptr<ModelRenderer> mouseMR = mouseEntity->AddComponent<ModelRenderer>();
 		mouseMR->SetModel(core->GetResources()->Load<Model>("models/curuthers/curuthers"));
 		mouseMR->SetTexture(core->GetResources()->Load<Texture>("models/curuthers/Whiskers_diffuse"));
 		std::shared_ptr<ModelCollider> mouseCollider = mouseEntity->AddComponent<ModelCollider>();
 		mouseCollider->SetModel(core->GetResources()->Load<Model>("models/curuthers/curuthers"));
 		mouseCollider->SetRotationOffset(vec3(0, 0, 0));
+		//std::shared_ptr<CylinderCollider> sphereCollider = mouseEntity->AddComponent<CylinderCollider>();
 
 		boxEntity->AddComponent<Rigidbody>();
 

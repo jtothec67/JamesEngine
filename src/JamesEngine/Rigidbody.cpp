@@ -49,7 +49,7 @@ namespace JamesEngine
 
 				std::shared_ptr<Collider> collider = GetEntity()->GetComponent<Collider>();
 
-				while (true)
+				/*while (true)
 				{
 					if (!otherCollider->IsColliding(collider, collisionPoint))
 						break;
@@ -85,7 +85,7 @@ namespace JamesEngine
 
 					Move(glm::vec3(0, amount, 0));
 					amount += step;
-				}
+				}*/
 			}
 		}
 	}

@@ -20,10 +20,73 @@ namespace Maths
     // "A Fast Triangle-Box Overlap Test" by Tomas Akenine-Möller.
     bool TriBoxOverlap(const glm::vec3 triVerts[3], const glm::vec3& boxHalfSize);
 
-    // Tests if two triangles (V0,V1,V2) and (U0,U1,U2) intersect.
-    // This is a simplified version using plane–separation tests. In a robust
-    // implementation you would use a complete triangle–triangle intersection
-    // algorithm (e.g. "NoDivTriTriIsect" by Tomas Möller).
-    bool TrianglesIntersect(const glm::vec3& V0, const glm::vec3& V1, const glm::vec3& V2,
-        const glm::vec3& U0, const glm::vec3& U1, const glm::vec3& U2);
+	//  ----------- TRIANGLE OVERLAP TEST FROM https://gamedev.stackexchange.com/questions/88060/triangle-triangle-intersection-code -----------
+    //  -- WHICH IS A MODIFIED VERSION OF https://github.com/benardp/contours/blob/master/freestyle/view_map/triangle_triangle_intersection.c --
+
+    /*
+ *  Triangle-Triangle Overlap Test Routines
+ *  July, 2002
+ *  Updated December 2003
+ *
+ *  This file contains C implementation of algorithms for
+ *  performing two and three-dimensional triangle-triangle intersection test
+ *  The algorithms and underlying theory are described in
+ *
+ * "Fast and Robust Triangle-Triangle Overlap Test
+ *  Using Orientation Predicates"  P. Guigue - O. Devillers
+ *
+ *  Journal of Graphics Tools, 8(1), 2003
+ *
+ *  Several geometric predicates are defined.  Their parameters are all
+ *  points.  Each point is an array of two or three real precision
+ *  floating point numbers. The geometric predicates implemented in
+ *  this file are:
+ *
+ *    int tri_tri_overlap_test_3d(p1,q1,r1,p2,q2,r2)
+ *    int tri_tri_overlap_test_2d(p1,q1,r1,p2,q2,r2)
+ *
+ *    int tri_tri_intersection_test_3d(p1,q1,r1,p2,q2,r2,
+ *                                     coplanar,source,target)
+ *
+ *       is a version that computes the segment of intersection when
+ *       the triangles overlap (and are not coplanar)
+ *
+ *    each function returns 1 if the triangles (including their
+ *    boundary) intersect, otherwise 0
+ *
+ *
+ *  Other information are available from the Web page
+ *  http:<i>//www.acm.org/jgt/papers/GuigueDevillers03/
+ *
+ */
+
+ // modified by Aaron to better detect coplanarity
+
+    typedef float real;
+
+#define ZERO_TEST(x)  (x == 0)
+    //#define ZERO_TEST(x)  ((x) > -0.001 && (x) < .001)
+
+#include "stdio.h"
+
+/* function prototype */
+
+    // Returns 0 for no collision, 1 for collision
+    int tri_tri_overlap_test_3d(real p1[3], real q1[3], real r1[3],
+        real p2[3], real q2[3], real r2[3]);
+
+
+    int coplanar_tri_tri3d(real  p1[3], real  q1[3], real  r1[3],
+        real  p2[3], real  q2[3], real  r2[3],
+        real  N1[3], real  N2[3]);
+
+
+    int tri_tri_overlap_test_2d(real p1[2], real q1[2], real r1[2],
+        real p2[2], real q2[2], real r2[2]);
+
+    /* coplanar returns whether the triangles are coplanar
+     *  source and target are the endpoints of the segment of
+     *  intersection if it exists)
+     */
+
 }
