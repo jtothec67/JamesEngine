@@ -3,6 +3,7 @@
 #include "Core.h"
 #include "SphereCollider.h"
 #include "ModelCollider.h"
+#include "CapsuleCollider.h"
 #include "MathsHelper.h"
 
 #include <iostream>
@@ -222,6 +223,53 @@ namespace JamesEngine
                     _collisionPoint = closestPoint;
                     return true;
                 }
+            }
+        }
+
+		// We are box, other is capsule
+		std::shared_ptr<CapsuleCollider> otherCapsule = std::dynamic_pointer_cast<CapsuleCollider>(_other);
+        if (otherCapsule)
+        {
+            glm::vec3 A = otherCapsule->GetEndpointA();
+            glm::vec3 B = otherCapsule->GetEndpointB();
+            const int sampleCount = 5; // Increase for higher accuracy.
+            bool collisionFound = false;
+            glm::vec3 collisionPointSum(0.0f);
+
+            // For each sample point along the capsule’s segment:
+            for (int i = 0; i < sampleCount; i++)
+            {
+                float t = float(i) / float(sampleCount - 1);
+                glm::vec3 samplePoint = A + t * (B - A);
+
+                // --- Sphere vs Box test (using capsule radius) ---
+                glm::vec3 boxCenter = GetPosition() + GetPositionOffset();
+                glm::vec3 boxHalfSize = GetSize() / 2.0f;
+                glm::vec3 boxRotation = GetRotation() + GetRotationOffset();
+                glm::mat4 boxRotMatrix = glm::yawPitchRoll(
+                    glm::radians(boxRotation.y),
+                    glm::radians(boxRotation.x),
+                    glm::radians(boxRotation.z)
+                );
+                glm::mat3 invBoxRotMatrix = glm::transpose(glm::mat3(boxRotMatrix));
+
+                // Transform the sample point into the box’s local space.
+                glm::vec3 localSample = invBoxRotMatrix * (samplePoint - boxCenter);
+                // Find the closest point on the box to the sample point.
+                glm::vec3 closestPointLocal = glm::clamp(localSample, -boxHalfSize, boxHalfSize);
+                glm::vec3 closestPoint = glm::vec3(boxRotMatrix * glm::vec4(closestPointLocal, 1.0f)) + boxCenter;
+                float distance = glm::length(closestPoint - samplePoint);
+                if (distance <= otherCapsule->GetRadius())
+                {
+                    collisionFound = true;
+                    collisionPointSum += closestPoint;
+                }
+            }
+
+            if (collisionFound)
+            {
+                _collisionPoint = collisionPointSum / float(sampleCount);
+                return true;
             }
         }
 

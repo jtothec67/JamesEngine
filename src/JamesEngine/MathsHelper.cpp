@@ -205,6 +205,262 @@ namespace Maths
         return true;
     }
 
+    // Computes the distance from point P to the segment AB.
+    float DistancePointSegment(const glm::vec3& P, const glm::vec3& A, const glm::vec3& B)
+    {
+        glm::vec3 AB = B - A;
+        float ab2 = glm::dot(AB, AB);
+        // If A and B are the same point, return the distance from P to A.
+        if (ab2 < std::numeric_limits<float>::epsilon())
+            return glm::length(P - A);
+        float t = glm::dot(P - A, AB) / ab2;
+        t = glm::clamp(t, 0.0f, 1.0f);
+        glm::vec3 closest = A + t * AB;
+        return glm::length(P - closest);
+    }
+
+    // Computes the distance from point P to the triangle defined by (A, B, C).
+    // If the projection of P lies inside the triangle, the distance is the perpendicular distance.
+    // Otherwise, it is the minimum distance to one of the triangle's edges.
+    float DistancePointTriangle(const glm::vec3& P, const glm::vec3& A, const glm::vec3& B, const glm::vec3& C)
+    {
+        glm::vec3 AB = B - A;
+        glm::vec3 AC = C - A;
+        glm::vec3 AP = P - A;
+
+        // Compute barycentric coordinates.
+        float d00 = glm::dot(AB, AB);
+        float d01 = glm::dot(AB, AC);
+        float d11 = glm::dot(AC, AC);
+        float d20 = glm::dot(AP, AB);
+        float d21 = glm::dot(AP, AC);
+        float denom = d00 * d11 - d01 * d01;
+
+        // If the triangle is degenerate, fall back to point-segment distance.
+        if (std::abs(denom) < std::numeric_limits<float>::epsilon())
+            return std::min(DistancePointSegment(P, A, B),
+                std::min(DistancePointSegment(P, A, C),
+                    DistancePointSegment(P, B, C)));
+
+        float v = (d11 * d20 - d01 * d21) / denom;
+        float w = (d00 * d21 - d01 * d20) / denom;
+
+        if (v >= 0.0f && w >= 0.0f && (v + w) <= 1.0f) {
+            // P is inside the triangle: return the absolute (perpendicular) distance to the plane.
+            glm::vec3 normal = glm::normalize(glm::cross(AB, AC));
+            return std::fabs(glm::dot(P - A, normal));
+        }
+        else {
+            // Otherwise, return the minimum distance to one of the triangle's edges.
+            float dAB = DistancePointSegment(P, A, B);
+            float dAC = DistancePointSegment(P, A, C);
+            float dBC = DistancePointSegment(P, B, C);
+            return std::min(dAB, std::min(dAC, dBC));
+        }
+    }
+
+    // Computes the distance between two segments: one from P0 to P1 and the other from Q0 to Q1.
+    float DistanceSegmentSegment(const glm::vec3& P0, const glm::vec3& P1,
+        const glm::vec3& Q0, const glm::vec3& Q1)
+    {
+        glm::vec3 u = P1 - P0;
+        glm::vec3 v = Q1 - Q0;
+        glm::vec3 w = P0 - Q0;
+        float a = glm::dot(u, u);         // squared length of u
+        float b = glm::dot(u, v);
+        float c = glm::dot(v, v);         // squared length of v
+        float d = glm::dot(u, w);
+        float e = glm::dot(v, w);
+        float D = a * c - b * b;
+        float sc, sN, sD = D;             // sc = sN / sD
+        float tc, tN, tD = D;             // tc = tN / tD
+
+        const float EPSILON = 1e-6f;
+        if (D < EPSILON) {
+            // The segments are almost parallel.
+            sN = 0.0f;
+            sD = 1.0f;
+            tN = e;
+            tD = c;
+        }
+        else {
+            sN = (b * e - c * d);
+            tN = (a * e - b * d);
+            if (sN < 0.0f) {
+                sN = 0.0f;
+                tN = e;
+                tD = c;
+            }
+            else if (sN > sD) {
+                sN = sD;
+                tN = e + b;
+                tD = c;
+            }
+        }
+        if (tN < 0.0f) {
+            tN = 0.0f;
+            if (-d < 0.0f)
+                sN = 0.0f;
+            else if (-d > a)
+                sN = sD;
+            else {
+                sN = -d;
+                sD = a;
+            }
+        }
+        else if (tN > tD) {
+            tN = tD;
+            if ((-d + b) < 0.0f)
+                sN = 0.0f;
+            else if ((-d + b) > a)
+                sN = sD;
+            else {
+                sN = (-d + b);
+                sD = a;
+            }
+        }
+        sc = (std::abs(sN) < EPSILON ? 0.0f : sN / sD);
+        tc = (std::abs(tN) < EPSILON ? 0.0f : tN / tD);
+
+        glm::vec3 dP = w + (sc * u) - (tc * v);
+        return glm::length(dP);
+    }
+
+    // Computes the minimal distance between a segment (segA, segB) and a triangle (triA, triB, triC).
+    // This function first checks if the segment crosses the triangle’s plane inside the triangle,
+    // in which case the distance is zero. Otherwise, it computes candidate distances from the segment’s
+    // endpoints, from the triangle’s vertices to the segment, and between the segment and each triangle edge.
+    float DistanceSegmentTriangle(const glm::vec3& segA, const glm::vec3& segB,
+        const glm::vec3& triA, const glm::vec3& triB, const glm::vec3& triC)
+    {
+        // Compute the triangle's plane normal.
+        glm::vec3 edge1 = triB - triA;
+        glm::vec3 edge2 = triC - triA;
+        glm::vec3 normal = glm::normalize(glm::cross(edge1, edge2));
+
+        // Compute signed distances of the segment endpoints to the triangle's plane.
+        float distA = glm::dot(segA - triA, normal);
+        float distB = glm::dot(segB - triA, normal);
+
+        // Check if the segment crosses the plane.
+        if (distA * distB < 0.0f) {
+            // Compute the intersection point with the plane.
+            float t = distA / (distA - distB);
+            glm::vec3 intersectPoint = segA + t * (segB - segA);
+
+            // Compute barycentric coordinates for the intersection point.
+            glm::vec3 v0 = triB - triA;
+            glm::vec3 v1 = triC - triA;
+            glm::vec3 v2 = intersectPoint - triA;
+            float dot00 = glm::dot(v0, v0);
+            float dot01 = glm::dot(v0, v1);
+            float dot11 = glm::dot(v1, v1);
+            float dot02 = glm::dot(v0, v2);
+            float dot12 = glm::dot(v1, v2);
+            float invDenom = 1.0f / (dot00 * dot11 - dot01 * dot01);
+            float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+            float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+
+            // If the intersection point lies inside the triangle, the minimal distance is zero.
+            if (u >= 0.0f && v >= 0.0f && (u + v) <= 1.0f)
+                return 0.0f;
+        }
+
+        // Otherwise, compute several candidate distances:
+        float d1 = DistancePointTriangle(segA, triA, triB, triC);
+        float d2 = DistancePointTriangle(segB, triA, triB, triC);
+        float d3 = DistancePointSegment(triA, segA, segB);
+        float d4 = DistancePointSegment(triB, segA, segB);
+        float d5 = DistancePointSegment(triC, segA, segB);
+        float d6 = DistanceSegmentSegment(segA, segB, triA, triB);
+        float d7 = DistanceSegmentSegment(segA, segB, triB, triC);
+        float d8 = DistanceSegmentSegment(segA, segB, triC, triA);
+
+        float minDist = d1;
+        minDist = std::min(minDist, d2);
+        minDist = std::min(minDist, d3);
+        minDist = std::min(minDist, d4);
+        minDist = std::min(minDist, d5);
+        minDist = std::min(minDist, d6);
+        minDist = std::min(minDist, d7);
+        minDist = std::min(minDist, d8);
+
+        return minDist;
+    }
+
+    // Helper: Computes the closest points on two segments.
+    void ClosestPointsSegmentSegment(const glm::vec3& P0, const glm::vec3& P1,
+        const glm::vec3& Q0, const glm::vec3& Q1,
+        glm::vec3& outP, glm::vec3& outQ)
+    {
+        glm::vec3 u = P1 - P0;
+        glm::vec3 v = Q1 - Q0;
+        glm::vec3 w = P0 - Q0;
+        float a = glm::dot(u, u);
+        float b = glm::dot(u, v);
+        float c = glm::dot(v, v);
+        float d = glm::dot(u, w);
+        float e = glm::dot(v, w);
+        float D = a * c - b * b;
+        float sc, sN, sD = D;
+        float tc, tN, tD = D;
+        const float EPSILON = 1e-6f;
+        if (D < EPSILON)
+        {
+            sN = 0.0f;
+            sD = 1.0f;
+            tN = e;
+            tD = c;
+        }
+        else
+        {
+            sN = (b * e - c * d);
+            tN = (a * e - b * d);
+            if (sN < 0.0f)
+            {
+                sN = 0.0f;
+                tN = e;
+                tD = c;
+            }
+            else if (sN > sD)
+            {
+                sN = sD;
+                tN = e + b;
+                tD = c;
+            }
+        }
+        if (tN < 0.0f)
+        {
+            tN = 0.0f;
+            if (-d < 0.0f)
+                sN = 0.0f;
+            else if (-d > a)
+                sN = sD;
+            else
+            {
+                sN = -d;
+                sD = a;
+            }
+        }
+        else if (tN > tD)
+        {
+            tN = tD;
+            if ((-d + b) < 0.0f)
+                sN = 0.0f;
+            else if ((-d + b) > a)
+                sN = sD;
+            else
+            {
+                sN = (-d + b);
+                sD = a;
+            }
+        }
+        sc = (std::abs(sN) < EPSILON ? 0.0f : sN / sD);
+        tc = (std::abs(tN) < EPSILON ? 0.0f : tN / tD);
+        outP = P0 + sc * u;
+        outQ = Q0 + tc * v;
+    }
+
 	//  ----------- TRIANGLE OVERLAP TEST FROM https://gamedev.stackexchange.com/questions/88060/triangle-triangle-intersection-code -----------
 
     /* some 3D macros */

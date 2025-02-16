@@ -76,6 +76,9 @@ add_library(JamesEngine
 	src/JamesEngine/SphereCollider.h
 	src/JamesEngine/SphereCollider.cpp
 
+	src/JamesEngine/CapsuleCollider.h
+	src/JamesEngine/CapsuleCollider.cpp
+
 	src/JamesEngine/ModelCollider.h
 	src/JamesEngine/ModelCollider.cpp
 

@@ -20,6 +20,21 @@ namespace Maths
     // "A Fast Triangle-Box Overlap Test" by Tomas Akenine-Möller.
     bool TriBoxOverlap(const glm::vec3 triVerts[3], const glm::vec3& boxHalfSize);
 
+    float DistanceSegmentTriangle(const glm::vec3& segA, const glm::vec3& segB,
+        const glm::vec3& triA, const glm::vec3& triB, const glm::vec3& triC);
+
+    float DistancePointSegment(const glm::vec3& P, const glm::vec3& A, const glm::vec3& B);
+
+    float DistancePointTriangle(const glm::vec3& P, const glm::vec3& A, const glm::vec3& B, const glm::vec3& C);
+    
+    float DistanceSegmentSegment(const glm::vec3& P0, const glm::vec3& P1,
+        const glm::vec3& Q0, const glm::vec3& Q1);
+
+    void ClosestPointsSegmentSegment(const glm::vec3& P0, const glm::vec3& P1,
+        const glm::vec3& Q0, const glm::vec3& Q1,
+        glm::vec3& outP, glm::vec3& outQ);
+
+
 	//  ----------- TRIANGLE OVERLAP TEST FROM https://gamedev.stackexchange.com/questions/88060/triangle-triangle-intersection-code -----------
     //  -- WHICH IS A MODIFIED VERSION OF https://github.com/benardp/contours/blob/master/freestyle/view_map/triangle_triangle_intersection.c --
 

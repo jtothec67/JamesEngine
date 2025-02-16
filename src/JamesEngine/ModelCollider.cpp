@@ -3,6 +3,7 @@
 #include "Core.h"
 #include "SphereCollider.h"
 #include "BoxCollider.h"
+#include "CapsuleCollider.h"
 
 #include "MathsHelper.h"
 
@@ -239,6 +240,57 @@ namespace JamesEngine
                         _collisionPoint = (centroidA + centroidB) * 0.5f;
                         return true;
                     }
+                }
+            }
+        }
+
+		// We are model, other is capsule
+		std::shared_ptr<CapsuleCollider> otherCapsule = std::dynamic_pointer_cast<CapsuleCollider>(_other);
+        if (otherCapsule)
+        {
+            glm::vec3 A = otherCapsule->GetEndpointA();
+            glm::vec3 B = otherCapsule->GetEndpointB();
+            // For simplicity, we will use the capsule’s center as a reference.
+            glm::vec3 capsuleCenter = (A + B) / 2.0f;
+            glm::vec3 capsuleRotation = otherCapsule->GetRotation() + otherCapsule->GetRotationOffset();
+            // Build a transformation for the “capsule space” similar to the box collider.
+            glm::mat4 capsuleRotMatrix = glm::yawPitchRoll(
+                glm::radians(capsuleRotation.y),
+                glm::radians(capsuleRotation.x),
+                glm::radians(capsuleRotation.z)
+            );
+            glm::mat4 invCapsuleRotMatrix = glm::transpose(capsuleRotMatrix);
+
+            // Build the model’s world transformation.
+            glm::vec3 modelPos = GetPosition() + GetPositionOffset();
+            glm::vec3 modelScale = GetScale();
+            glm::vec3 modelRotation = GetRotation() + GetRotationOffset();
+            glm::mat4 modelMatrix = glm::mat4(1.0f);
+            modelMatrix = glm::translate(modelMatrix, modelPos);
+            modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.x), glm::vec3(1, 0, 0));
+            modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.y), glm::vec3(0, 1, 0));
+            modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.z), glm::vec3(0, 0, 1));
+            modelMatrix = glm::scale(modelMatrix, modelScale);
+
+            // Retrieve the model's triangles.
+            std::vector<Renderer::Model::Face> faces = GetTriangles(capsuleCenter, capsuleRotation, glm::vec3(1));
+            for (const auto& face : faces)
+            {
+                // Transform triangle vertices into world space.
+                glm::vec3 a = glm::vec3(modelMatrix * glm::vec4(face.a.position, 1.0f));
+                glm::vec3 b = glm::vec3(modelMatrix * glm::vec4(face.b.position, 1.0f));
+                glm::vec3 c = glm::vec3(modelMatrix * glm::vec4(face.c.position, 1.0f));
+
+                // For collision we need the distance from the capsule segment (A, B) to the triangle.
+                // Here we assume a helper function exists (in MathsHelper.h) such as:
+                //    float Maths::DistanceSegmentTriangle(const glm::vec3& segA, const glm::vec3& segB,
+                //                                         const glm::vec3& triA, const glm::vec3& triB, const glm::vec3& triC);
+                // If that distance is less than mRadius, we consider it a collision.
+                float distance = Maths::DistanceSegmentTriangle(A, B, a, b, c);
+                if (distance <= otherCapsule->GetRadius())
+                {
+                    _collisionPoint = capsuleCenter;
+                    return true;
                 }
             }
         }

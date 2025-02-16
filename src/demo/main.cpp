@@ -78,13 +78,12 @@ int main()
 		cameraEntity->AddComponent<freelookCamController>();
 
 		std::shared_ptr<Entity> boxEntity = core->AddEntity();
-		boxEntity->GetComponent<Transform>()->SetPosition(vec3(-4, 2, 10));
+		boxEntity->GetComponent<Transform>()->SetPosition(vec3(-4, 0, 10));
 		boxEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 90));
 		std::shared_ptr<ModelRenderer> boxMR = boxEntity->AddComponent<ModelRenderer>();
-		boxMR->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
+		boxMR->SetModel(core->GetResources()->Load<Model>("shapes/capsule"));
 		boxMR->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
-		std::shared_ptr<ModelCollider> boxCollider = boxEntity->AddComponent<ModelCollider>();
-		boxCollider->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
+		std::shared_ptr<CapsuleCollider> boxCollider = boxEntity->AddComponent<CapsuleCollider>();
 		boxEntity->AddComponent<boxController>();
 		
 
@@ -94,12 +93,13 @@ int main()
 		std::shared_ptr<ModelRenderer> mouseMR = mouseEntity->AddComponent<ModelRenderer>();
 		mouseMR->SetModel(core->GetResources()->Load<Model>("models/curuthers/curuthers"));
 		mouseMR->SetTexture(core->GetResources()->Load<Texture>("models/curuthers/Whiskers_diffuse"));
-		std::shared_ptr<ModelCollider> mouseCollider = mouseEntity->AddComponent<ModelCollider>();
+		/*std::shared_ptr<ModelCollider> mouseCollider = mouseEntity->AddComponent<ModelCollider>();
 		mouseCollider->SetModel(core->GetResources()->Load<Model>("models/curuthers/curuthers"));
+		mouseCollider->SetRotationOffset(vec3(0, 0, 0));*/
+		std::shared_ptr<CapsuleCollider> mouseCollider = mouseEntity->AddComponent<CapsuleCollider>();
 		mouseCollider->SetRotationOffset(vec3(0, 0, 0));
-		//std::shared_ptr<CylinderCollider> sphereCollider = mouseEntity->AddComponent<CylinderCollider>();
 
-		boxEntity->AddComponent<Rigidbody>();
+		mouseEntity->AddComponent<Rigidbody>();
 
 	}
 

@@ -3,6 +3,7 @@
 #include "Core.h"
 #include "BoxCollider.h"
 #include "ModelCollider.h"
+#include "CapsuleCollider.h"
 #include "MathsHelper.h"
 
 #ifdef _DEBUG
@@ -149,6 +150,29 @@ namespace JamesEngine
 					_collisionPoint = closestPoint;
 					return true;
 				}
+			}
+		}
+
+		// We are sphere, other is capsule
+		std::shared_ptr<CapsuleCollider> otherCapsule = std::dynamic_pointer_cast<CapsuleCollider>(_other);
+		if (otherCapsule)
+		{
+			glm::vec3 sphereCenter = GetPosition() + GetPositionOffset();
+			float sphereRadius = GetRadius();
+			glm::vec3 A = otherCapsule->GetEndpointA();
+			glm::vec3 B = otherCapsule->GetEndpointB();
+
+			glm::vec3 AB = B - A;
+			float t = glm::dot(sphereCenter - A, AB) / glm::dot(AB, AB);
+			t = glm::clamp(t, 0.0f, 1.0f);
+
+			glm::vec3 closestPoint = A + t * AB;
+
+			float distance = glm::length(closestPoint - sphereCenter);
+			if (distance <= (otherCapsule->GetRadius() + sphereRadius))
+			{
+				_collisionPoint = closestPoint;
+				return true;
 			}
 		}
 
