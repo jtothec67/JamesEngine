@@ -250,18 +250,11 @@ namespace JamesEngine
         {
             glm::vec3 A = otherCapsule->GetEndpointA();
             glm::vec3 B = otherCapsule->GetEndpointB();
-            // For simplicity, we will use the capsule’s center as a reference.
-            glm::vec3 capsuleCenter = (A + B) / 2.0f;
-            glm::vec3 capsuleRotation = otherCapsule->GetRotation() + otherCapsule->GetRotationOffset();
-            // Build a transformation for the “capsule space” similar to the box collider.
-            glm::mat4 capsuleRotMatrix = glm::yawPitchRoll(
-                glm::radians(capsuleRotation.y),
-                glm::radians(capsuleRotation.x),
-                glm::radians(capsuleRotation.z)
-            );
-            glm::mat4 invCapsuleRotMatrix = glm::transpose(capsuleRotMatrix);
+            const int sampleCount = 5;
+            bool collisionFound = false;
+            glm::vec3 collisionPointSum(0.0f);
 
-            // Build the model’s world transformation.
+            // Build the model's world transformation.
             glm::vec3 modelPos = GetPosition() + GetPositionOffset();
             glm::vec3 modelScale = GetScale();
             glm::vec3 modelRotation = GetRotation() + GetRotationOffset();
@@ -272,26 +265,39 @@ namespace JamesEngine
             modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.z), glm::vec3(0, 0, 1));
             modelMatrix = glm::scale(modelMatrix, modelScale);
 
-            // Retrieve the model's triangles.
-            std::vector<Renderer::Model::Face> faces = GetTriangles(capsuleCenter, capsuleRotation, glm::vec3(1));
-            for (const auto& face : faces)
-            {
-                // Transform triangle vertices into world space.
-                glm::vec3 a = glm::vec3(modelMatrix * glm::vec4(face.a.position, 1.0f));
-                glm::vec3 b = glm::vec3(modelMatrix * glm::vec4(face.b.position, 1.0f));
-                glm::vec3 c = glm::vec3(modelMatrix * glm::vec4(face.c.position, 1.0f));
+            // Retrieve model triangles.
+            glm::vec3 capsuleCenter = (A + B) * 0.5f;
+            glm::vec3 capsuleRotation = otherCapsule->GetRotation() + otherCapsule->GetRotationOffset();
+            glm::vec3 capsuleSize = glm::vec3(otherCapsule->GetCylinderRadius() * 2, otherCapsule->GetHeight() + (2 * otherCapsule->GetCapRadius()), otherCapsule->GetCylinderRadius() * 2);
+            std::vector<Renderer::Model::Face> faces = GetTriangles(capsuleCenter, capsuleRotation, capsuleSize);
 
-                // For collision we need the distance from the capsule segment (A, B) to the triangle.
-                // Here we assume a helper function exists (in MathsHelper.h) such as:
-                //    float Maths::DistanceSegmentTriangle(const glm::vec3& segA, const glm::vec3& segB,
-                //                                         const glm::vec3& triA, const glm::vec3& triB, const glm::vec3& triC);
-                // If that distance is less than mRadius, we consider it a collision.
-                float distance = Maths::DistanceSegmentTriangle(A, B, a, b, c);
-                if (distance <= otherCapsule->GetRadius())
+            for (int i = 0; i < sampleCount; i++)
+            {
+                float t = float(i) / float(sampleCount - 1);
+                glm::vec3 samplePoint = A + t * (B - A);
+                float effRadius = otherCapsule->EffectiveRadius(t, otherCapsule->GetCapRadius(), otherCapsule->GetCylinderRadius());
+
+                for (const auto& face : faces)
                 {
-                    _collisionPoint = capsuleCenter;
-                    return true;
+                    // Transform triangle vertices into world space.
+                    glm::vec3 a = glm::vec3(modelMatrix * glm::vec4(face.a.position, 1.0f));
+                    glm::vec3 b = glm::vec3(modelMatrix * glm::vec4(face.b.position, 1.0f));
+                    glm::vec3 c = glm::vec3(modelMatrix * glm::vec4(face.c.position, 1.0f));
+
+                    // Use the Maths helper to compute the distance from the sample point to the triangle.
+                    float d = Maths::DistancePointTriangle(samplePoint, a, b, c);
+                    if (d <= effRadius)
+                    {
+                        collisionFound = true;
+                        collisionPointSum += samplePoint; // Alternatively, use a computed closest point.
+                    }
                 }
+            }
+
+            if (collisionFound)
+            {
+                _collisionPoint = collisionPointSum / float(sampleCount);
+                return true;
             }
         }
 

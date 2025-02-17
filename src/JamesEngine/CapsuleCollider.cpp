@@ -42,7 +42,7 @@ namespace JamesEngine
         mModelMatrix = glm::rotate(mModelMatrix, glm::radians(rotation.x), glm::vec3(1, 0, 0));
         mModelMatrix = glm::rotate(mModelMatrix, glm::radians(rotation.y), glm::vec3(0, 1, 0));
         mModelMatrix = glm::rotate(mModelMatrix, glm::radians(rotation.z), glm::vec3(0, 0, 1));
-        mModelMatrix = glm::scale(mModelMatrix, glm::vec3(1, 1, 1));
+        mModelMatrix = glm::scale(mModelMatrix, glm::vec3(mCylinderRadius * 2.f, mHeight, mCylinderRadius * 2.f));
 
         mShader->uniform("model", mModelMatrix);
 
@@ -89,6 +89,16 @@ namespace JamesEngine
         return glm::vec3(rotMatrix * glm::vec4(localPoint, 1.0f)) + GetPosition() + GetPositionOffset();
     }
 
+    // Returns the effective radius at a given parameter t along the capsule’s spine.
+    // For t near 0 or 1, we use mCapRadius; otherwise, mCylinderRadius.
+    float CapsuleCollider::EffectiveRadius(float t, float capRadius, float cylRadius)
+    {
+        const float epsilon = 0.001f;
+        if (t <= epsilon || t >= (1.0f - epsilon))
+            return capRadius;
+        return cylRadius;
+    }
+
     bool CapsuleCollider::IsColliding(std::shared_ptr<Collider> _other, glm::vec3& _collisionPoint)
     {
         if (_other == nullptr)
@@ -97,7 +107,7 @@ namespace JamesEngine
             return false;
         }
 
-		// We are capsule, other is sphere.
+        // --- Capsule vs Sphere ---
         std::shared_ptr<SphereCollider> otherSphere = std::dynamic_pointer_cast<SphereCollider>(_other);
         if (otherSphere)
         {
@@ -105,38 +115,35 @@ namespace JamesEngine
             float sphereRadius = otherSphere->GetRadius();
             glm::vec3 A = GetEndpointA();
             glm::vec3 B = GetEndpointB();
-            
             glm::vec3 AB = B - A;
             float t = glm::dot(sphereCenter - A, AB) / glm::dot(AB, AB);
             t = glm::clamp(t, 0.0f, 1.0f);
-
             glm::vec3 closestPoint = A + t * AB;
-
-            float distance = glm::length(closestPoint - sphereCenter);
-            if (distance <= (GetRadius() + sphereRadius))
+            float effRadius = EffectiveRadius(t, mCapRadius, mCylinderRadius);
+            if (glm::length(sphereCenter - closestPoint) <= (effRadius + sphereRadius))
             {
                 _collisionPoint = closestPoint;
                 return true;
             }
         }
 
-		// We are capsule, other is box.
+        // --- Capsule vs Box ---
         std::shared_ptr<BoxCollider> otherBox = std::dynamic_pointer_cast<BoxCollider>(_other);
         if (otherBox)
         {
             glm::vec3 A = GetEndpointA();
             glm::vec3 B = GetEndpointB();
-            const int sampleCount = 5; // Increase for higher accuracy.
+            const int sampleCount = 5;
             bool collisionFound = false;
             glm::vec3 collisionPointSum(0.0f);
 
-            // For each sample point along the capsule’s segment:
             for (int i = 0; i < sampleCount; i++)
             {
                 float t = float(i) / float(sampleCount - 1);
                 glm::vec3 samplePoint = A + t * (B - A);
+                float effRadius = EffectiveRadius(t, mCapRadius, mCylinderRadius);
 
-                // --- Sphere vs Box test (using capsule radius) ---
+                // Sphere vs Box test for the sample point with "radius" = effRadius.
                 glm::vec3 boxCenter = otherBox->GetPosition() + otherBox->GetPositionOffset();
                 glm::vec3 boxHalfSize = otherBox->GetSize() / 2.0f;
                 glm::vec3 boxRotation = otherBox->GetRotation() + otherBox->GetRotationOffset();
@@ -147,19 +154,16 @@ namespace JamesEngine
                 );
                 glm::mat3 invBoxRotMatrix = glm::transpose(glm::mat3(boxRotMatrix));
 
-                // Transform the sample point into the box’s local space.
                 glm::vec3 localSample = invBoxRotMatrix * (samplePoint - boxCenter);
-                // Find the closest point on the box to the sample point.
                 glm::vec3 closestPointLocal = glm::clamp(localSample, -boxHalfSize, boxHalfSize);
                 glm::vec3 closestPoint = glm::vec3(boxRotMatrix * glm::vec4(closestPointLocal, 1.0f)) + boxCenter;
-                float distance = glm::length(closestPoint - samplePoint);
-                if (distance <= GetRadius())
+
+                if (glm::length(samplePoint - closestPoint) <= effRadius)
                 {
                     collisionFound = true;
                     collisionPointSum += closestPoint;
                 }
             }
-
             if (collisionFound)
             {
                 _collisionPoint = collisionPointSum / float(sampleCount);
@@ -167,24 +171,17 @@ namespace JamesEngine
             }
         }
 
-		// We are capsule, other is model.
+        // --- Capsule vs Model ---
         std::shared_ptr<ModelCollider> otherModel = std::dynamic_pointer_cast<ModelCollider>(_other);
         if (otherModel)
         {
             glm::vec3 A = GetEndpointA();
             glm::vec3 B = GetEndpointB();
-            // For simplicity, we will use the capsule’s center as a reference.
-            glm::vec3 capsuleCenter = (A + B) / 2.0f;
-            glm::vec3 capsuleRotation = GetRotation() + GetRotationOffset();
-            // Build a transformation for the “capsule space” similar to the box collider.
-            glm::mat4 capsuleRotMatrix = glm::yawPitchRoll(
-                glm::radians(capsuleRotation.y),
-                glm::radians(capsuleRotation.x),
-                glm::radians(capsuleRotation.z)
-            );
-            glm::mat4 invCapsuleRotMatrix = glm::transpose(capsuleRotMatrix);
+            const int sampleCount = 5;
+            bool collisionFound = false;
+            glm::vec3 collisionPointSum(0.0f);
 
-            // Build the model’s world transformation.
+            // Build the model's world transformation.
             glm::vec3 modelPos = otherModel->GetPosition() + otherModel->GetPositionOffset();
             glm::vec3 modelScale = otherModel->GetScale();
             glm::vec3 modelRotation = otherModel->GetRotation() + otherModel->GetRotationOffset();
@@ -195,30 +192,42 @@ namespace JamesEngine
             modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.z), glm::vec3(0, 0, 1));
             modelMatrix = glm::scale(modelMatrix, modelScale);
 
-            // Retrieve the model's triangles.
-            std::vector<Renderer::Model::Face> faces = otherModel->GetTriangles(capsuleCenter, capsuleRotation, glm::vec3(1));
-            for (const auto& face : faces)
-            {
-                // Transform triangle vertices into world space.
-                glm::vec3 a = glm::vec3(modelMatrix * glm::vec4(face.a.position, 1.0f));
-                glm::vec3 b = glm::vec3(modelMatrix * glm::vec4(face.b.position, 1.0f));
-                glm::vec3 c = glm::vec3(modelMatrix * glm::vec4(face.c.position, 1.0f));
+            // Retrieve model triangles.
+            glm::vec3 capsuleCenter = (A + B) * 0.5f;
+            glm::vec3 capsuleRotation = GetRotation() + GetRotationOffset();
+            glm::vec3 capsuleSize = glm::vec3(GetCylinderRadius() * 2, GetHeight() + (2 * GetCapRadius()), GetCylinderRadius() * 2);
+            std::vector<Renderer::Model::Face> faces = otherModel->GetTriangles(capsuleCenter, capsuleRotation, capsuleSize);
 
-                // For collision we need the distance from the capsule segment (A, B) to the triangle.
-                // Here we assume a helper function exists (in MathsHelper.h) such as:
-                //    float Maths::DistanceSegmentTriangle(const glm::vec3& segA, const glm::vec3& segB,
-                //                                         const glm::vec3& triA, const glm::vec3& triB, const glm::vec3& triC);
-                // If that distance is less than mRadius, we consider it a collision.
-                float distance = Maths::DistanceSegmentTriangle(A, B, a, b, c);
-                if (distance <= GetRadius())
+            for (int i = 0; i < sampleCount; i++)
+            {
+                float t = float(i) / float(sampleCount - 1);
+                glm::vec3 samplePoint = A + t * (B - A);
+                float effRadius = EffectiveRadius(t, mCapRadius, mCylinderRadius);
+
+                for (const auto& face : faces)
                 {
-                    _collisionPoint = capsuleCenter;
-                    return true;
+                    // Transform triangle vertices into world space.
+                    glm::vec3 a = glm::vec3(modelMatrix * glm::vec4(face.a.position, 1.0f));
+                    glm::vec3 b = glm::vec3(modelMatrix * glm::vec4(face.b.position, 1.0f));
+                    glm::vec3 c = glm::vec3(modelMatrix * glm::vec4(face.c.position, 1.0f));
+
+                    // Use the Maths helper to compute the distance from the sample point to the triangle.
+                    float d = Maths::DistancePointTriangle(samplePoint, a, b, c);
+                    if (d <= effRadius)
+                    {
+                        collisionFound = true;
+                        collisionPointSum += samplePoint; // Alternatively, use a computed closest point.
+                    }
                 }
+            }
+            if (collisionFound)
+            {
+                _collisionPoint = collisionPointSum / float(sampleCount);
+                return true;
             }
         }
 
-		// We are capsule, other is capsule.
+        // --- Capsule vs Capsule ---
         std::shared_ptr<CapsuleCollider> otherCapsule = std::dynamic_pointer_cast<CapsuleCollider>(_other);
         if (otherCapsule)
         {
@@ -226,20 +235,34 @@ namespace JamesEngine
             glm::vec3 B = GetEndpointB();
             glm::vec3 C = otherCapsule->GetEndpointA();
             glm::vec3 D = otherCapsule->GetEndpointB();
+            const int sampleCount = 5;
+            bool collisionFound = false;
+            glm::vec3 collisionPointSum(0.0f);
+            const float eps = 0.001f;
 
-            // Use our Maths helper to get the distance between the two segments.
-            float distance = Maths::DistanceSegmentSegment(A, B, C, D);
-            if (distance <= (GetRadius() + otherCapsule->GetRadius()))
+            for (int i = 0; i < sampleCount; i++)
             {
-                // Compute the closest points on each segment.
-                glm::vec3 cp1, cp2;
-                Maths::ClosestPointsSegmentSegment(A, B, C, D, cp1, cp2);
-                // Use the midpoint of the two closest points as the collision point.
-                _collisionPoint = (cp1 + cp2) * 0.5f;
+                float t1 = float(i) / float(sampleCount - 1);
+                glm::vec3 sample1 = A + t1 * (B - A);
+                float effRadius1 = EffectiveRadius(t1, mCapRadius, mCylinderRadius);
+                for (int j = 0; j < sampleCount; j++)
+                {
+                    float t2 = float(j) / float(sampleCount - 1);
+                    glm::vec3 sample2 = C + t2 * (D - C);
+                    float effRadius2 = EffectiveRadius(t2, otherCapsule->GetCapRadius(), otherCapsule->GetCylinderRadius());
+                    if (glm::length(sample1 - sample2) <= (effRadius1 + effRadius2))
+                    {
+                        collisionFound = true;
+                        collisionPointSum += (sample1 + sample2) * 0.5f;
+                    }
+                }
+            }
+            if (collisionFound)
+            {
+                _collisionPoint = collisionPointSum / float(sampleCount * sampleCount);
                 return true;
             }
         }
-
 
         return false;
     }

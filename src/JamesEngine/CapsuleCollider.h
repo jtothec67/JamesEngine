@@ -15,27 +15,27 @@ namespace JamesEngine
         void OnGUI();
 #endif
 
-        // Checks collision with another collider.
-        // _collisionPoint is set to an approximate contact location if a collision is found.
         bool IsColliding(std::shared_ptr<Collider> _other, glm::vec3& _collisionPoint);
 
-        // Setters and getters for capsule parameters.
-        // The capsule is defined by a central line segment (of length mHeight)
-        // and a radius (mRadius).
         void SetHeight(float _height) { mHeight = _height; }
         float GetHeight() { return mHeight; }
 
-        void SetRadius(float _radius) { mRadius = _radius; }
-        float GetRadius() { return mRadius; }
+        void SetCylinderRadius(float _radius) { mCylinderRadius = _radius; }
+        float GetCylinderRadius() const { return mCylinderRadius; }
 
-        // Helper functions to get the endpoints of the capsule in world space.
-        // In local space the endpoints are at (0, +mHeight/2, 0) and (0, -mHeight/2, 0).
+        // Radius used for the hemispherical endcaps.
+        void SetCapRadius(float _radius) { mCapRadius = _radius; }
+        float GetCapRadius() const { return mCapRadius; }
+
         glm::vec3 GetEndpointA();
         glm::vec3 GetEndpointB();
 
+        float EffectiveRadius(float t, float capRadius, float cylRadius);
+
     private:
-        float mHeight{ 1.0f };
-        float mRadius{ 0.5f };
+        float mHeight = 1.0f;
+        float mCylinderRadius = 0.5f;
+        float mCapRadius = 0.5f;
 
 #ifdef _DEBUG
         std::shared_ptr<Renderer::Model> mModel = std::make_shared<Renderer::Model>("../assets/shapes/capsule.obj");

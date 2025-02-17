@@ -232,17 +232,17 @@ namespace JamesEngine
         {
             glm::vec3 A = otherCapsule->GetEndpointA();
             glm::vec3 B = otherCapsule->GetEndpointB();
-            const int sampleCount = 5; // Increase for higher accuracy.
+            const int sampleCount = 5;
             bool collisionFound = false;
             glm::vec3 collisionPointSum(0.0f);
 
-            // For each sample point along the capsule’s segment:
             for (int i = 0; i < sampleCount; i++)
             {
                 float t = float(i) / float(sampleCount - 1);
                 glm::vec3 samplePoint = A + t * (B - A);
+                float effRadius = otherCapsule->EffectiveRadius(t, otherCapsule->GetCapRadius(), otherCapsule->GetCylinderRadius());
 
-                // --- Sphere vs Box test (using capsule radius) ---
+                // Sphere vs Box test for the sample point with "radius" = effRadius.
                 glm::vec3 boxCenter = GetPosition() + GetPositionOffset();
                 glm::vec3 boxHalfSize = GetSize() / 2.0f;
                 glm::vec3 boxRotation = GetRotation() + GetRotationOffset();
@@ -253,19 +253,16 @@ namespace JamesEngine
                 );
                 glm::mat3 invBoxRotMatrix = glm::transpose(glm::mat3(boxRotMatrix));
 
-                // Transform the sample point into the box’s local space.
                 glm::vec3 localSample = invBoxRotMatrix * (samplePoint - boxCenter);
-                // Find the closest point on the box to the sample point.
                 glm::vec3 closestPointLocal = glm::clamp(localSample, -boxHalfSize, boxHalfSize);
                 glm::vec3 closestPoint = glm::vec3(boxRotMatrix * glm::vec4(closestPointLocal, 1.0f)) + boxCenter;
-                float distance = glm::length(closestPoint - samplePoint);
-                if (distance <= otherCapsule->GetRadius())
+
+                if (glm::length(samplePoint - closestPoint) <= effRadius)
                 {
                     collisionFound = true;
                     collisionPointSum += closestPoint;
                 }
             }
-
             if (collisionFound)
             {
                 _collisionPoint = collisionPointSum / float(sampleCount);

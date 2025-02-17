@@ -161,15 +161,12 @@ namespace JamesEngine
 			float sphereRadius = GetRadius();
 			glm::vec3 A = otherCapsule->GetEndpointA();
 			glm::vec3 B = otherCapsule->GetEndpointB();
-
 			glm::vec3 AB = B - A;
 			float t = glm::dot(sphereCenter - A, AB) / glm::dot(AB, AB);
 			t = glm::clamp(t, 0.0f, 1.0f);
-
 			glm::vec3 closestPoint = A + t * AB;
-
-			float distance = glm::length(closestPoint - sphereCenter);
-			if (distance <= (otherCapsule->GetRadius() + sphereRadius))
+			float effRadius = otherCapsule->EffectiveRadius(t, otherCapsule->GetCapRadius(), otherCapsule->GetCylinderRadius());
+			if (glm::length(sphereCenter - closestPoint) <= (effRadius + sphereRadius))
 			{
 				_collisionPoint = closestPoint;
 				return true;
