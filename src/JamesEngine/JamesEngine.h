@@ -17,6 +17,7 @@
 #include "BoxCollider.h"
 #include "SphereCollider.h"
 #include "CapsuleCollider.h"
+#include "CylinderCollider.h"
 #include "ModelCollider.h"
 #include "Rigidbody.h"
 #include "Camera.h"
