@@ -42,6 +42,7 @@ struct boxController : public Component
 {
 	bool moving = false;
 	float speed = 1.f;
+	float sinValue = 0;
 	void OnTick()
 	{
 		if (GetKeyboard()->IsKeyDown(SDLK_SPACE))
@@ -49,8 +50,8 @@ struct boxController : public Component
 
 		if (moving)
 		{
-			GetTransform()->Rotate(glm::vec3(0, 0, 45) * speed * GetCore()->DeltaTime());
-			GetTransform()->Move(glm::vec3(-1, 0, 0) * -speed * 0.002f);// *GetCore()->DeltaTime());
+			//GetTransform()->Rotate(glm::vec3(0, 0, 45) * speed * GetCore()->DeltaTime());
+			GetTransform()->Move(glm::vec3(-1, 0, 0) * -speed * GetCore()->DeltaTime());
 		}
 	}
 
@@ -78,19 +79,23 @@ int main()
 		cameraEntity->AddComponent<freelookCamController>();
 
 		std::shared_ptr<Entity> boxEntity = core->AddEntity();
-		boxEntity->GetComponent<Transform>()->SetPosition(vec3(-4, 0, 10));
+		boxEntity->GetComponent<Transform>()->SetPosition(vec3(-4, 1, 10));
 		boxEntity->GetComponent<Transform>()->SetRotation(vec3(0, 0, 90));
+		boxEntity->GetComponent<Transform>()->SetScale(vec3(0.5, 0.5, 0.5));
+		boxEntity->AddComponent<TriangleRenderer>();
 		std::shared_ptr<ModelRenderer> boxMR = boxEntity->AddComponent<ModelRenderer>();
-		boxMR->SetModel(core->GetResources()->Load<Model>("shapes/capsule"));
+		boxMR->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
 		boxMR->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
 		std::shared_ptr<CylinderCollider> boxCollider = boxEntity->AddComponent<CylinderCollider>();
-		boxCollider->SetHeight(2);
+		boxCollider->SetHeight(4);
+		boxCollider->SetRadius(1);
 		boxEntity->AddComponent<boxController>();
 
 
 		std::shared_ptr<Entity> mouseEntity = core->AddEntity();
 		mouseEntity->GetComponent<Transform>()->SetPosition(vec3(0, 0, 10));
 		mouseEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, -20));
+		//mouseEntity->AddComponent<TriangleRenderer>();
 		std::shared_ptr<ModelRenderer> mouseMR = mouseEntity->AddComponent<ModelRenderer>();
 		mouseMR->SetModel(core->GetResources()->Load<Model>("models/curuthers/curuthers"));
 		mouseMR->SetTexture(core->GetResources()->Load<Texture>("models/curuthers/Whiskers_diffuse"));

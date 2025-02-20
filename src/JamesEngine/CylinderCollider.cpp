@@ -22,6 +22,103 @@
 namespace JamesEngine
 {
 
+    std::vector<glm::vec3> ClipPolygonAgainstPlane(const std::vector<glm::vec3>& poly, float planeZ, bool keepBelow)
+    {
+        std::vector<glm::vec3> output;
+        int n = poly.size();
+        for (int i = 0; i < n; i++)
+        {
+            const glm::vec3& current = poly[i];
+            const glm::vec3& prev = poly[(i + n - 1) % n];
+            bool currInside = (keepBelow ? (current.z <= planeZ) : (current.z >= planeZ));
+            bool prevInside = (keepBelow ? (prev.z <= planeZ) : (prev.z >= planeZ));
+            if (currInside)
+            {
+                if (!prevInside)
+                {
+                    // Edge entering: compute intersection t with plane z = planeZ.
+                    float t = (planeZ - prev.z) / (current.z - prev.z);
+                    glm::vec3 intersect = prev + t * (current - prev);
+                    output.push_back(intersect);
+                }
+                output.push_back(current);
+            }
+            else if (prevInside)
+            {
+                // Edge exiting: compute intersection.
+                float t = (planeZ - prev.z) / (current.z - prev.z);
+                glm::vec3 intersect = prev + t * (current - prev);
+                output.push_back(intersect);
+            }
+        }
+        return output;
+    }
+
+    // Helper: Check whether a 2D point is inside a convex polygon (assumes vertices ordered counterclockwise).
+    bool PointInPolygon(const std::vector<glm::vec2>& poly, const glm::vec2& point)
+    {
+        int n = poly.size();
+        // For convex polygon, the origin must lie consistently to one side of each edge.
+        for (int i = 0; i < n; i++)
+        {
+            glm::vec2 a = poly[i];
+            glm::vec2 b = poly[(i + 1) % n];
+            glm::vec2 edge = b - a;
+            glm::vec2 toPoint = point - a;
+            // Compute the z-component of the 2D cross product.
+            float cross = edge.x * toPoint.y - edge.y * toPoint.x;
+            if (cross < 0)
+                return false;
+        }
+        return true;
+    }
+
+    // Helper: Squared distance from point p to segment ab.
+    float SquaredDistancePointSegment(const glm::vec2& p, const glm::vec2& a, const glm::vec2& b)
+    {
+        glm::vec2 ab = b - a;
+        float t = glm::dot(p - a, ab) / glm::dot(ab, ab);
+        t = glm::clamp(t, 0.0f, 1.0f);
+        glm::vec2 proj = a + t * ab;
+        glm::vec2 diff = p - proj;
+        return glm::dot(diff, diff);
+    }
+
+    // Helper: Test whether a convex polygon (given by poly vertices in 2D) intersects a circle (disk)
+    // centered at (0,0) with radius r.
+    bool PolygonCircleIntersection(const std::vector<glm::vec2>& poly, float r)
+    {
+        float r2 = r * r;
+        int n = poly.size();
+        if (n == 0)
+            return false;
+        // If polygon is a point.
+        if (n == 1)
+            return glm::dot(poly[0], poly[0]) <= r2;
+        // If polygon is a line segment.
+        if (n == 2)
+        {
+            if (glm::dot(poly[0], poly[0]) <= r2 || glm::dot(poly[1], poly[1]) <= r2)
+                return true;
+            float d2 = SquaredDistancePointSegment(glm::vec2(0, 0), poly[0], poly[1]);
+            return d2 <= r2;
+        }
+        // For polygon with three or more vertices:
+        // (a) Check if the circle center (0,0) is inside the polygon.
+        if (PointInPolygon(poly, glm::vec2(0, 0)))
+            return true;
+        // (b) Check each edge to see if the circle and edge intersect.
+        for (int i = 0; i < n; i++)
+        {
+            glm::vec2 a = poly[i];
+            glm::vec2 b = poly[(i + 1) % n];
+            float d2 = SquaredDistancePointSegment(glm::vec2(0, 0), a, b);
+            if (d2 <= r2)
+                return true;
+        }
+        return false;
+    }
+
 #ifdef _DEBUG
     void CylinderCollider::OnGUI()
     {
@@ -40,7 +137,7 @@ namespace JamesEngine
         mModelMatrix = glm::rotate(mModelMatrix, glm::radians(rotation.x), glm::vec3(1, 0, 0));
         mModelMatrix = glm::rotate(mModelMatrix, glm::radians(rotation.y), glm::vec3(0, 1, 0));
         mModelMatrix = glm::rotate(mModelMatrix, glm::radians(rotation.z + 90), glm::vec3(0, 0, 1));
-        mModelMatrix = glm::scale(mModelMatrix, glm::vec3(mRadius / 2, mHeight / 2, mRadius / 2));
+        mModelMatrix = glm::scale(mModelMatrix, glm::vec3(mRadius, mHeight / 2, mRadius));
 
         mShader->uniform("model", mModelMatrix);
 
@@ -56,6 +153,72 @@ namespace JamesEngine
     }
 #endif
 
+    inline glm::vec3 ClosestPointTriangleToOriginXZ(const glm::vec3& A,
+        const glm::vec3& B,
+        const glm::vec3& C)
+    {
+        // Project vertices onto xz–plane.
+        glm::vec2 A2(A.x, A.z);
+        glm::vec2 B2(B.x, B.z);
+        glm::vec2 C2(C.x, C.z);
+        glm::vec2 P(0.0f, 0.0f);
+
+        // Compute barycentrics for P with respect to triangle A2, B2, C2.
+        glm::vec2 v0 = B2 - A2;
+        glm::vec2 v1 = C2 - A2;
+        glm::vec2 v2 = P - A2;
+        float d00 = glm::dot(v0, v0);
+        float d01 = glm::dot(v0, v1);
+        float d11 = glm::dot(v1, v1);
+        float d20 = glm::dot(v2, v0);
+        float d21 = glm::dot(v2, v1);
+        float denom = d00 * d11 - d01 * d01;
+
+        // If triangle is degenerate, fallback to A.
+        if (fabs(denom) < 1e-6f)
+            return A;
+
+        float v = (d11 * d20 - d01 * d21) / denom;
+        float w = (d00 * d21 - d01 * d20) / denom;
+        float u = 1.0f - v - w;
+
+        // If the point lies inside the triangle, P is the closest.
+        if (u >= 0.0f && v >= 0.0f && w >= 0.0f)
+        {
+            return A * u + B * v + C * w;
+        }
+
+        // Otherwise, find the closest point on each edge and pick the best.
+        auto ClosestPointOnEdge2D = [&](const glm::vec3& P3, const glm::vec3& Q3) -> glm::vec3 {
+            glm::vec2 P3_2(P3.x, P3.z);
+            glm::vec2 Q3_2(Q3.x, Q3.z);
+            glm::vec2 dir = Q3_2 - P3_2;
+            float t = 0.0f;
+            if (glm::dot(dir, dir) > 1e-6f)
+                t = glm::clamp(glm::dot(-P3_2, dir) / glm::dot(dir, dir), 0.0f, 1.0f);
+            return P3 + t * (Q3 - P3);
+            };
+
+        glm::vec3 cpAB = ClosestPointOnEdge2D(A, B);
+        glm::vec3 cpAC = ClosestPointOnEdge2D(A, C);
+        glm::vec3 cpBC = ClosestPointOnEdge2D(B, C);
+
+        auto sqrDistXZ = [&](const glm::vec3& pt) -> float {
+            return pt.x * pt.x + pt.z * pt.z;
+            };
+
+        float dAB = sqrDistXZ(cpAB);
+        float dAC = sqrDistXZ(cpAC);
+        float dBC = sqrDistXZ(cpBC);
+
+        glm::vec3 best = cpAB;
+        float bestDist = dAB;
+        if (dAC < bestDist) { bestDist = dAC; best = cpAC; }
+        if (dBC < bestDist) { bestDist = dBC; best = cpBC; }
+
+        return best;
+    }
+
     bool CylinderCollider::IsColliding(std::shared_ptr<Collider> _other, glm::vec3& _collisionPoint)
     {
         if (_other == nullptr)
@@ -68,99 +231,81 @@ namespace JamesEngine
         std::shared_ptr<ModelCollider> otherModel = std::dynamic_pointer_cast<ModelCollider>(_other);
         if (otherModel)
         {
-            // --- 1. Get Cylinder Parameters ---
-            // Assume GetPosition(), GetRotation(), mPositionOffset, mRotationOffset are available.
-            glm::vec3 cylCenter = GetPosition() + mPositionOffset;
-            glm::vec3 cylRotation = GetRotation() + mRotationOffset; // in degrees
-            float h = GetHeight();  // length of the center line
-            float R = GetRadius();  // cylinder's radius
+            // Get cylinder parameters.
+        // Assume GetPosition(), GetRotation(), and mPositionOffset/mRotationOffset are defined.
+            glm::vec3 cylinderCenter = GetPosition() + mPositionOffset;
+            glm::vec3 cylinderRotation = GetRotation() + mRotationOffset; // in degrees.
+            float cylinderRadius = GetRadius();
+            float cylinderHeight = GetHeight();
 
-            // --- 2. Build Cylinder World Transform and Its Inverse ---
-            // In local space the cylinder is centered at the origin, aligned along Y
-            // with flat faces at y = ±h/2.
-            glm::mat4 cylRotMat = glm::yawPitchRoll(glm::radians(cylRotation.y),
-                glm::radians(cylRotation.x),
-                glm::radians(cylRotation.z));
-            glm::mat4 cylTrans = glm::translate(glm::mat4(1.0f), cylCenter);
-            glm::mat4 cylWorldMat = cylTrans * cylRotMat;
-            glm::mat4 invCylWorldMat = glm::inverse(cylWorldMat);
+            // Build the cylinder's rotation matrix.
+            // We assume that the cylinder collider is defined so that its canonical form
+            // has center at the origin and axis (0,0,1). Thus, this rotation rotates the canonical
+            // cylinder into world space. To transform a world point into cylinder space, we subtract
+            // the center and apply the inverse (transpose) of this rotation matrix.
+            glm::mat4 cylRotationMatrix = glm::yawPitchRoll(glm::radians(cylinderRotation.y),
+                glm::radians(cylinderRotation.x),
+                glm::radians(cylinderRotation.z));
+            glm::mat3 invCylRotationMatrix = glm::transpose(glm::mat3(cylRotationMatrix));
 
-            // --- 3. Define a Bounding Box for the BVH Query ---
-            // In cylinder local space a box of size (2*R, h, 2*R) completely covers the cylinder.
-            // We use the cylinder's center and rotation.
-            glm::vec3 bboxPos = cylCenter;
-            glm::vec3 bboxRot = cylRotation;
-            glm::vec3 bboxSize(2 * R, h, 2 * R);
+            // Define a bounding box that encloses the entire cylinder.
+            glm::vec3 boxSize = glm::vec3(cylinderRadius * 2.0f, cylinderHeight, cylinderRadius * 2.0f);
+            // Retrieve the triangles from the model collider (returned in model space).
+            std::vector<Renderer::Model::Face> triangles = otherModel->GetTriangles(cylinderCenter, cylinderRotation, boxSize);
 
-            // Retrieve candidate triangles from the model.
-            // (Triangles are returned in model space.)
-            std::vector<Renderer::Model::Face> faces = otherModel->GetTriangles(bboxPos, bboxRot, bboxSize);
-
-            // --- 4. Build the Model's World Transform ---
-            // Since ModelCollider does not provide a GetModelMatrix(), we construct it manually.
-            glm::vec3 modelPos = otherModel->GetPosition() + otherModel->GetPositionOffset();
-            glm::vec3 modelRot = otherModel->GetRotation() + otherModel->GetRotationOffset();
+            // Get the model collider's world transform.
+            glm::vec3 modelPosition = otherModel->GetPosition();
+            glm::vec3 modelRotation = otherModel->GetRotation();
             glm::vec3 modelScale = otherModel->GetScale();
-            glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), modelPos);
-            // Apply rotations (assuming X then Y then Z rotations).
-            modelMatrix = modelMatrix * glm::yawPitchRoll(glm::radians(modelRot.y),
-                glm::radians(modelRot.x),
-                glm::radians(modelRot.z));
-            modelMatrix = glm::scale(modelMatrix, modelScale);
+            glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), modelPosition)
+                * glm::yawPitchRoll(glm::radians(modelRotation.y),
+                    glm::radians(modelRotation.x),
+                    glm::radians(modelRotation.z))
+                * glm::scale(glm::mat4(1.0f), modelScale);
 
-            // --- 5. Process Triangles and Sample Points ---
-            bool collisionDetected = false;
-            glm::vec3 contactSumLocal(0.0f); // Accumulate contact points in cylinder local space
-            float totalPenetration = 0.0f;
-
-            // For each triangle face...
-            for (const auto& face : faces)
+            // For each triangle from the model:
+            for (const Renderer::Model::Face& tri : triangles)
             {
                 // Convert triangle vertices from model space to world space.
-                glm::vec3 A_world = glm::vec3(modelMatrix * glm::vec4(face.a.position, 1.0f));
-                glm::vec3 B_world = glm::vec3(modelMatrix * glm::vec4(face.b.position, 1.0f));
-                glm::vec3 C_world = glm::vec3(modelMatrix * glm::vec4(face.c.position, 1.0f));
+                glm::vec3 v0_world = glm::vec3(modelMatrix * glm::vec4(tri.a.position, 1.0f));
+                glm::vec3 v1_world = glm::vec3(modelMatrix * glm::vec4(tri.b.position, 1.0f));
+                glm::vec3 v2_world = glm::vec3(modelMatrix * glm::vec4(tri.c.position, 1.0f));
 
-                // Now convert these vertices from world space to cylinder local space.
-                glm::vec3 A_local = glm::vec3(invCylWorldMat * glm::vec4(A_world, 1.0f));
-                glm::vec3 B_local = glm::vec3(invCylWorldMat * glm::vec4(B_world, 1.0f));
-                glm::vec3 C_local = glm::vec3(invCylWorldMat * glm::vec4(C_world, 1.0f));
+                // Transform the vertices from world space into cylinder (canonical) space.
+                // In cylinder space the cylinder is defined by:
+                //   x^2 + y^2 <= r^2  and  |z| <= h/2.
+                glm::vec3 v0 = invCylRotationMatrix * (v0_world - cylinderCenter);
+                glm::vec3 v1 = invCylRotationMatrix * (v1_world - cylinderCenter);
+                glm::vec3 v2 = invCylRotationMatrix * (v2_world - cylinderCenter);
 
-                // Define a set of sample points on the triangle:
-                glm::vec3 samples[7];
-                samples[0] = A_local;
-                samples[1] = B_local;
-                samples[2] = C_local;
-                samples[3] = (A_local + B_local) * 0.5f;
-                samples[4] = (A_local + C_local) * 0.5f;
-                samples[5] = (B_local + C_local) * 0.5f;
-                samples[6] = (A_local + B_local + C_local) / 3.0f;
+                // Start with the triangle as a polygon.
+                std::vector<glm::vec3> poly;
+                poly.push_back(v0);
+                poly.push_back(v1);
+                poly.push_back(v2);
 
-                // Process each sample point.
-                for (int i = 0; i < 7; i++)
+                // Clip the polygon against the slab z <= h/2 (upper plane).
+                poly = ClipPolygonAgainstPlane(poly, cylinderHeight / 2.0f, true);
+                // Clip the result against the slab z >= -h/2 (lower plane).
+                poly = ClipPolygonAgainstPlane(poly, -cylinderHeight / 2.0f, false);
+
+                // If the clipped polygon is empty, then this triangle does not intersect the cylinder’s height.
+                if (poly.empty())
+                    continue;
+
+                // Project the clipped polygon onto the xy–plane.
+                std::vector<glm::vec2> poly2d;
+                for (const glm::vec3& p : poly)
                 {
-                    float sdf = CylinderSDF(samples[i], h, R);
-                    // If the SDF is negative, the sample is inside (or on) the cylinder.
-                    if (sdf <= 0.0f)
-                    {
-                        collisionDetected = true;
-                        float penetration = -sdf; // positive penetration depth
-                        // Accumulate the sample (in cylinder local space) weighted by penetration.
-                        contactSumLocal += samples[i] * penetration;
-                        totalPenetration += penetration;
-                    }
+                    poly2d.push_back(glm::vec2(p.x, p.y));
                 }
-            }
 
-            // --- 6. Determine the Collision Contact Point ---
-            if (collisionDetected && totalPenetration > 0.0f)
-            {
-                // Compute the weighted average contact point in cylinder local space.
-                glm::vec3 contactLocal = contactSumLocal / totalPenetration;
-                // Transform the contact point back into world space.
-                glm::vec3 contactWorld = glm::vec3(cylWorldMat * glm::vec4(contactLocal, 1.0f));
-                _collisionPoint = contactWorld;
-                return true;
+                // Test whether the 2D polygon (the projection of the clipped triangle) intersects the disk of radius r.
+                if (PolygonCircleIntersection(poly2d, cylinderRadius))
+                {
+                    // Optionally, you might compute a collision point here.
+                    return true;
+                }
             }
         }
 
@@ -170,15 +315,16 @@ namespace JamesEngine
     float CylinderCollider::CylinderSDF(const glm::vec3& p, float h, float R)
     {
         float halfH = h * 0.5f;
-        // Radial distance from the y–axis.
         float radial = sqrt(p.x * p.x + p.z * p.z);
         float d_radial = radial - R;
-        // Vertical distance from the flat caps.
         float d_vertical = fabs(p.y) - halfH;
-        // Standard capped cylinder SDF.
+        // If both distances are negative, the point is inside; otherwise add the outside part.
         float inside = std::min(std::max(d_radial, d_vertical), 0.0f);
         float outside = glm::length(glm::max(glm::vec2(d_radial, d_vertical), glm::vec2(0.0f)));
         return inside + outside;
     }
+
+
+    
 
 }
