@@ -50,8 +50,8 @@ struct boxController : public Component
 
 		if (moving)
 		{
-			//GetTransform()->Rotate(glm::vec3(0, 0, 45) * speed * GetCore()->DeltaTime());
-			GetTransform()->Move(glm::vec3(-1, 0, 0) * -speed * GetCore()->DeltaTime());
+			GetTransform()->Rotate(glm::vec3(0, 0, 45) * speed * GetCore()->DeltaTime());
+			GetTransform()->Move(glm::vec3(0, -1, 0) * speed * GetCore()->DeltaTime());
 		}
 	}
 
@@ -79,33 +79,71 @@ int main()
 		cameraEntity->AddComponent<freelookCamController>();
 
 		std::shared_ptr<Entity> boxEntity = core->AddEntity();
-		boxEntity->GetComponent<Transform>()->SetPosition(vec3(-4, 1, 10));
+		boxEntity->GetComponent<Transform>()->SetPosition(vec3(0, 20, 10));
 		boxEntity->GetComponent<Transform>()->SetRotation(vec3(0, 0, 90));
 		boxEntity->GetComponent<Transform>()->SetScale(vec3(0.5, 0.5, 0.5));
 		boxEntity->AddComponent<TriangleRenderer>();
 		std::shared_ptr<ModelRenderer> boxMR = boxEntity->AddComponent<ModelRenderer>();
-		boxMR->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
+		boxMR->SetModel(core->GetResources()->Load<Model>("models/curuthers/curuthers"));
 		boxMR->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
-		std::shared_ptr<CylinderCollider> boxCollider = boxEntity->AddComponent<CylinderCollider>();
-		boxCollider->SetHeight(4);
-		boxCollider->SetRadius(1);
+		std::shared_ptr<ModelCollider> boxCollider = boxEntity->AddComponent<ModelCollider>();
+		boxCollider->SetModel(core->GetResources()->Load<Model>("models/curuthers/curuthers"));
 		boxEntity->AddComponent<boxController>();
+
+		std::shared_ptr<Entity> boxEntity2 = core->AddEntity();
+		boxEntity2->GetComponent<Transform>()->SetPosition(vec3(5, 20, 10));
+		boxEntity2->GetComponent<Transform>()->SetRotation(vec3(0, 0, 90));
+		boxEntity2->GetComponent<Transform>()->SetScale(vec3(0.5, 0.5, 0.5));
+		boxEntity2->AddComponent<TriangleRenderer>();
+		std::shared_ptr<ModelRenderer> boxMR2 = boxEntity2->AddComponent<ModelRenderer>();
+		boxMR2->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
+		boxMR2->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
+		std::shared_ptr<ModelCollider> boxCollider2 = boxEntity2->AddComponent<ModelCollider>();
+		boxCollider2->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
+		boxEntity2->AddComponent<boxController>();
+
+		std::shared_ptr<Entity> boxEntity3 = core->AddEntity();
+		boxEntity3->GetComponent<Transform>()->SetPosition(vec3(10, 20, 10));
+		boxEntity3->GetComponent<Transform>()->SetRotation(vec3(0, 0, 90));
+		boxEntity3->GetComponent<Transform>()->SetScale(vec3(0.5, 0.5, 0.5));
+		boxEntity3->AddComponent<TriangleRenderer>();
+		std::shared_ptr<ModelRenderer> boxMR3 = boxEntity3->AddComponent<ModelRenderer>();
+		boxMR3->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
+		boxMR3->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
+		std::shared_ptr<ModelCollider> boxCollider3 = boxEntity3->AddComponent<ModelCollider>();
+		boxCollider3->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
+		boxEntity3->AddComponent<boxController>();
+
+		std::shared_ptr<Entity> boxEntity4 = core->AddEntity();
+		boxEntity4->GetComponent<Transform>()->SetPosition(vec3(15, 20, 10));
+		boxEntity4->GetComponent<Transform>()->SetRotation(vec3(0, 0, 90));
+		boxEntity4->GetComponent<Transform>()->SetScale(vec3(0.5, 0.5, 0.5));
+		boxEntity4->AddComponent<TriangleRenderer>();
+		std::shared_ptr<ModelRenderer> boxMR4 = boxEntity4->AddComponent<ModelRenderer>();
+		boxMR4->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
+		boxMR4->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
+		std::shared_ptr<ModelCollider> boxCollider4 = boxEntity4->AddComponent<ModelCollider>();
+		boxCollider4->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
+		boxEntity4->AddComponent<boxController>();
 
 
 		std::shared_ptr<Entity> mouseEntity = core->AddEntity();
 		mouseEntity->GetComponent<Transform>()->SetPosition(vec3(0, 0, 10));
-		mouseEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, -20));
+		mouseEntity->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		//mouseEntity->AddComponent<TriangleRenderer>();
 		std::shared_ptr<ModelRenderer> mouseMR = mouseEntity->AddComponent<ModelRenderer>();
-		mouseMR->SetModel(core->GetResources()->Load<Model>("models/curuthers/curuthers"));
+		mouseMR->SetModel(core->GetResources()->Load<Model>("models/track/cartoon_track"));
 		mouseMR->SetTexture(core->GetResources()->Load<Texture>("models/curuthers/Whiskers_diffuse"));
 		std::shared_ptr<ModelCollider> mouseCollider = mouseEntity->AddComponent<ModelCollider>();
-		mouseCollider->SetModel(core->GetResources()->Load<Model>("models/curuthers/curuthers"));
+		mouseCollider->SetModel(core->GetResources()->Load<Model>("models/track/cartoon_track"));
 		mouseCollider->SetRotationOffset(vec3(0, 0, 0));
 		/*std::shared_ptr<CapsuleCollider> mouseCollider = mouseEntity->AddComponent<CapsuleCollider>();
 		mouseCollider->SetRotationOffset(vec3(0, 0, 0));*/
 
-		mouseEntity->AddComponent<Rigidbody>();
+		boxEntity->AddComponent<Rigidbody>();
+		boxEntity2->AddComponent<Rigidbody>();
+		boxEntity3->AddComponent<Rigidbody>();
+		boxEntity4->AddComponent<Rigidbody>();
 
 	}
 
