@@ -3,7 +3,6 @@
 #include "Core.h"
 #include "SphereCollider.h"
 #include "BoxCollider.h"
-#include "CapsuleCollider.h"
 
 #include "MathsHelper.h"
 
@@ -61,7 +60,7 @@ namespace JamesEngine
     }
 #endif
 
-    bool ModelCollider::IsColliding(std::shared_ptr<Collider> _other, glm::vec3& _collisionPoint)
+    bool ModelCollider::IsColliding(std::shared_ptr<Collider> _other, glm::vec3& _collisionPoint, glm::vec3& _normal, float& _penetrationDepth)
     {
         if (_other == nullptr)
         {
@@ -114,6 +113,25 @@ namespace JamesEngine
                 if (distanceSq <= sphereRadiusSq)
                 {
                     _collisionPoint = closestPoint;
+
+                    float distance = glm::length(diff);
+                    if (distance > 1e-6f)
+                    {
+                        _normal = glm::normalize(diff);
+                        _penetrationDepth = sphereRadius - distance;
+                    }
+                    else
+                    {
+                        // Degenerate case: sphere center is exactly on the triangle.
+                        // Use the triangle's face normal as the collision normal.
+                        glm::vec3 triNormal = glm::normalize(glm::cross(b - a, c - a));
+                        // Ensure the normal points from the model toward the sphere.
+                        if (glm::dot(spherePos - closestPoint, triNormal) < 0.0f)
+                            triNormal = -triNormal;
+                        _normal = triNormal;
+                        _penetrationDepth = sphereRadius;
+                    }
+
                     return true;
                 }
             }
@@ -171,6 +189,27 @@ namespace JamesEngine
                     // to the box center.
                     glm::vec3 closestPoint = Maths::ClosestPointOnTriangle(boxPos, a, b, c);
                     _collisionPoint = closestPoint;
+
+                    // Compute the triangle's normal in world space.
+                    glm::vec3 triNormal = glm::normalize(glm::cross(b - a, c - a));
+                    // Ensure the normal points from the model (triangle) toward the box.
+                    if (glm::dot(boxPos - closestPoint, triNormal) < 0.0f)
+                        triNormal = -triNormal;
+                    _normal = triNormal;
+
+                    // To compute penetration depth, determine the box's support point
+                    // in the direction opposite to the collision normal.
+                    glm::vec3 localNormal = glm::vec3(invBoxRotMatrix * glm::vec4(_normal, 0.0f));
+                    glm::vec3 supportLocal;
+                    supportLocal.x = (localNormal.x >= 0.0f) ? -boxHalfSize.x : boxHalfSize.x;
+                    supportLocal.y = (localNormal.y >= 0.0f) ? -boxHalfSize.y : boxHalfSize.y;
+                    supportLocal.z = (localNormal.z >= 0.0f) ? -boxHalfSize.z : boxHalfSize.z;
+                    glm::vec3 supportWorld = boxPos + glm::vec3(boxRotMatrix * glm::vec4(supportLocal, 0.0f));
+
+                    // Penetration depth is approximated as the projection of the vector from the support point
+                    // to the collision point along the collision normal.
+                    _penetrationDepth = glm::dot(_normal, _collisionPoint - supportWorld);
+
                     return true;
                 }
             }
@@ -238,66 +277,26 @@ namespace JamesEngine
                         glm::vec3 centroidA = (A0 + A1 + A2) / 3.0f;
                         glm::vec3 centroidB = (B0 + B1 + B2) / 3.0f;
                         _collisionPoint = (centroidA + centroidB) * 0.5f;
+
+                        // Compute face normals for the colliding triangles.
+                        glm::vec3 normalA = glm::normalize(glm::cross(A1 - A0, A2 - A0));
+                        glm::vec3 normalB = glm::normalize(glm::cross(B1 - B0, B2 - B0));
+                        // Average the normals to get an approximate collision normal.
+                        glm::vec3 avgNormal = glm::normalize(normalA + normalB);
+                        // Ensure the normal points from "this" model to the other model.
+                        if (glm::dot(avgNormal, centroidB - centroidA) < 0.0f)
+                            avgNormal = -avgNormal;
+                        _normal = avgNormal;
+
+                        // Approximate penetration depth:
+                        // Compute the distance from the collision point to each triangle's plane.
+                        float penetrationA = std::abs(glm::dot(_collisionPoint - A0, normalA));
+                        float penetrationB = std::abs(glm::dot(_collisionPoint - B0, normalB));
+                        _penetrationDepth = glm::min(penetrationA, penetrationB);
+
                         return true;
                     }
                 }
-            }
-        }
-
-		// We are model, other is capsule
-		std::shared_ptr<CapsuleCollider> otherCapsule = std::dynamic_pointer_cast<CapsuleCollider>(_other);
-        if (otherCapsule)
-        {
-            glm::vec3 A = otherCapsule->GetEndpointA();
-            glm::vec3 B = otherCapsule->GetEndpointB();
-            const int sampleCount = 5;
-            bool collisionFound = false;
-            glm::vec3 collisionPointSum(0.0f);
-
-            // Build the model's world transformation.
-            glm::vec3 modelPos = GetPosition() + GetPositionOffset();
-            glm::vec3 modelScale = GetScale();
-            glm::vec3 modelRotation = GetRotation() + GetRotationOffset();
-            glm::mat4 modelMatrix = glm::mat4(1.0f);
-            modelMatrix = glm::translate(modelMatrix, modelPos);
-            modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.x), glm::vec3(1, 0, 0));
-            modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.y), glm::vec3(0, 1, 0));
-            modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.z), glm::vec3(0, 0, 1));
-            modelMatrix = glm::scale(modelMatrix, modelScale);
-
-            // Retrieve model triangles.
-            glm::vec3 capsuleCenter = (A + B) * 0.5f;
-            glm::vec3 capsuleRotation = otherCapsule->GetRotation() + otherCapsule->GetRotationOffset();
-            glm::vec3 capsuleSize = glm::vec3(otherCapsule->GetCylinderRadius() * 2, otherCapsule->GetHeight() + (2 * otherCapsule->GetCapRadius()), otherCapsule->GetCylinderRadius() * 2);
-            std::vector<Renderer::Model::Face> faces = GetTriangles(capsuleCenter, capsuleRotation, capsuleSize);
-
-            for (int i = 0; i < sampleCount; i++)
-            {
-                float t = float(i) / float(sampleCount - 1);
-                glm::vec3 samplePoint = A + t * (B - A);
-                float effRadius = otherCapsule->EffectiveRadius(t, otherCapsule->GetCapRadius(), otherCapsule->GetCylinderRadius());
-
-                for (const auto& face : faces)
-                {
-                    // Transform triangle vertices into world space.
-                    glm::vec3 a = glm::vec3(modelMatrix * glm::vec4(face.a.position, 1.0f));
-                    glm::vec3 b = glm::vec3(modelMatrix * glm::vec4(face.b.position, 1.0f));
-                    glm::vec3 c = glm::vec3(modelMatrix * glm::vec4(face.c.position, 1.0f));
-
-                    // Use the Maths helper to compute the distance from the sample point to the triangle.
-                    float d = Maths::DistancePointTriangle(samplePoint, a, b, c);
-                    if (d <= effRadius)
-                    {
-                        collisionFound = true;
-                        collisionPointSum += samplePoint; // Alternatively, use a computed closest point.
-                    }
-                }
-            }
-
-            if (collisionFound)
-            {
-                _collisionPoint = collisionPointSum / float(sampleCount);
-                return true;
             }
         }
 

@@ -3,7 +3,6 @@
 #include "Core.h"
 #include "BoxCollider.h"
 #include "ModelCollider.h"
-#include "CapsuleCollider.h"
 #include "MathsHelper.h"
 
 #ifdef _DEBUG
@@ -55,7 +54,7 @@ namespace JamesEngine
 	}
 #endif
 
-	bool SphereCollider::IsColliding(std::shared_ptr<Collider> _other, glm::vec3& _collisionPoint)
+	bool SphereCollider::IsColliding(std::shared_ptr<Collider> _other, glm::vec3& _collisionPoint, glm::vec3& _normal, float& _penetrationDepth)
 	{
 		if (_other == nullptr)
 		{
@@ -87,6 +86,38 @@ namespace JamesEngine
 			if (distance <= sphereRadius)
 			{
 				_collisionPoint = closestPoint;
+
+				if (distance > 1e-6f)
+				{
+					// Sphere center is outside the box: use the vector from the closest point to the sphere center.
+					_normal = glm::normalize(sphereCenter - closestPoint);
+					_penetrationDepth = sphereRadius - distance;
+				}
+				else
+				{
+					// Sphere center is inside the box: compute penetration along each box axis in local space.
+					glm::vec3 absLocal = glm::abs(localSphereCenter);
+					glm::vec3 faceDistances = boxHalfSize - absLocal;
+					float minDistance = faceDistances.x;
+					int axisIndex = 0;
+					if (faceDistances.y < minDistance)
+					{
+						minDistance = faceDistances.y;
+						axisIndex = 1;
+					}
+					if (faceDistances.z < minDistance)
+					{
+						minDistance = faceDistances.z;
+						axisIndex = 2;
+					}
+					// Determine the normal in box-local space.
+					glm::vec3 localNormal(0.0f);
+					localNormal[axisIndex] = (localSphereCenter[axisIndex] >= 0.0f) ? 1.0f : -1.0f;
+					// Transform the local normal to world space.
+					_normal = glm::normalize(glm::vec3(boxRotationMatrix * glm::vec4(localNormal, 0.0f)));
+					_penetrationDepth = sphereRadius - minDistance;
+				}
+
 				return true;
 			}
 		}
@@ -104,6 +135,10 @@ namespace JamesEngine
 			{
 				glm::vec3 direction = glm::normalize(b - a);
 				_collisionPoint = a + direction * ahs;
+
+				_normal = direction;
+				_penetrationDepth = (ahs + bhs) - distance;
+
 				return true;
 			}
 			return false;
@@ -148,28 +183,27 @@ namespace JamesEngine
 				if (distanceSq <= sphereRadiusSq)
 				{
 					_collisionPoint = closestPoint;
+
+					float distance = glm::length(diff);
+					if (distance > 1e-6f)
+					{
+						_normal = glm::normalize(diff);
+						_penetrationDepth = sphereRadius - distance;
+					}
+					else
+					{
+						// Degenerate case: sphere center is exactly on the triangle.
+						// Use the triangle's face normal as the collision normal.
+						glm::vec3 triNormal = glm::normalize(glm::cross(b - a, c - a));
+						// Ensure the normal points from the model toward the sphere.
+						if (glm::dot(spherePos - closestPoint, triNormal) < 0.0f)
+							triNormal = -triNormal;
+						_normal = triNormal;
+						_penetrationDepth = sphereRadius;
+					}
+
 					return true;
 				}
-			}
-		}
-
-		// We are sphere, other is capsule
-		std::shared_ptr<CapsuleCollider> otherCapsule = std::dynamic_pointer_cast<CapsuleCollider>(_other);
-		if (otherCapsule)
-		{
-			glm::vec3 sphereCenter = GetPosition() + GetPositionOffset();
-			float sphereRadius = GetRadius();
-			glm::vec3 A = otherCapsule->GetEndpointA();
-			glm::vec3 B = otherCapsule->GetEndpointB();
-			glm::vec3 AB = B - A;
-			float t = glm::dot(sphereCenter - A, AB) / glm::dot(AB, AB);
-			t = glm::clamp(t, 0.0f, 1.0f);
-			glm::vec3 closestPoint = A + t * AB;
-			float effRadius = otherCapsule->EffectiveRadius(t, otherCapsule->GetCapRadius(), otherCapsule->GetCylinderRadius());
-			if (glm::length(sphereCenter - closestPoint) <= (effRadius + sphereRadius))
-			{
-				_collisionPoint = closestPoint;
-				return true;
 			}
 		}
 

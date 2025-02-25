@@ -17,7 +17,7 @@ namespace JamesEngine
 		virtual void OnGUI() {}
 #endif
 
-		virtual bool IsColliding(std::shared_ptr<Collider> _other, glm::vec3& _collisionPoint) = 0;
+		virtual bool IsColliding(std::shared_ptr<Collider> _other, glm::vec3& _collisionPoint, glm::vec3& _normal, float& _penetrationDepth) = 0;
 
 		void SetPositionOffset(glm::vec3 _offset) { mPositionOffset = _offset; }
 		glm::vec3 GetPositionOffset() { return mPositionOffset; }

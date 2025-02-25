@@ -17,7 +17,7 @@ namespace JamesEngine
 		void OnGUI();
 #endif
 
-		bool IsColliding(std::shared_ptr<Collider> _other, glm::vec3& _collisionPoint);
+		bool IsColliding(std::shared_ptr<Collider> _other, glm::vec3& _collisionPoint, glm::vec3& _normal, float& _penetrationDepth);
 
 		void SetRadius(float _radius) { mRadius = _radius; }
 		float GetRadius() { return mRadius; }

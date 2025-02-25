@@ -6,7 +6,7 @@ using namespace JamesEngine;
 
 struct freelookCamController : public Component
 {
-	float speed = 1.f;
+	float speed = 100.f;
 	float sensitivity = 45.f;
 
 	void OnTick()
@@ -133,7 +133,7 @@ int main()
 		//mouseEntity->AddComponent<TriangleRenderer>();
 		std::shared_ptr<ModelRenderer> mouseMR = mouseEntity->AddComponent<ModelRenderer>();
 		mouseMR->SetModel(core->GetResources()->Load<Model>("models/track/cartoon_track"));
-		mouseMR->SetTexture(core->GetResources()->Load<Texture>("models/curuthers/Whiskers_diffuse"));
+		mouseMR->SetTexture(core->GetResources()->Load<Texture>("models/track/rock"));
 		std::shared_ptr<ModelCollider> mouseCollider = mouseEntity->AddComponent<ModelCollider>();
 		mouseCollider->SetModel(core->GetResources()->Load<Model>("models/track/cartoon_track"));
 		mouseCollider->SetRotationOffset(vec3(0, 0, 0));

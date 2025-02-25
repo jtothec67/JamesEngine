@@ -3,7 +3,6 @@
 #include "Core.h"
 #include "SphereCollider.h"
 #include "ModelCollider.h"
-#include "CapsuleCollider.h"
 #include "MathsHelper.h"
 
 #include <iostream>
@@ -56,7 +55,7 @@ namespace JamesEngine
 	}
 #endif
 
-	bool BoxCollider::IsColliding(std::shared_ptr<Collider> _other, glm::vec3& _collisionPoint)
+	bool BoxCollider::IsColliding(std::shared_ptr<Collider> _other, glm::vec3& _collisionPoint, glm::vec3& _normal, float& _penetrationDepth)
 	{
 		if (_other == nullptr)
 		{
@@ -139,6 +138,65 @@ namespace JamesEngine
             }
 
             _collisionPoint = (aPos + bPos) / 2.0f;
+
+            float minPenetration = std::numeric_limits<float>::max();
+            glm::vec3 bestAxis(0.0f);
+
+            // Test the 3 axes of box A (aAxes)
+            for (int i = 0; i < 3; i++)
+            {
+                float ra = aSize[i];
+                float rb = bSize[0] * absRotation[i][0] + bSize[1] * absRotation[i][1] + bSize[2] * absRotation[i][2];
+                float axisProj = std::abs(translation[i]);
+                float overlap = (ra + rb) - axisProj;
+                if (overlap < minPenetration)
+                {
+                    minPenetration = overlap;
+                    bestAxis = aAxes[i] * ((translation[i] < 0.0f) ? -1.0f : 1.0f);
+                }
+            }
+
+            // Test the 3 axes of box B (bAxes)
+            for (int i = 0; i < 3; i++)
+            {
+                float ra = aSize[0] * absRotation[0][i] + aSize[1] * absRotation[1][i] + aSize[2] * absRotation[2][i];
+                float proj = translation[0] * rotation[0][i] + translation[1] * rotation[1][i] + translation[2] * rotation[2][i];
+                float rb = bSize[i];
+                float overlap = (ra + rb) - std::abs(proj);
+                if (overlap < minPenetration)
+                {
+                    minPenetration = overlap;
+                    bestAxis = bAxes[i] * ((proj < 0.0f) ? -1.0f : 1.0f);
+                }
+            }
+
+            // Test the 9 cross-product axes (aAxes[i] x bAxes[j])
+            for (int i = 0; i < 3; i++)
+            {
+                for (int j = 0; j < 3; j++)
+                {
+                    float cp = std::abs(translation[(i + 2) % 3] * rotation[(i + 1) % 3][j] - translation[(i + 1) % 3] * rotation[(i + 2) % 3][j]);
+                    float ra = aSize[(i + 1) % 3] * absRotation[(i + 2) % 3][j] + aSize[(i + 2) % 3] * absRotation[(i + 1) % 3][j];
+                    float rb = bSize[(j + 1) % 3] * absRotation[i][(j + 2) % 3] + bSize[(j + 2) % 3] * absRotation[i][(j + 1) % 3];
+                    float overlap = (ra + rb) - cp;
+                    if (overlap < minPenetration)
+                    {
+                        minPenetration = overlap;
+                        glm::vec3 axis = glm::cross(aAxes[i], bAxes[j]);
+                        if (glm::length(axis) > 0.0f)
+                            axis = glm::normalize(axis);
+                        // Ensure the axis points from this box to the other box.
+                        float dotProd = glm::dot(bPos - aPos, axis);
+                        if (dotProd < 0.0f)
+                            axis = -axis;
+                        bestAxis = axis;
+                    }
+                }
+            }
+
+            _normal = bestAxis;
+            _penetrationDepth = minPenetration;
+
             return true;
 		}
 
@@ -166,6 +224,38 @@ namespace JamesEngine
             if (distance <= sphereRadius)
             {
                 _collisionPoint = closestPoint;
+
+                if (distance > 1e-6f)
+                {
+                    // Sphere center is outside the box: use the vector from the closest point to the sphere center.
+                    _normal = glm::normalize(sphereCenter - closestPoint);
+                    _penetrationDepth = sphereRadius - distance;
+                }
+                else
+                {
+                    // Sphere center is inside the box: compute penetration along each box axis in local space.
+                    glm::vec3 absLocal = glm::abs(localSphereCenter);
+                    glm::vec3 faceDistances = boxHalfSize - absLocal;
+                    float minDistance = faceDistances.x;
+                    int axisIndex = 0;
+                    if (faceDistances.y < minDistance)
+                    {
+                        minDistance = faceDistances.y;
+                        axisIndex = 1;
+                    }
+                    if (faceDistances.z < minDistance)
+                    {
+                        minDistance = faceDistances.z;
+                        axisIndex = 2;
+                    }
+                    // Determine the normal in box-local space.
+                    glm::vec3 localNormal(0.0f);
+                    localNormal[axisIndex] = (localSphereCenter[axisIndex] >= 0.0f) ? 1.0f : -1.0f;
+                    // Transform the local normal to world space.
+                    _normal = glm::normalize(glm::vec3(boxRotationMatrix * glm::vec4(localNormal, 0.0f)));
+                    _penetrationDepth = sphereRadius - minDistance;
+                }
+
                 return true;
             }
 		}
@@ -221,52 +311,29 @@ namespace JamesEngine
                     // to the box center.
                     glm::vec3 closestPoint = Maths::ClosestPointOnTriangle(boxPos, a, b, c);
                     _collisionPoint = closestPoint;
+
+                    // Compute the triangle's normal in world space.
+                    glm::vec3 triNormal = glm::normalize(glm::cross(b - a, c - a));
+                    // Ensure the normal points from the model (triangle) toward the box.
+                    if (glm::dot(boxPos - closestPoint, triNormal) < 0.0f)
+                        triNormal = -triNormal;
+                    _normal = triNormal;
+
+                    // To compute penetration depth, determine the box's support point
+                    // in the direction opposite to the collision normal.
+                    glm::vec3 localNormal = glm::vec3(invBoxRotMatrix * glm::vec4(_normal, 0.0f));
+                    glm::vec3 supportLocal;
+                    supportLocal.x = (localNormal.x >= 0.0f) ? -boxHalfSize.x : boxHalfSize.x;
+                    supportLocal.y = (localNormal.y >= 0.0f) ? -boxHalfSize.y : boxHalfSize.y;
+                    supportLocal.z = (localNormal.z >= 0.0f) ? -boxHalfSize.z : boxHalfSize.z;
+                    glm::vec3 supportWorld = boxPos + glm::vec3(boxRotMatrix * glm::vec4(supportLocal, 0.0f));
+
+                    // Penetration depth is approximated as the projection of the vector from the support point
+                    // to the collision point along the collision normal.
+                    _penetrationDepth = glm::dot(_normal, _collisionPoint - supportWorld);
+
                     return true;
                 }
-            }
-        }
-
-		// We are box, other is capsule
-		std::shared_ptr<CapsuleCollider> otherCapsule = std::dynamic_pointer_cast<CapsuleCollider>(_other);
-        if (otherCapsule)
-        {
-            glm::vec3 A = otherCapsule->GetEndpointA();
-            glm::vec3 B = otherCapsule->GetEndpointB();
-            const int sampleCount = 5;
-            bool collisionFound = false;
-            glm::vec3 collisionPointSum(0.0f);
-
-            for (int i = 0; i < sampleCount; i++)
-            {
-                float t = float(i) / float(sampleCount - 1);
-                glm::vec3 samplePoint = A + t * (B - A);
-                float effRadius = otherCapsule->EffectiveRadius(t, otherCapsule->GetCapRadius(), otherCapsule->GetCylinderRadius());
-
-                // Sphere vs Box test for the sample point with "radius" = effRadius.
-                glm::vec3 boxCenter = GetPosition() + GetPositionOffset();
-                glm::vec3 boxHalfSize = GetSize() / 2.0f;
-                glm::vec3 boxRotation = GetRotation() + GetRotationOffset();
-                glm::mat4 boxRotMatrix = glm::yawPitchRoll(
-                    glm::radians(boxRotation.y),
-                    glm::radians(boxRotation.x),
-                    glm::radians(boxRotation.z)
-                );
-                glm::mat3 invBoxRotMatrix = glm::transpose(glm::mat3(boxRotMatrix));
-
-                glm::vec3 localSample = invBoxRotMatrix * (samplePoint - boxCenter);
-                glm::vec3 closestPointLocal = glm::clamp(localSample, -boxHalfSize, boxHalfSize);
-                glm::vec3 closestPoint = glm::vec3(boxRotMatrix * glm::vec4(closestPointLocal, 1.0f)) + boxCenter;
-
-                if (glm::length(samplePoint - closestPoint) <= effRadius)
-                {
-                    collisionFound = true;
-                    collisionPointSum += closestPoint;
-                }
-            }
-            if (collisionFound)
-            {
-                _collisionPoint = collisionPointSum / float(sampleCount);
-                return true;
             }
         }
 
