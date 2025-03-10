@@ -43,8 +43,11 @@ struct boxController : public Component
 	bool moving = false;
 	float speed = 1.f;
 	float sinValue = 0;
+
 	void OnTick()
 	{
+		GetEntity()->GetComponent<Rigidbody>()->AddTorque(glm::vec3(90, 0, 0) * GetCore()->DeltaTime());
+
 		if (GetKeyboard()->IsKeyDown(SDLK_SPACE))
 			moving = !moving;
 
@@ -76,6 +79,7 @@ int main()
 
 		std::shared_ptr<Entity> cameraEntity = core->AddEntity();
 		std::shared_ptr<Camera> camera = cameraEntity->AddComponent<Camera>();
+		cameraEntity->GetComponent<Transform>()->SetPosition(vec3(10, 20, 0));
 		cameraEntity->AddComponent<freelookCamController>();
 
 		std::shared_ptr<Entity> boxEntity = core->AddEntity();
@@ -140,7 +144,9 @@ int main()
 		/*std::shared_ptr<CapsuleCollider> mouseCollider = mouseEntity->AddComponent<CapsuleCollider>();
 		mouseCollider->SetRotationOffset(vec3(0, 0, 0));*/
 
-		boxEntity->AddComponent<Rigidbody>();
+		std::shared_ptr<Rigidbody> box1rb = boxEntity->AddComponent<Rigidbody>();
+		box1rb->AddTorque(glm::vec3(360, 0, 0));
+
 		boxEntity2->AddComponent<Rigidbody>();
 		boxEntity3->AddComponent<Rigidbody>();
 		boxEntity4->AddComponent<Rigidbody>();

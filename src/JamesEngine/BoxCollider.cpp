@@ -340,4 +340,13 @@ namespace JamesEngine
 		return false;
 	}
 
+    glm::mat3 BoxCollider::UpdateInertiaTensor(float _mass)
+    {
+        return glm::mat3(
+            (1.0f / 12.0f) * _mass * (mSize.y * mSize.y + mSize.z * mSize.z), 0, 0,
+            0, (1.0f / 12.0f) * _mass * (mSize.x * mSize.x + mSize.z * mSize.z), 0,
+            0, 0, (1.0f / 12.0f) * _mass * (mSize.x * mSize.x + mSize.y * mSize.y)
+        );
+    }
+
 }

@@ -19,6 +19,8 @@ namespace JamesEngine
 
 		virtual bool IsColliding(std::shared_ptr<Collider> _other, glm::vec3& _collisionPoint, glm::vec3& _normal, float& _penetrationDepth) = 0;
 
+		virtual glm::mat3 UpdateInertiaTensor(float _mass) = 0;
+
 		void SetPositionOffset(glm::vec3 _offset) { mPositionOffset = _offset; }
 		glm::vec3 GetPositionOffset() { return mPositionOffset; }
 

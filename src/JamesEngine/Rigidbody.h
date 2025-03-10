@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Component.h"
+#include <iostream>
 
 namespace JamesEngine
 {
@@ -8,6 +9,7 @@ namespace JamesEngine
 	class Rigidbody : public Component
 	{
 	public:
+		void OnInitialize();
 		void OnTick();
 
 		void AddForce(glm::vec3 _force) { mForce += _force; }
@@ -20,6 +22,9 @@ namespace JamesEngine
 		void SetForce(glm::vec3 _force) { mForce = _force; }
 		glm::vec3 GetForce() { return mForce; }
 
+		void SetTorque(glm::vec3 _torque) { mTorque = _torque; }
+		glm::vec3 GetTorque() { return mTorque; }
+
 		void SetVelocity(glm::vec3 _velocity) { mVelocity = _velocity; }
 		glm::vec3 GetVelocity() { return mVelocity; }
 
@@ -31,6 +36,11 @@ namespace JamesEngine
 	private:
 
 		void UpdateInertiaTensor();
+		void ComputeInverseInertiaTensor();
+		void CalculateEulerAngles();
+
+		void Euler();
+		//void Verlet();
 
 		glm::vec3 mForce = glm::vec3(0);
 		glm::vec3 mVelocity = glm::vec3(0);

@@ -19,6 +19,8 @@ namespace JamesEngine
 
 		bool IsColliding(std::shared_ptr<Collider> _other, glm::vec3& _collisionPoint, glm::vec3& _normal, float& _penetrationDepth);
 
+		glm::mat3 UpdateInertiaTensor(float _mass);
+
 		void SetSize(glm::vec3 _size) { mSize = _size; }
 		glm::vec3 GetSize() { return mSize; }
 

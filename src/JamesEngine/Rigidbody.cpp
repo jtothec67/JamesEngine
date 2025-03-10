@@ -13,6 +13,11 @@
 namespace JamesEngine
 {
 
+	void Rigidbody::OnInitialize()
+	{
+		UpdateInertiaTensor();
+	}
+
 	void Rigidbody::OnTick()
 	{
 		// Step 1: Compute each of the forces acting on the object (only gravity by default)
@@ -57,72 +62,104 @@ namespace JamesEngine
 				if (otherRigidbody)
 					otherIsRigidbody = true;
 
-
-
-				// Move the object out of the collision
-
-
-				//// Kludge (*vomit emoji*)
-				//float amount = 0.01f;
-				//float step = 0.1f;
-
-				//while (true)
-				//{
-				//	if (!otherCollider->IsColliding(collider, collisionPoint, collisionNormal, penetrationDepth))
-				//		break;
-
-				//	Move(glm::vec3(amount, 0, 0));
-				//	if (!otherCollider->IsColliding(collider, collisionPoint, collisionNormal, penetrationDepth))
-				//		break;
-
-				//	Move(-glm::vec3(amount, 0, 0));
-				//	Move(-glm::vec3(amount, 0, 0));
-				//	if (!otherCollider->IsColliding(collider, collisionPoint, collisionNormal, penetrationDepth))
-				//		break;
-
-				//	Move(glm::vec3(amount, 0, 0));
-				//	Move(glm::vec3(0, 0, amount));
-				//	if (!otherCollider->IsColliding(collider, collisionPoint, collisionNormal, penetrationDepth))
-				//		break;
-
-				//	Move(-glm::vec3(0, 0, amount));
-				//	Move(-glm::vec3(0, 0, amount));
-				//	if (!otherCollider->IsColliding(collider, collisionPoint, collisionNormal, penetrationDepth))
-				//		break;
-
-				//	Move(glm::vec3(0, 0, amount));
-				//	Move(glm::vec3(0, amount, 0));
-				//	if (!otherCollider->IsColliding(collider, collisionPoint, collisionNormal, penetrationDepth))
-				//		break;
-
-				//	Move(-glm::vec3(0, amount, 0));
-				//	Move(-glm::vec3(0, amount, 0));
-				//	if (!otherCollider->IsColliding(collider, collisionPoint, collisionNormal, penetrationDepth))
-				//		break;
-
-				//	Move(glm::vec3(0, amount, 0));
-				//	amount += step;
-				//}
-
+				// Step 3: Compute responses
 
 			}
 		}
+
+		// Step 4: Integration
+		Euler();
+
+		// Setp 5: Convert to euler angles
+		CalculateEulerAngles();
+
+		// Step 5: Clear forces
+		ClearForces();
+	}
+
+	void Rigidbody::Euler()
+	{
+		float oneOverMass = 1 / mMass;
+		// Compute the current velocity based on the previous velocity
+		mVelocity += (mForce * oneOverMass) * GetCore()->DeltaTime();
+		// Compute the current position based on the previous position
+		Move(mVelocity * GetCore()->DeltaTime());
+
+		// Angular motion update
+		mAngularMomentum += mTorque * GetCore()->DeltaTime();
+		ComputeInverseInertiaTensor();
+		// Update angular velocity
+		mAngularVelocity = mInertiaTensorInverse * mAngularMomentum;
+		// Construct skew matrix omega star
+		glm::mat3 omega_star = glm::mat3(0.0f, -mAngularVelocity.z, mAngularVelocity.y,
+			mAngularVelocity.z, 0.0f, -mAngularVelocity.x,
+			-mAngularVelocity.y, mAngularVelocity.x, 0.0f);
+		// Update rotation matrix
+		mR += omega_star * mR * GetCore()->DeltaTime();
+	}
+
+	//void Rigidbody::Verlet()
+	//{
+	//	glm::vec3 acceleration = mForce / mMass;
+	//	mPreviousPosition = transform.position - m_velocity * deltaTs + 0.5f * acceleration * deltaTs * deltaTs;
+	//	transform.position = 2.0f * transform.position - m_previousPosition + acceleration * deltaTs * deltaTs;
+	//	m_velocity = (transform.position - m_previousPosition) / (2.0f * deltaTs);
+	//	m_velocity += acceleration * deltaTs;
+
+	//	// Angular motion update
+	//	m_angular_momentum += m_torque * deltaTs;
+	//	computeInverseInertiaTensor();
+	//	// Update angular velocity
+	//	m_angular_velocity = m_inertia_tensor_inverse * m_angular_momentum;
+	//	// Construct skew matrix omega star
+	//	glm::mat3 omega_star = glm::mat3(0.0f, -m_angular_velocity.z, m_angular_velocity.y,
+	//		m_angular_velocity.z, 0.0f, -m_angular_velocity.x,
+	//		-m_angular_velocity.y, m_angular_velocity.x, 0.0f);
+	//	// Update rotation matrix
+	//	m_R += omega_star * m_R * deltaTs;
+	//}
+
+	void Rigidbody::CalculateEulerAngles()
+	{
+		glm::vec3 angles;
+
+		float value = mR[0][0] * mR[0][0] + mR[1][0] * mR[1][0];
+		float sy = sqrt(value);
+
+		bool singular = sy < 1e-6;
+
+		float x, y, z;
+
+		if (!singular)
+		{
+			x = atan2(mR[2][1], mR[2][2]);
+			y = atan2(-mR[2][0], sy);
+			z = atan2(mR[1][0], mR[0][0]);
+		}
+		else
+		{
+			x = atan2(-mR[1][2], mR[1][1]);
+			y = atan2(-mR[2][0], sy);
+			z = 0;
+		}
+
+		float degrees = 180.0f / 3.1415f;
+
+		SetRotation(glm::vec3(x * degrees, y * degrees, z * degrees));
 	}
 
 	void Rigidbody::UpdateInertiaTensor()
 	{
-		// Calculate the inertia tensor
-		glm::mat3 inertiaTensor = glm::mat3(0);
-		glm::vec3 size = GetEntity()->GetComponent<BoxCollider>()->GetSize();
-		float x = size.x;
-		float y = size.y;
-		float z = size.z;
+		glm::mat3 bodyInertia = GetEntity()->GetComponent<Collider>()->UpdateInertiaTensor(mMass);
 
-		inertiaTensor[0][0] = mMass / 12 * (y * y + z * z);
-		inertiaTensor[1][1] = mMass / 12 * (x * x + z * z);
-		inertiaTensor[2][2] = mMass / 12 * (x * x + y * y);
+		mBodyInertiaTensorInverse = glm::inverse(bodyInertia);
 
-		mInertiaTensorInverse = glm::inverse(inertiaTensor);
+		ComputeInverseInertiaTensor();
+	}
+
+	void Rigidbody::ComputeInverseInertiaTensor()
+	{
+		mInertiaTensorInverse = mR * mBodyInertiaTensorInverse * glm::transpose(mR);
 	}
 
 }

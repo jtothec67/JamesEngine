@@ -155,7 +155,9 @@ namespace JamesEngine
 		float mLightStrength = 1.f;*/
 
 		// Used when loading scenes to ensure first frame doesn't have a large delta time
-		bool mDeltaTimeZero = false;
+		bool mDeltaTimeZero = true;
+		int mDeltaTimeZeroCounter = 0;
+		int mNumDeltaTimeZeros = 2;
 	};
 
 }

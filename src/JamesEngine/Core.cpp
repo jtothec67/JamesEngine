@@ -37,15 +37,22 @@ namespace JamesEngine
 		{
 			mDeltaTime = mDeltaTimer.Stop();
 
-			if (mDeltaTimeZero)
-			{
-				mDeltaTime = 0.f;
-				mDeltaTimeZero = false;
-			}
-
 			mDeltaTimer.Start();
 
 			std::cout << "FPS: " << 1.0f / mDeltaTime << std::endl;
+
+			if (mDeltaTimeZero)
+			{
+				// Simulate 60fps
+				mDeltaTime = 0.016f;
+
+				mDeltaTimeZeroCounter++;
+
+				std::cout << "delta time is 0 for this frame" << std::endl;
+
+				if (mDeltaTimeZeroCounter >= mNumDeltaTimeZeros)
+					mDeltaTimeZero = false;
+			}
 
 			mInput->Update();
 			

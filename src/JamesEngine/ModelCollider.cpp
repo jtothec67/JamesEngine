@@ -303,6 +303,84 @@ namespace JamesEngine
 		return false;
     }
 
+    float TetrahedronVolume(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c) {
+        return glm::dot(a, glm::cross(b, c)) / 6.0f;
+    }
+
+    glm::mat3 ModelCollider::UpdateInertiaTensor(float _mass)
+    {
+        // Accumulators for volume, center of mass, and inertia at the origin.
+        float totalVolume = 0.0f;
+        glm::vec3 totalCOM(0.0f);
+        glm::mat3 I_origin(0.0f);
+
+        std::vector<Renderer::Model::Face> faces = GetModel()->mModel->GetFaces();
+
+        // Iterate over each triangle face and treat it as forming a tetrahedron with the origin.
+        for (const auto& tri : faces)
+        {
+            glm::vec3 v0 = tri.a.position;
+            glm::vec3 v1 = tri.b.position;
+            glm::vec3 v2 = tri.c.position;
+
+            // Compute the signed volume of the tetrahedron.
+            float vol = TetrahedronVolume(v0, v1, v2);
+            totalVolume += vol;
+
+            // Tetrahedron center-of-mass (with vertices 0, v0, v1, v2)
+            glm::vec3 tetCOM = (glm::vec3(0.0f) + v0 + v1 + v2) / 4.0f;
+            totalCOM += vol * tetCOM;
+
+            // Compute approximate inertia integrals for the tetrahedron relative to the origin.
+            // Using an integration factor of (vol / 10) with sums over squared terms.
+            float Ixx = vol / 10.0f * (
+                v0.y * v0.y + v1.y * v1.y + v2.y * v2.y +
+                v0.y * v1.y + v0.y * v2.y + v1.y * v2.y +
+                v0.z * v0.z + v1.z * v1.z + v2.z * v2.z +
+                v0.z * v1.z + v0.z * v2.z + v1.z * v2.z
+                );
+            float Iyy = vol / 10.0f * (
+                v0.x * v0.x + v1.x * v1.x + v2.x * v2.x +
+                v0.x * v1.x + v0.x * v2.x + v1.x * v2.x +
+                v0.z * v0.z + v1.z * v1.z + v2.z * v2.z +
+                v0.z * v1.z + v0.z * v2.z + v1.z * v2.z
+                );
+            float Izz = vol / 10.0f * (
+                v0.x * v0.x + v1.x * v1.x + v2.x * v2.x +
+                v0.x * v1.x + v0.x * v2.x + v1.x * v2.x +
+                v0.y * v0.y + v1.y * v1.y + v2.y * v2.y +
+                v0.y * v1.y + v0.y * v2.y + v1.y * v2.y
+                );
+
+            glm::mat3 I_tet(0.0f);
+            I_tet[0][0] = Ixx;
+            I_tet[1][1] = Iyy;
+            I_tet[2][2] = Izz;
+
+            // Sum the inertia contribution weighted by volume.
+            I_origin += I_tet;
+        }
+
+        // Avoid division by zero if the volume is near zero.
+        if (fabs(totalVolume) < 1e-6f)
+            return glm::mat3(1.0f);
+
+        // Compute overall center-of-mass for the model.
+        glm::vec3 com = totalCOM / totalVolume;
+        mCenterOfMass = com;
+
+        // Apply the parallel-axis theorem to shift the inertia tensor from the origin to the center of mass.
+        // I_com = I_origin - m*(||com||^2 * I - com * com^T)
+        glm::mat3 identity(1.0f);
+        glm::mat3 translationCorrection = totalVolume * (glm::dot(com, com) * identity - glm::outerProduct(com, com));
+        glm::mat3 I_com = I_origin - translationCorrection;
+
+        // Scale the inertia tensor from "volume mass" to the actual mass.
+        // (totalVolume here is proportional to mass if density is 1; scale by _mass / totalVolume)
+        glm::mat3 inertiaTensor = I_com * (_mass / totalVolume);
+        return inertiaTensor;
+    }
+
 
     // --- BVH Building ---
 

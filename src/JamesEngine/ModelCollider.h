@@ -19,6 +19,8 @@ namespace JamesEngine
 #endif
         bool IsColliding(std::shared_ptr<Collider> _other, glm::vec3& _collisionPoint, glm::vec3& _normal, float& _penetrationDepth);
 
+        glm::mat3 UpdateInertiaTensor(float _mass);
+
         void SetModel(std::shared_ptr<Model> _model) { mModel = _model; }
         std::shared_ptr<Model> GetModel() { return mModel; }
 
@@ -29,6 +31,8 @@ namespace JamesEngine
 
     private:
         std::shared_ptr<Model> mModel = nullptr;
+
+        glm::vec3 mCenterOfMass{ 0 };
 
         // --- BVH Data Structure ---
         // Each node holds an axis-aligned bounding box (AABB) and either a list of triangles (if a leaf)
