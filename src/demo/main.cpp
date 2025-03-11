@@ -79,7 +79,8 @@ int main()
 
 		std::shared_ptr<Entity> cameraEntity = core->AddEntity();
 		std::shared_ptr<Camera> camera = cameraEntity->AddComponent<Camera>();
-		cameraEntity->GetComponent<Transform>()->SetPosition(vec3(10, 20, 0));
+		cameraEntity->GetComponent<Transform>()->SetPosition(vec3(7.5, 10, 30));
+		cameraEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
 		cameraEntity->AddComponent<freelookCamController>();
 
 		std::shared_ptr<Entity> boxEntity = core->AddEntity();
@@ -147,9 +148,16 @@ int main()
 		std::shared_ptr<Rigidbody> box1rb = boxEntity->AddComponent<Rigidbody>();
 		box1rb->AddTorque(glm::vec3(360, 0, 0));
 
-		boxEntity2->AddComponent<Rigidbody>();
-		boxEntity3->AddComponent<Rigidbody>();
-		boxEntity4->AddComponent<Rigidbody>();
+		std::shared_ptr<Rigidbody> box2rb = boxEntity2->AddComponent<Rigidbody>();
+		box2rb->AddForce(glm::vec3(250, 0, 0));
+		box2rb->SetMass(1);
+
+		std::shared_ptr<Rigidbody> box3rb = boxEntity3->AddComponent<Rigidbody>();
+		box3rb->AddForce(glm::vec3(-250, 0, 0));
+		box3rb->SetMass(1);
+
+		std::shared_ptr<Rigidbody> box4rb = boxEntity4->AddComponent<Rigidbody>();
+
 
 	}
 

@@ -32,8 +32,6 @@ namespace JamesEngine
     private:
         std::shared_ptr<Model> mModel = nullptr;
 
-        glm::vec3 mCenterOfMass{ 0 };
-
         // --- BVH Data Structure ---
         // Each node holds an axis-aligned bounding box (AABB) and either a list of triangles (if a leaf)
         // or pointers to two children.

@@ -31,9 +31,18 @@ namespace JamesEngine
 		void SetAcceleration(glm::vec3 _acceleration) { mAcceleration = _acceleration; }
 		glm::vec3 GetAcceleration() { return mAcceleration; }
 
-		
+		void SetAngularMomentum(glm::vec3 _angularMomentum) { mAngularMomentum = _angularMomentum; }
+		glm::vec3 GetAngularMomentum() { return mAngularMomentum; }
+
+		void SetAngularVelocity(glm::vec3 _angularVelocity) { mAngularVelocity = _angularVelocity; }
+		glm::vec3 GetAngularVelocity() { return mAngularVelocity; }
 
 	private:
+
+		void ApplyImpulseResponse(std::shared_ptr<Rigidbody> _other, glm::vec3 _normal, glm::vec3 _collisionPoint);
+		void ApplyImpulseResponseStatic(glm::vec3 _normal, glm::vec3 _collisionPoint);
+		glm::vec3 FrictionForce(glm::vec3 _relativeVelocity, glm::vec3 _contactNormal, glm::vec3 _forceNormal, float mu);
+		glm::vec3 ComputeTorque(glm::vec3 torque_arm, glm::vec3 contact_force);
 
 		void UpdateInertiaTensor();
 		void ComputeInverseInertiaTensor();

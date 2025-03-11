@@ -367,7 +367,7 @@ namespace JamesEngine
 
         // Compute overall center-of-mass for the model.
         glm::vec3 com = totalCOM / totalVolume;
-        mCenterOfMass = com;
+        GetPosition() = com;
 
         // Apply the parallel-axis theorem to shift the inertia tensor from the origin to the center of mass.
         // I_com = I_origin - m*(||com||^2 * I - com * com^T)
