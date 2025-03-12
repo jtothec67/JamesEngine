@@ -46,7 +46,7 @@ struct boxController : public Component
 
 	void OnTick()
 	{
-		GetEntity()->GetComponent<Rigidbody>()->AddTorque(glm::vec3(90, 0, 0) * GetCore()->DeltaTime());
+		//GetEntity()->GetComponent<Rigidbody>()->AddTorque(glm::vec3(90, 0, 0) * GetCore()->DeltaTime());
 
 		if (GetKeyboard()->IsKeyDown(SDLK_SPACE))
 			moving = !moving;
@@ -56,6 +56,8 @@ struct boxController : public Component
 			GetTransform()->Rotate(glm::vec3(0, 0, 45) * speed * GetCore()->DeltaTime());
 			GetTransform()->Move(glm::vec3(0, -1, 0) * speed * GetCore()->DeltaTime());
 		}
+
+		//std::cout << "Position: " << GetTransform()->GetPosition().x << ", " << GetTransform()->GetPosition().y << ", " << GetTransform()->GetPosition().z << std::endl;
 	}
 
 	void OnCollision(std::shared_ptr<Entity> ent)
@@ -96,7 +98,8 @@ int main()
 		boxEntity->AddComponent<boxController>();
 
 		std::shared_ptr<Entity> boxEntity2 = core->AddEntity();
-		boxEntity2->GetComponent<Transform>()->SetPosition(vec3(5, 20, 10));
+		boxEntity2->SetTag("box2");
+		boxEntity2->GetComponent<Transform>()->SetPosition(vec3(5, 21, 10));
 		boxEntity2->GetComponent<Transform>()->SetRotation(vec3(0, 0, 90));
 		boxEntity2->GetComponent<Transform>()->SetScale(vec3(0.5, 0.5, 0.5));
 		boxEntity2->AddComponent<TriangleRenderer>();
@@ -108,6 +111,7 @@ int main()
 		boxEntity2->AddComponent<boxController>();
 
 		std::shared_ptr<Entity> boxEntity3 = core->AddEntity();
+		boxEntity3->SetTag("box3");
 		boxEntity3->GetComponent<Transform>()->SetPosition(vec3(10, 20, 10));
 		boxEntity3->GetComponent<Transform>()->SetRotation(vec3(0, 0, 90));
 		boxEntity3->GetComponent<Transform>()->SetScale(vec3(0.5, 0.5, 0.5));
@@ -149,14 +153,15 @@ int main()
 		box1rb->AddTorque(glm::vec3(360, 0, 0));
 
 		std::shared_ptr<Rigidbody> box2rb = boxEntity2->AddComponent<Rigidbody>();
-		box2rb->AddForce(glm::vec3(250, 0, 0));
-		box2rb->SetMass(1);
+		box2rb->AddForce(glm::vec3(500, 0, 0));
+		//box2rb->SetMass(1);
 
 		std::shared_ptr<Rigidbody> box3rb = boxEntity3->AddComponent<Rigidbody>();
-		box3rb->AddForce(glm::vec3(-250, 0, 0));
-		box3rb->SetMass(1);
+		box3rb->AddForce(glm::vec3(-500, 0, 0));
+		//box3rb->SetMass(1);
 
 		std::shared_ptr<Rigidbody> box4rb = boxEntity4->AddComponent<Rigidbody>();
+		box4rb->AddForce(glm::vec3(-500, 0, 0));
 
 
 	}

@@ -279,19 +279,16 @@ namespace JamesEngine
                         _collisionPoint = (centroidA + centroidB) * 0.5f;
 
                         // Compute face normals for the colliding triangles.
-                        glm::vec3 normalA = glm::normalize(glm::cross(A1 - A0, A2 - A0));
-                        glm::vec3 normalB = glm::normalize(glm::cross(B1 - B0, B2 - B0));
-                        // Average the normals to get an approximate collision normal.
-                        glm::vec3 avgNormal = glm::normalize(normalA + normalB);
-                        // Ensure the normal points from "this" model to the other model.
-                        if (glm::dot(avgNormal, centroidB - centroidA) < 0.0f)
-                            avgNormal = -avgNormal;
-                        _normal = avgNormal;
+                        glm::vec3 normalThis = glm::normalize(glm::cross(A1 - A0, A2 - A0));
+                        if (glm::dot(normalThis, centroidB - centroidA) < 0.0f)
+                            normalThis = -normalThis;
+
+						_normal = normalThis;
 
                         // Approximate penetration depth:
                         // Compute the distance from the collision point to each triangle's plane.
-                        float penetrationA = std::abs(glm::dot(_collisionPoint - A0, normalA));
-                        float penetrationB = std::abs(glm::dot(_collisionPoint - B0, normalB));
+                        float penetrationA = std::abs(glm::dot(_collisionPoint - A0, glm::normalize(glm::cross(A1 - A0, A2 - A0))));
+                        float penetrationB = std::abs(glm::dot(_collisionPoint - B0, glm::normalize(glm::cross(B1 - B0, B2 - B0))));
                         _penetrationDepth = glm::min(penetrationA, penetrationB);
 
                         return true;
