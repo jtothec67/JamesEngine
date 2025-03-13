@@ -85,7 +85,7 @@ int main()
 		cameraEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
 		cameraEntity->AddComponent<freelookCamController>();
 
-		std::shared_ptr<Entity> boxEntity = core->AddEntity();
+		/*std::shared_ptr<Entity> boxEntity = core->AddEntity();
 		boxEntity->GetComponent<Transform>()->SetPosition(vec3(0, 20, 10));
 		boxEntity->GetComponent<Transform>()->SetRotation(vec3(0, 0, 90));
 		boxEntity->GetComponent<Transform>()->SetScale(vec3(0.5, 0.5, 0.5));
@@ -95,7 +95,7 @@ int main()
 		boxMR->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
 		std::shared_ptr<ModelCollider> boxCollider = boxEntity->AddComponent<ModelCollider>();
 		boxCollider->SetModel(core->GetResources()->Load<Model>("models/curuthers/curuthers"));
-		boxEntity->AddComponent<boxController>();
+		boxEntity->AddComponent<boxController>();*/
 
 		std::shared_ptr<Entity> boxEntity2 = core->AddEntity();
 		boxEntity2->SetTag("box2");
@@ -110,7 +110,7 @@ int main()
 		boxCollider2->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
 		boxEntity2->AddComponent<boxController>();
 
-		std::shared_ptr<Entity> boxEntity3 = core->AddEntity();
+		/*std::shared_ptr<Entity> boxEntity3 = core->AddEntity();
 		boxEntity3->SetTag("box3");
 		boxEntity3->GetComponent<Transform>()->SetPosition(vec3(10, 20, 10));
 		boxEntity3->GetComponent<Transform>()->SetRotation(vec3(0, 0, 90));
@@ -121,19 +121,20 @@ int main()
 		boxMR3->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
 		std::shared_ptr<ModelCollider> boxCollider3 = boxEntity3->AddComponent<ModelCollider>();
 		boxCollider3->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
-		boxEntity3->AddComponent<boxController>();
+		boxEntity3->AddComponent<boxController>();*/
 
-		std::shared_ptr<Entity> boxEntity4 = core->AddEntity();
+		/*std::shared_ptr<Entity> boxEntity4 = core->AddEntity();
 		boxEntity4->GetComponent<Transform>()->SetPosition(vec3(15, 20, 10));
 		boxEntity4->GetComponent<Transform>()->SetRotation(vec3(0, 0, 90));
 		boxEntity4->GetComponent<Transform>()->SetScale(vec3(0.5, 0.5, 0.5));
 		boxEntity4->AddComponent<TriangleRenderer>();
 		std::shared_ptr<ModelRenderer> boxMR4 = boxEntity4->AddComponent<ModelRenderer>();
-		boxMR4->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
+		boxMR4->SetModel(core->GetResources()->Load<Model>("shapes/sphere"));
 		boxMR4->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
-		std::shared_ptr<ModelCollider> boxCollider4 = boxEntity4->AddComponent<ModelCollider>();
-		boxCollider4->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
-		boxEntity4->AddComponent<boxController>();
+		std::shared_ptr<SphereCollider> boxCollider4 = boxEntity4->AddComponent<SphereCollider>();*/
+
+		//boxCollider4->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
+		//boxEntity4->AddComponent<boxController>();
 
 
 		std::shared_ptr<Entity> mouseEntity = core->AddEntity();
@@ -149,19 +150,19 @@ int main()
 		/*std::shared_ptr<CapsuleCollider> mouseCollider = mouseEntity->AddComponent<CapsuleCollider>();
 		mouseCollider->SetRotationOffset(vec3(0, 0, 0));*/
 
-		std::shared_ptr<Rigidbody> box1rb = boxEntity->AddComponent<Rigidbody>();
-		box1rb->AddTorque(glm::vec3(360, 0, 0));
+		//std::shared_ptr<Rigidbody> box1rb = boxEntity->AddComponent<Rigidbody>();
+		////box1rb->AddTorque(glm::vec3(360, 0, 0));
 
 		std::shared_ptr<Rigidbody> box2rb = boxEntity2->AddComponent<Rigidbody>();
-		box2rb->AddForce(glm::vec3(500, 0, 0));
+		box2rb->AddForce(glm::vec3(00, -500, 0));
 		//box2rb->SetMass(1);
 
-		std::shared_ptr<Rigidbody> box3rb = boxEntity3->AddComponent<Rigidbody>();
-		box3rb->AddForce(glm::vec3(-500, 0, 0));
-		//box3rb->SetMass(1);
+		//std::shared_ptr<Rigidbody> box3rb = boxEntity3->AddComponent<Rigidbody>();
+		//box3rb->AddForce(glm::vec3(-300, 0, 0));
+		////box3rb->SetMass(1);
 
-		std::shared_ptr<Rigidbody> box4rb = boxEntity4->AddComponent<Rigidbody>();
-		box4rb->AddForce(glm::vec3(-500, 0, 0));
+		//std::shared_ptr<Rigidbody> box4rb = boxEntity4->AddComponent<Rigidbody>();
+		//box4rb->AddForce(glm::vec3(-500, 0, 0));
 
 
 	}

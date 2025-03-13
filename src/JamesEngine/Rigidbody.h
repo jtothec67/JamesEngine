@@ -49,7 +49,7 @@ namespace JamesEngine
 		void CalculateEulerAngles();
 
 		void Euler();
-		//void Verlet();
+		void Verlet();
 
 		glm::vec3 mForce = glm::vec3(0);
 		glm::vec3 mVelocity = glm::vec3(0);
@@ -67,7 +67,7 @@ namespace JamesEngine
 									0.0f, 1.0f, 0.0f,
 									0.0f, 0.0f, 1.0f);
 
-		float globalDamping = 125;
+		float globalDamping = 64;
 	};
 
 }

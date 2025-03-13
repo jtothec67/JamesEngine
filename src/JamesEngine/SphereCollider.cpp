@@ -212,11 +212,7 @@ namespace JamesEngine
 
 	glm::mat3 SphereCollider::UpdateInertiaTensor(float _mass)
 	{
-		return glm::mat3(
-			(2.0f / 5.0f) * _mass * mRadius * mRadius, (2.0f / 5.0f) * _mass * mRadius * mRadius, (2.0f / 5.0f) * _mass * mRadius * mRadius,
-			(2.0f / 5.0f) * _mass * mRadius * mRadius, (2.0f / 5.0f) * _mass * mRadius * mRadius, (2.0f / 5.0f) * _mass * mRadius * mRadius,
-			(2.0f / 5.0f) * _mass * mRadius * mRadius, (2.0f / 5.0f) * _mass * mRadius * mRadius, (2.0f / 5.0f) * _mass * mRadius * mRadius
-		);
+		return glm::mat3((2.0f / 5.0f) * _mass * mRadius * mRadius);
 	}
 
 }

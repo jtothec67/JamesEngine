@@ -25,7 +25,7 @@ namespace JamesEngine
 		float GetRadius() { return mRadius; }
 
 	private:
-		float mRadius = 1.f;
+		float mRadius = 0.5f;
 
 #ifdef _DEBUG
 		std::shared_ptr<Renderer::Model> mModel = std::make_shared<Renderer::Model>("../assets/shapes/sphere.obj");

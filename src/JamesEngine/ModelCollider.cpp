@@ -200,7 +200,7 @@ namespace JamesEngine
                     // To compute penetration depth, determine the box's support point
                     // in the direction opposite to the collision normal.
                     glm::vec3 localNormal = glm::vec3(invBoxRotMatrix * glm::vec4(_normal, 0.0f));
-                    glm::vec3 supportLocal;
+                    glm::vec3 supportLocal{};
                     supportLocal.x = (localNormal.x >= 0.0f) ? -boxHalfSize.x : boxHalfSize.x;
                     supportLocal.y = (localNormal.y >= 0.0f) ? -boxHalfSize.y : boxHalfSize.y;
                     supportLocal.z = (localNormal.z >= 0.0f) ? -boxHalfSize.z : boxHalfSize.z;
@@ -362,15 +362,7 @@ namespace JamesEngine
         if (fabs(totalVolume) < 1e-6f)
             return glm::mat3(1.0f);
 
-        // Compute overall center-of-mass for the model.
-        glm::vec3 com = totalCOM / totalVolume;
-        GetPosition() = com;
-
-        // Apply the parallel-axis theorem to shift the inertia tensor from the origin to the center of mass.
-        // I_com = I_origin - m*(||com||^2 * I - com * com^T)
-        glm::mat3 identity(1.0f);
-        glm::mat3 translationCorrection = totalVolume * (glm::dot(com, com) * identity - glm::outerProduct(com, com));
-        glm::mat3 I_com = I_origin - translationCorrection;
+        glm::mat3 I_com = I_origin;
 
         // Scale the inertia tensor from "volume mass" to the actual mass.
         // (totalVolume here is proportional to mass if density is 1; scale by _mass / totalVolume)
