@@ -6,15 +6,22 @@ using namespace JamesEngine;
 
 struct freelookCamController : public Component
 {
-	float speed = 100.f;
+	float normalSpeed = 5.f;
+	float fastSpeed = 20.f;
 	float sensitivity = 45.f;
 
 	void OnTick()
 	{
+		float speed = 0.f;
+		if (GetKeyboard()->IsKey(SDLK_LSHIFT))
+			speed = fastSpeed;
+		else
+			speed = normalSpeed;
+
 		if (GetKeyboard()->IsKey(SDLK_w))
-			GetTransform()->Move(GetTransform()->GetForward() * speed * GetCore()->DeltaTime());
-		if (GetKeyboard()->IsKey(SDLK_s))
 			GetTransform()->Move(-GetTransform()->GetForward() * speed * GetCore()->DeltaTime());
+		if (GetKeyboard()->IsKey(SDLK_s))
+			GetTransform()->Move(GetTransform()->GetForward() * speed * GetCore()->DeltaTime());
 		if (GetKeyboard()->IsKey(SDLK_a))
 			GetTransform()->Move(-GetTransform()->GetRight() * speed * GetCore()->DeltaTime());
 		if (GetKeyboard()->IsKey(SDLK_d))
@@ -31,10 +38,7 @@ struct freelookCamController : public Component
 			GetTransform()->Rotate(vec3(0, sensitivity * GetCore()->DeltaTime(), 0));
 		if (GetKeyboard()->IsKey(SDLK_RIGHT))
 			GetTransform()->Rotate(vec3(0, -sensitivity * GetCore()->DeltaTime(), 0));
-		if (GetKeyboard()->IsKey(SDLK_LSHIFT))
-			speed = 5.f;
-		else
-			speed = 1.f;
+		
 	}
 };
 
@@ -82,7 +86,7 @@ int main()
 		std::shared_ptr<Entity> cameraEntity = core->AddEntity();
 		std::shared_ptr<Camera> camera = cameraEntity->AddComponent<Camera>();
 		cameraEntity->GetComponent<Transform>()->SetPosition(vec3(7.5, 10, 30));
-		cameraEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
+		cameraEntity->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		cameraEntity->AddComponent<freelookCamController>();
 
 		/*std::shared_ptr<Entity> boxEntity = core->AddEntity();
@@ -97,10 +101,16 @@ int main()
 		boxCollider->SetModel(core->GetResources()->Load<Model>("models/curuthers/curuthers"));
 		boxEntity->AddComponent<boxController>();*/
 
+		std::shared_ptr<Entity> testEntity = core->AddEntity();
+		testEntity->GetComponent<Transform>()->SetPosition(vec3(4.76718, 9.54134, 9.64885));
+		testEntity->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
+		testEntity->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
+		std::shared_ptr<TriangleRenderer> testTR = testEntity->AddComponent<TriangleRenderer>();
+
 		std::shared_ptr<Entity> boxEntity2 = core->AddEntity();
 		boxEntity2->SetTag("box2");
-		boxEntity2->GetComponent<Transform>()->SetPosition(vec3(5, 21, 10));
-		boxEntity2->GetComponent<Transform>()->SetRotation(vec3(0, 0, 90));
+		boxEntity2->GetComponent<Transform>()->SetPosition(vec3(5, 15.f, 10));
+		boxEntity2->GetComponent<Transform>()->SetRotation(vec3(0, 0, 45));
 		boxEntity2->GetComponent<Transform>()->SetScale(vec3(0.5, 0.5, 0.5));
 		boxEntity2->AddComponent<TriangleRenderer>();
 		std::shared_ptr<ModelRenderer> boxMR2 = boxEntity2->AddComponent<ModelRenderer>();
@@ -110,10 +120,10 @@ int main()
 		boxCollider2->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
 		boxEntity2->AddComponent<boxController>();
 
-		/*std::shared_ptr<Entity> boxEntity3 = core->AddEntity();
+		std::shared_ptr<Entity> boxEntity3 = core->AddEntity();
 		boxEntity3->SetTag("box3");
 		boxEntity3->GetComponent<Transform>()->SetPosition(vec3(10, 20, 10));
-		boxEntity3->GetComponent<Transform>()->SetRotation(vec3(0, 0, 90));
+		boxEntity3->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		boxEntity3->GetComponent<Transform>()->SetScale(vec3(0.5, 0.5, 0.5));
 		boxEntity3->AddComponent<TriangleRenderer>();
 		std::shared_ptr<ModelRenderer> boxMR3 = boxEntity3->AddComponent<ModelRenderer>();
@@ -121,7 +131,7 @@ int main()
 		boxMR3->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
 		std::shared_ptr<ModelCollider> boxCollider3 = boxEntity3->AddComponent<ModelCollider>();
 		boxCollider3->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
-		boxEntity3->AddComponent<boxController>();*/
+		boxEntity3->AddComponent<boxController>();
 
 		/*std::shared_ptr<Entity> boxEntity4 = core->AddEntity();
 		boxEntity4->GetComponent<Transform>()->SetPosition(vec3(15, 20, 10));
@@ -154,12 +164,12 @@ int main()
 		////box1rb->AddTorque(glm::vec3(360, 0, 0));
 
 		std::shared_ptr<Rigidbody> box2rb = boxEntity2->AddComponent<Rigidbody>();
-		box2rb->AddForce(glm::vec3(00, -500, 0));
+		//box2rb->AddForce(glm::vec3(300, 0, 0));
 		//box2rb->SetMass(1);
 
 		//std::shared_ptr<Rigidbody> box3rb = boxEntity3->AddComponent<Rigidbody>();
 		//box3rb->AddForce(glm::vec3(-300, 0, 0));
-		////box3rb->SetMass(1);
+		//box3rb->SetMass(1);
 
 		//std::shared_ptr<Rigidbody> box4rb = boxEntity4->AddComponent<Rigidbody>();
 		//box4rb->AddForce(glm::vec3(-500, 0, 0));

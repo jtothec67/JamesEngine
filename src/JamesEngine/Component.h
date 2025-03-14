@@ -35,6 +35,8 @@ namespace JamesEngine
 		void SetPosition(glm::vec3 _position);
 		glm::vec3 GetRotation();
 		void SetRotation(glm::vec3 _rotation);
+		glm::quat GetQuaternion();
+		void SetQuaternion(const glm::quat& _quat);
 		glm::vec3 GetScale();
 		void SetScale(glm::vec3 _scale);
 		void Move(glm::vec3 _amount);

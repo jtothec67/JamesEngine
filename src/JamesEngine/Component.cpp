@@ -64,6 +64,16 @@ namespace JamesEngine
 		GetTransform()->SetRotation(_rotation);
 	}
 
+	glm::quat Component::GetQuaternion()
+	{
+		return GetTransform()->GetQuaternion();
+	}
+
+	void Component::SetQuaternion(const glm::quat& _quat)
+	{
+		GetTransform()->SetQuaternion(_quat);
+	}
+
 	glm::vec3 Component::GetScale()
 	{
 		return GetTransform()->GetScale();

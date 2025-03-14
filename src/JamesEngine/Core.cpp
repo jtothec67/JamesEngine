@@ -36,7 +36,7 @@ namespace JamesEngine
 		while (mIsRunning)
 		{
 			mDeltaTime = mDeltaTimer.Stop();
-			mDeltaTime = mDeltaTime / 1;
+			mDeltaTime = mDeltaTime / mTimeScale;
 
 			mDeltaTimer.Start();
 

@@ -134,6 +134,9 @@ namespace JamesEngine
 			return nullptr;
 		}
 
+		float GetTimeScale() { return mTimeScale; }
+		void SetTimeScale(float _timeScale) { mTimeScale = _timeScale; }
+
 	private:
 		std::shared_ptr<Window> mWindow;
 		std::shared_ptr<Audio> mAudio;
@@ -158,6 +161,8 @@ namespace JamesEngine
 		bool mDeltaTimeZero = true;
 		int mDeltaTimeZeroCounter = 0;
 		int mNumDeltaTimeZeros = 2;
+
+		float mTimeScale = 1.f;
 	};
 
 }

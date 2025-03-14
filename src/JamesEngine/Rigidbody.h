@@ -46,7 +46,7 @@ namespace JamesEngine
 
 		void UpdateInertiaTensor();
 		void ComputeInverseInertiaTensor();
-		void CalculateEulerAngles();
+		void CalculateAngles();
 
 		void Euler();
 		void Verlet();

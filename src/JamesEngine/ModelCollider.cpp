@@ -8,6 +8,7 @@
 
 #include <iostream>
 #include <algorithm>
+#include <iomanip>
 
 #ifdef _DEBUG
 #include "Camera.h"
@@ -222,7 +223,7 @@ namespace JamesEngine
             // Build world transform for "this" model.
             glm::vec3 modelPos = GetPosition() + GetPositionOffset();
             glm::vec3 modelScale = GetScale();
-            glm::vec3 modelRotation = GetRotation() + GetRotationOffset();
+            glm::vec3 modelRotation = GetRotation();// + GetRotationOffset();
             glm::mat4 modelMatrix = glm::mat4(1.0f);
             modelMatrix = glm::translate(modelMatrix, modelPos);
             modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.x), glm::vec3(1, 0, 0));
@@ -233,7 +234,7 @@ namespace JamesEngine
             // Build world transform for the other model.
             glm::vec3 otherModelPos = otherModel->GetPosition() + otherModel->GetPositionOffset();
             glm::vec3 otherModelScale = otherModel->GetScale();
-            glm::vec3 otherModelRotation = otherModel->GetRotation() + otherModel->GetRotationOffset();
+            glm::vec3 otherModelRotation = otherModel->GetRotation();// + otherModel->GetRotationOffset();
             glm::mat4 otherModelMatrix = glm::mat4(1.0f);
             otherModelMatrix = glm::translate(otherModelMatrix, otherModelPos);
             otherModelMatrix = glm::rotate(otherModelMatrix, glm::radians(otherModelRotation.x), glm::vec3(1, 0, 0));
@@ -242,12 +243,12 @@ namespace JamesEngine
             otherModelMatrix = glm::scale(otherModelMatrix, otherModelScale);
 
             // Get faces for each model.
-			glm::vec3 thisBoxPos = GetPosition() + GetPositionOffset();
-			glm::vec3 thisBoxRotation = GetRotation() + GetRotationOffset();
+			glm::vec3 thisBoxPos = GetPosition();// + GetPositionOffset();
+			glm::vec3 thisBoxRotation = GetRotation();// + GetRotationOffset();
 			glm::vec3 thisBoxSize = glm::vec3((mModel->mModel->get_width() * GetScale().x), (mModel->mModel->get_height() * GetScale().y), (mModel->mModel->get_length() * GetScale().z));
 
             glm::vec3 otherBoxPos = otherModel->GetPosition() + otherModel->GetPositionOffset();
-            glm::vec3 otherBoxRotation = otherModel->GetRotation() + otherModel->GetRotationOffset();
+            glm::vec3 otherBoxRotation = otherModel->GetRotation();// +otherModel->GetRotationOffset();
             glm::vec3 otherBoxSize = glm::vec3((otherModel->mModel->mModel->get_width() * otherModel->GetScale().x), (otherModel->mModel->mModel->get_height() * otherModel->GetScale().y), (otherModel->mModel->mModel->get_length() * otherModel->GetScale().z));
 
             //const std::vector<Renderer::Model::Face>& facesA = mModel->mModel->GetFaces();
@@ -258,7 +259,6 @@ namespace JamesEngine
 			/*std::cout << "Faces A: " << facesA.size() << std::endl;
 			std::cout << "Faces B: " << facesB.size() << std::endl;*/
 
-            // Test every triangle from this model against every triangle from the other model.
             for (const auto& faceA : facesA)
             {
                 glm::vec3 A0 = glm::vec3(modelMatrix * glm::vec4(faceA.a.position, 1.0f));
@@ -271,25 +271,34 @@ namespace JamesEngine
                     glm::vec3 B1 = glm::vec3(otherModelMatrix * glm::vec4(faceB.b.position, 1.0f));
                     glm::vec3 B2 = glm::vec3(otherModelMatrix * glm::vec4(faceB.c.position, 1.0f));
 
-                    if (Maths::tri_tri_overlap_test_3d(glm::value_ptr(A0), glm::value_ptr(A1), glm::value_ptr(A2), glm::value_ptr(B0), glm::value_ptr(B1), glm::value_ptr(B2)))
+                    if (Maths::tri_tri_overlap_test_3d(glm::value_ptr(A0), glm::value_ptr(A1), glm::value_ptr(A2),
+                        glm::value_ptr(B0), glm::value_ptr(B1), glm::value_ptr(B2)))
                     {
-                        // For an approximate collision point, take the midpoint between the triangle centroids.
-                        glm::vec3 centroidA = (A0 + A1 + A2) / 3.0f;
-                        glm::vec3 centroidB = (B0 + B1 + B2) / 3.0f;
-                        _collisionPoint = (centroidA + centroidB) * 0.5f;
+                        // Calculate an improved collision point.
+                        _collisionPoint = Maths::CalculateCollisionPoint(A0, A1, A2, B0, B1, B2);
 
-                        // Compute face normals for the colliding triangles.
+                        // Compute face normal from triangle A.
                         glm::vec3 normalThis = glm::normalize(glm::cross(A1 - A0, A2 - A0));
-                        if (glm::dot(normalThis, centroidB - centroidA) < 0.0f)
-                            normalThis = -normalThis;
+                        // Ensure the normal is oriented correctly relative to the contact.
+                        /*if (glm::dot(normalThis, B0 - A0) < 0.0f)
+                            normalThis = -normalThis;*/
+                        _normal = normalThis;
 
-						_normal = normalThis;
+                        // Project each vertex onto the collision normal.
+                        float A0Proj = glm::dot(A0, _normal);
+                        float A1Proj = glm::dot(A1, _normal);
+                        float A2Proj = glm::dot(A2, _normal);
+                        float A_min = std::min({ A0Proj, A1Proj, A2Proj });
+                        float A_max = std::max({ A0Proj, A1Proj, A2Proj });
 
-                        // Approximate penetration depth:
-                        // Compute the distance from the collision point to each triangle's plane.
-                        float penetrationA = std::abs(glm::dot(_collisionPoint - A0, glm::normalize(glm::cross(A1 - A0, A2 - A0))));
-                        float penetrationB = std::abs(glm::dot(_collisionPoint - B0, glm::normalize(glm::cross(B1 - B0, B2 - B0))));
-                        _penetrationDepth = glm::min(penetrationA, penetrationB);
+                        float B0Proj = glm::dot(B0, _normal);
+                        float B1Proj = glm::dot(B1, _normal);
+                        float B2Proj = glm::dot(B2, _normal);
+                        float B_min = std::min({ B0Proj, B1Proj, B2Proj });
+                        float B_max = std::max({ B0Proj, B1Proj, B2Proj });
+
+                        // The penetration depth is the overlap between the two projection intervals.
+                        _penetrationDepth = std::min(A_max, B_max) - std::max(A_min, B_min);
 
                         return true;
                     }
@@ -482,7 +491,7 @@ namespace JamesEngine
         // Compute the world transformation for this model.
         glm::vec3 modelPos = GetPosition() + GetPositionOffset();
         glm::vec3 modelScale = GetScale();
-        glm::vec3 modelRotation = GetRotation() + GetRotationOffset();
+        glm::vec3 modelRotation = GetRotation();// +GetRotationOffset();
 
         glm::mat4 modelMatrix = glm::mat4(1.0f);
         modelMatrix = glm::translate(modelMatrix, modelPos);

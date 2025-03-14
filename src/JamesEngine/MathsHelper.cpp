@@ -461,6 +461,92 @@ namespace Maths
         outQ = Q0 + tc * v;
     }
 
+    bool PointInTriangle(const glm::vec3& P, const glm::vec3& A, const glm::vec3& B, const glm::vec3& C) {
+        glm::vec3 v0 = C - A;
+        glm::vec3 v1 = B - A;
+        glm::vec3 v2 = P - A;
+
+        float dot00 = glm::dot(v0, v0);
+        float dot01 = glm::dot(v0, v1);
+        float dot02 = glm::dot(v0, v2);
+        float dot11 = glm::dot(v1, v1);
+        float dot12 = glm::dot(v1, v2);
+
+        float invDenom = 1.0f / (dot00 * dot11 - dot01 * dot01);
+        float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+        float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+
+        return (u >= 0.0f) && (v >= 0.0f) && (u + v <= 1.0f);
+    }
+
+    bool GetLineSegmentTriangleIntersection(const glm::vec3& P, const glm::vec3& Q,
+        const glm::vec3& T0, const glm::vec3& T1, const glm::vec3& T2,
+        glm::vec3& intersection) {
+        // Compute the plane for triangle T.
+        glm::vec3 normal = glm::normalize(glm::cross(T1 - T0, T2 - T0));
+        float dP = glm::dot(P - T0, normal);
+        float dQ = glm::dot(Q - T0, normal);
+
+        // If both endpoints are on the same side of the plane, no intersection.
+        if (dP * dQ > 0.0f)
+            return false;
+
+        // Compute the interpolation factor.
+        float t = dP / (dP - dQ);
+        if (t < 0.0f || t > 1.0f)
+            return false;
+
+        intersection = P + t * (Q - P);
+
+        // Check if the intersection point is inside the triangle.
+        return PointInTriangle(intersection, T0, T1, T2);
+    }
+
+    void IntersectionCheck(const glm::vec3& P, const glm::vec3& Q,
+        const glm::vec3& T0, const glm::vec3& T1, const glm::vec3& T2,
+        std::vector<glm::vec3>& intersectionPoints) {
+        // If endpoints are inside the triangle, add them.
+        if (PointInTriangle(P, T0, T1, T2))
+            intersectionPoints.push_back(P);
+        if (PointInTriangle(Q, T0, T1, T2))
+            intersectionPoints.push_back(Q);
+
+        // Check for a proper intersection along the edge.
+        glm::vec3 pt;
+        if (GetLineSegmentTriangleIntersection(P, Q, T0, T1, T2, pt))
+            intersectionPoints.push_back(pt);
+    }
+
+
+    glm::vec3 CalculateCollisionPoint(const glm::vec3& A0, const glm::vec3& A1, const glm::vec3& A2,
+        const glm::vec3& B0, const glm::vec3& B1, const glm::vec3& B2) {
+        std::vector<glm::vec3> intersections;
+
+        // Check each edge of triangle A against triangle B.
+        IntersectionCheck(A0, A1, B0, B1, B2, intersections);
+        IntersectionCheck(A1, A2, B0, B1, B2, intersections);
+        IntersectionCheck(A2, A0, B0, B1, B2, intersections);
+
+        // Check each edge of triangle B against triangle A.
+        IntersectionCheck(B0, B1, A0, A1, A2, intersections);
+        IntersectionCheck(B1, B2, A0, A1, A2, intersections);
+        IntersectionCheck(B2, B0, A0, A1, A2, intersections);
+
+        // If no intersection points are found, fall back to the original centroid approach.
+        if (intersections.empty()) {
+            glm::vec3 centroidA = (A0 + A1 + A2) / 3.0f;
+            glm::vec3 centroidB = (B0 + B1 + B2) / 3.0f;
+            return (centroidA + centroidB) * 0.5f;
+        }
+        else {
+            // Average the intersection points to compute the collision point.
+            glm::vec3 sum(0.0f);
+            for (const auto& pt : intersections)
+                sum += pt;
+            return sum / static_cast<float>(intersections.size());
+        }
+    }
+
 	//  ----------- TRIANGLE OVERLAP TEST FROM https://gamedev.stackexchange.com/questions/88060/triangle-triangle-intersection-code -----------
 
     /* some 3D macros */
