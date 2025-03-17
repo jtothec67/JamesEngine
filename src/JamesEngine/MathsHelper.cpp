@@ -547,6 +547,57 @@ namespace Maths
         }
     }
 
+
+    float CalculatePenetrationDepth(const glm::vec3& A0, const glm::vec3& A1, const glm::vec3& A2,
+        const glm::vec3& B0, const glm::vec3& B1, const glm::vec3& B2)
+    {
+        // Compute the face normals.
+        glm::vec3 normalA = glm::normalize(glm::cross(A1 - A0, A2 - A0));
+        glm::vec3 normalB = glm::normalize(glm::cross(B1 - B0, B2 - B0));
+
+        float penetrationA = FLT_MAX;
+        {
+            // Compute plane constant for triangle A.
+            float dA = glm::dot(A0, normalA);
+            // Compute signed distances of triangle B vertices to A's plane.
+            float dB0 = glm::dot(B0, normalA) - dA;
+            float dB1 = glm::dot(B1, normalA) - dA;
+            float dB2 = glm::dot(B2, normalA) - dA;
+            // If any vertex is behind A's plane, it is penetrating.
+            if (dB0 < 0 || dB1 < 0 || dB2 < 0)
+            {
+                float p0 = dB0 < 0 ? -dB0 : FLT_MAX;
+                float p1 = dB1 < 0 ? -dB1 : FLT_MAX;
+                float p2 = dB2 < 0 ? -dB2 : FLT_MAX;
+                penetrationA = std::min({ p0, p1, p2 });
+            }
+        }
+
+        float penetrationB = FLT_MAX;
+        {
+            // Compute plane constant for triangle B.
+            float dB = glm::dot(B0, normalB);
+            // Compute signed distances of triangle A vertices to B's plane.
+            float dA0 = glm::dot(A0, normalB) - dB;
+            float dA1 = glm::dot(A1, normalB) - dB;
+            float dA2 = glm::dot(A2, normalB) - dB;
+            if (dA0 < 0 || dA1 < 0 || dA2 < 0)
+            {
+                float p0 = dA0 < 0 ? -dA0 : FLT_MAX;
+                float p1 = dA1 < 0 ? -dA1 : FLT_MAX;
+                float p2 = dA2 < 0 ? -dA2 : FLT_MAX;
+                penetrationB = std::min({ p0, p1, p2 });
+            }
+        }
+
+        // Choose the smaller penetration depth (if neither triangle shows penetration, return 0)
+        float penetration = std::min(penetrationA, penetrationB);
+        if (penetration == FLT_MAX)
+            penetration = 0.0f;
+
+        return penetration;
+    }
+
 	//  ----------- TRIANGLE OVERLAP TEST FROM https://gamedev.stackexchange.com/questions/88060/triangle-triangle-intersection-code -----------
 
     /* some 3D macros */

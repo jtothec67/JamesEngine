@@ -51,6 +51,10 @@ namespace Maths
 		const glm::vec3& B0, const glm::vec3& B1, const glm::vec3& B2);
 
 
+    float CalculatePenetrationDepth(const glm::vec3& A0, const glm::vec3& A1, const glm::vec3& A2,
+        const glm::vec3& B0, const glm::vec3& B1, const glm::vec3& B2);
+
+
 	//  ----------- TRIANGLE OVERLAP TEST FROM https://gamedev.stackexchange.com/questions/88060/triangle-triangle-intersection-code -----------
     //  -- WHICH IS A MODIFIED VERSION OF https://github.com/benardp/contours/blob/master/freestyle/view_map/triangle_triangle_intersection.c --
 
