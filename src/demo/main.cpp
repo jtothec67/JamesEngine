@@ -152,10 +152,10 @@ int main()
 		mouseEntity->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		//mouseEntity->AddComponent<TriangleRenderer>();
 		std::shared_ptr<ModelRenderer> mouseMR = mouseEntity->AddComponent<ModelRenderer>();
-		mouseMR->SetModel(core->GetResources()->Load<Model>("models/track/cartoon_track"));
+		mouseMR->SetModel(core->GetResources()->Load<Model>("models/track/cartoon_track_trimmed"));
 		mouseMR->SetTexture(core->GetResources()->Load<Texture>("models/track/rock"));
 		std::shared_ptr<ModelCollider> mouseCollider = mouseEntity->AddComponent<ModelCollider>();
-		mouseCollider->SetModel(core->GetResources()->Load<Model>("models/track/cartoon_track"));
+		mouseCollider->SetModel(core->GetResources()->Load<Model>("models/track/cartoon_track_trimmed"));
 		mouseCollider->SetRotationOffset(vec3(0, 0, 0));
 		/*std::shared_ptr<CapsuleCollider> mouseCollider = mouseEntity->AddComponent<CapsuleCollider>();
 		mouseCollider->SetRotationOffset(vec3(0, 0, 0));*/

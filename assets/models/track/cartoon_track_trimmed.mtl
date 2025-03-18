@@ -1,0 +1,152 @@
+# Blender 4.1.1 MTL File: 'None'
+# www.blender.org
+
+newmtl Material.001
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+
+newmtl baloon
+Ns 20.000006
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+map_Kd E:/WDArchive/-=Darbi=-/RETRO_ASSETS/UNITY_PROJECTS/F40/F40_projekts/Assets/CartoonTracksPack1/Track1/Textures/baloon.psd
+
+newmtl banners
+Ns 20.000006
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+map_Kd E:/WDArchive/-=Darbi=-/RETRO_ASSETS/UNITY_PROJECTS/F40/F40_projekts/Assets/CartoonTracksPack1/Track1/Textures/banners.psd
+
+newmtl barriers
+Ns 20.000006
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+map_Kd E:/WDArchive/-=Darbi=-/RETRO_ASSETS/UNITY_PROJECTS/F40/F40_projekts/Assets/CartoonTracksPack1/Track1/Textures/barriers.psd
+
+newmtl fence_metal
+Ns 20.000006
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+map_Kd E:/WDArchive/-=Darbi=-/RETRO_ASSETS/UNITY_PROJECTS/F40/F40_projekts/Assets/CartoonTracksPack1/Track1/Textures/metal_fence.psd
+
+newmtl garages
+Ns 20.000006
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+map_Kd E:/WDArchive/-=Darbi=-/RETRO_ASSETS/UNITY_PROJECTS/F40/F40_projekts/Assets/CartoonTracksPack1/Track1/Textures/garages.psd
+
+newmtl grass_1
+Ns 20.000006
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+map_Kd E:/WDArchive/-=Darbi=-/RETRO_ASSETS/UNITY_PROJECTS/F40/F40_projekts/Assets/CartoonTracksPack1/Track1/Textures/grass_1.psd
+
+newmtl grass_2
+Ns 20.000006
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+map_Kd E:/WDArchive/-=Darbi=-/RETRO_ASSETS/UNITY_PROJECTS/F40/F40_projekts/Assets/CartoonTracksPack1/Track1/Textures/grass_2.psd
+
+newmtl gravel
+Ns 20.000006
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+map_Kd E:/WDArchive/-=Darbi=-/RETRO_ASSETS/UNITY_PROJECTS/F40/F40_projekts/Assets/CartoonTracksPack1/Track1/Textures/gravel.psd
+
+newmtl road
+Ns 20.000006
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+map_Kd E:/WDArchive/-=Darbi=-/RETRO_ASSETS/UNITY_PROJECTS/F40/F40_projekts/Assets/CartoonTracksPack1/Track1/Textures/road.psd
+
+newmtl rock
+Ns 20.000006
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+map_Kd E:/WDArchive/-=Darbi=-/RETRO_ASSETS/UNITY_PROJECTS/F40/F40_projekts/Assets/CartoonTracksPack1/Track1/Textures/rock.psd
+
+newmtl startlights
+Ns 20.000006
+Ka 1.000000 1.000000 1.000000
+Kd 1.000000 0.000000 0.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+
+newmtl trees
+Ns 20.000006
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+map_Kd E:/WDArchive/-=Darbi=-/RETRO_ASSETS/UNITY_PROJECTS/F40/F40_projekts/Assets/CartoonTracksPack1/Track1/Textures/trees.psd
+
+newmtl tyres
+Ns 20.000006
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+map_Kd E:/WDArchive/-=Darbi=-/RETRO_ASSETS/UNITY_PROJECTS/F40/F40_projekts/Assets/CartoonTracksPack1/Track1/Textures/tyres.psd
+
+newmtl white_line
+Ns 20.000006
+Ka 1.000000 1.000000 1.000000
+Kd 0.823529 0.823529 0.823529
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
