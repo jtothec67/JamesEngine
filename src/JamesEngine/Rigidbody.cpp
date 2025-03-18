@@ -68,12 +68,6 @@ namespace JamesEngine
 
 				// Step 3: Resolve penetration and collision
 
-				if (penetrationDepth > 3)
-				{
-					std::cout << "Penetration shortened. Was " << penetrationDepth << std::endl;
-					penetrationDepth = 0.001f;
-				}
-
 				// Two rigidbodies collided
 				if (otherRigidbody)
 				{
@@ -268,56 +262,57 @@ namespace JamesEngine
 
 	void Rigidbody::ApplyImpulseResponseStatic(glm::vec3 _normal, glm::vec3 _collisionPoint)
 	{
-		float _otherMass = 1000000.0f;
+		//float _otherMass = 1000000.0f;
 
-		glm::vec3 velocityA = GetVelocity();
-		glm::vec3 velocityB = glm::vec3{ 0 };
-		glm::vec3 relativeVelocity = velocityA - velocityB;
+		//glm::vec3 velocityA = GetVelocity();
+		//glm::vec3 velocityB = glm::vec3{ 0 };
+		//glm::vec3 relativeVelocity = velocityA - velocityB;
 
-		float elasticity = 0.8f * 0.8f;
-		float J_numerator = -(1.0f + elasticity) * glm::dot(relativeVelocity, _normal);
-		float totalInverseMass = (1.0f / GetMass()) + (1.0f / _otherMass);
-		float J = J_numerator / (totalInverseMass);
+		//float elasticity = 0.8f * 0.8f;
+		//float J_numerator = -(1.0f + elasticity) * glm::dot(relativeVelocity, _normal);
+		//float totalInverseMass = (1.0f / GetMass()) + (1.0f / _otherMass);
+		//float J = J_numerator / (totalInverseMass);
 
-		glm::vec3 collisionImpulseVector = J * _normal;
+		//glm::vec3 collisionImpulseVector = J * _normal;
 
-		glm::vec3 velocity = GetVelocity() + collisionImpulseVector / GetMass();
-		SetVelocity(velocity);
+		//glm::vec3 velocity = GetVelocity() + collisionImpulseVector / GetMass();
+		//SetVelocity(velocity);
 
-		// Compute lever arm from center of mass to collision point.
-		glm::vec3 rA = _collisionPoint - GetPosition();
-		// Angular impulse = r × impulse.
-		glm::vec3 angularImpulse = glm::cross(rA, collisionImpulseVector);
-		// Update the dynamic object's angular momentum.
-		SetAngularMomentum(GetAngularMomentum() + angularImpulse);
+		//// Compute lever arm from center of mass to collision point.
+		//glm::vec3 rA = _collisionPoint - GetPosition();
+		//// Angular impulse = r × impulse.
+		//glm::vec3 angularImpulse = glm::cross(rA, collisionImpulseVector);
+		//// Update the dynamic object's angular momentum.
+		//SetAngularMomentum(GetAngularMomentum() + angularImpulse);
 
-		glm::vec3 gravity_forceA = glm::vec3(0.0f, -9.81f * GetMass(), 0.0f);
-		glm::vec3 normal_forceA = glm::dot(gravity_forceA, _normal) * _normal;
-		AddForce(normal_forceA);
+		//glm::vec3 gravity_forceA = glm::vec3(0.0f, -9.81f * GetMass(), 0.0f);
+		//glm::vec3 normal_forceA = glm::dot(gravity_forceA, _normal) * _normal;
+		//AddForce(normal_forceA);
 
-		glm::vec3 gravity_forceB = glm::vec3(0.0f, -9.81f * _otherMass, 0.0f);
-		glm::vec3 normal_forceB = glm::dot(gravity_forceB, _normal) * _normal;
+		//glm::vec3 gravity_forceB = glm::vec3(0.0f, -9.81f * _otherMass, 0.0f);
+		//glm::vec3 normal_forceB = glm::dot(gravity_forceB, _normal) * _normal;
 
-		// Compute friction force
-		glm::vec3 velA = GetVelocity() + glm::cross(GetAngularMomentum(), rA);
-		glm::vec3 relative_velocity = velA;
-		float d_mu = 1.0f;
-		glm::vec3 forward_relative_veclocity = relative_velocity - glm::dot(relative_velocity, _normal) * _normal;
+		//// Compute friction force
+		//glm::vec3 velA = GetVelocity() + glm::cross(GetAngularMomentum(), rA);
+		//glm::vec3 relative_velocity = velA;
+		//float d_mu = 1.0f;
+		//glm::vec3 forward_relative_veclocity = relative_velocity - glm::dot(relative_velocity, _normal) * _normal;
 
-		// Compute A rotation
-		glm::vec3 friction_force = FrictionForce(relative_velocity, _normal, normal_forceA, d_mu);
-		glm::vec3 torque_arm = rA;
-		glm::vec3 torque = ComputeTorque(torque_arm, friction_force);
-		// Add global damping
-		torque -= GetAngularMomentum() * globalDamping;
-		AddForce(friction_force);
+		//// Compute A rotation
+		//glm::vec3 friction_force = FrictionForce(relative_velocity, _normal, normal_forceA, d_mu);
+		//glm::vec3 torque_arm = rA;
+		//glm::vec3 torque = ComputeTorque(torque_arm, friction_force);
+		//// Add global damping
+		//torque -= GetAngularMomentum() * globalDamping;
+		//AddForce(friction_force);
 
-		if (glm::length(forward_relative_veclocity) - glm::length(friction_force / mMass) * GetCore()->DeltaTime() > 0.0f)
-		{
-			AddForce(-friction_force);
-			AddTorque(torque);
-		}
+		//if (glm::length(forward_relative_veclocity) - glm::length(friction_force / mMass) * GetCore()->DeltaTime() > 0.0f)
+		//{
+		//	AddForce(-friction_force);
+		//	AddTorque(torque);
+		//}
 
+		// ----------------------------- Second Implementation ---------------------------
 		//// --- Precompute dynamic body parameters ---
 		//float invMass = (GetMass() > 0.0f) ? (1.0f / GetMass()) : 0.0f;
 
@@ -339,7 +334,7 @@ namespace JamesEngine
 		//float angularEffect = glm::dot(_normal, glm::cross(mInertiaTensorInverse * rCrossN, r));
 
 		//// Restitution (elasticity) factor.
-		//float restitution = 0.7f; // Adjust as needed.
+		//float restitution = 1.2f; // Adjust as needed.
 
 		//// Compute impulse scalar along the normal.
 		//float j = -(1.0f + restitution) * vRel;
@@ -383,6 +378,82 @@ namespace JamesEngine
 		//// Apply friction impulse to the dynamic object.
 		//SetVelocity(GetVelocity() + frictionImpulse * invMass);
 		//SetAngularMomentum(GetAngularMomentum() + glm::cross(r, frictionImpulse));
+
+		// ----------------------------- Third Implementation ---------------------------
+		// Compute the vector from the center of mass to the collision point.
+		glm::vec3 r = _collisionPoint - GetPosition();
+    
+		// Calculate the velocity at the collision point (linear plus rotational).
+		glm::vec3 v = GetVelocity() + glm::cross(GetAngularVelocity(), r);
+    
+		// Determine the component of the velocity along the collision normal.
+		float velAlongNormal = glm::dot(v, _normal);
+    
+		// If the dynamic object is moving away from the static object, no impulse is needed.
+		if (velAlongNormal > 0)
+			return;
+    
+		// Use the object's restitution value.
+		float e = 0.5f;
+    
+		// Since the static object doesn't move, its inverse mass is 0.
+		float invMassSum = 1.0f / GetMass();
+    
+		// Compute the rotational inertia term.
+		glm::vec3 r_cross_n = glm::cross(r, _normal);
+		glm::vec3 angularComponent = mInertiaTensorInverse * r_cross_n;
+		float angularTerm = glm::dot(_normal, glm::cross(angularComponent, r));
+    
+		// Calculate the impulse scalar.
+		float j = -(1.0f + e) * velAlongNormal / (invMassSum + angularTerm);
+    
+		// Compute the impulse vector along the normal.
+		glm::vec3 impulse = j * _normal;
+    
+		// Apply the impulse: update linear and angular velocities.
+		SetVelocity(GetVelocity() + impulse * (1.0f / GetMass()));
+
+		SetAngularMomentum(GetAngularMomentum() + glm::cross(r, impulse));
+		SetAngularVelocity(GetAngularVelocity() + mInertiaTensorInverse * GetAngularMomentum());
+    
+		// --- Coulomb Friction ---
+		// Recalculate the velocity at the collision point after applying the normal impulse.
+		v = GetVelocity() + glm::cross(GetAngularVelocity(), r);
+    
+		// The static object has zero velocity, so the relative velocity is simply v.
+		glm::vec3 relativeVelocity = v;
+    
+		// Determine the tangent direction by removing the normal component.
+		glm::vec3 tangent = relativeVelocity - glm::dot(relativeVelocity, _normal) * _normal;
+		if (glm::length(tangent) > 0.0001f)
+			tangent = glm::normalize(tangent);
+		else
+			return; // No significant tangential motion; skip friction.
+    
+		// Calculate the friction impulse scalar.
+		float jt = -glm::dot(relativeVelocity, tangent);
+		jt /= (1.0f / GetMass()) + glm::dot(tangent, glm::cross(mInertiaTensorInverse * glm::cross(r, tangent), r));
+    
+		// Use the object's friction coefficient (static object assumed to have no friction properties).
+		float mu = 0.9;
+    
+		// Clamp the friction impulse to the Coulomb friction cone.
+		if (fabs(jt) > mu * fabs(j))
+			jt = mu * fabs(j) * (jt < 0 ? -1.0f : 1.0f);
+    
+		// Compute the friction impulse vector.
+		glm::vec3 frictionImpulse = jt * tangent;
+    
+		// Apply the friction impulse.
+		SetVelocity(GetVelocity() + frictionImpulse * (1.0f / GetMass()));
+
+		SetAngularMomentum(GetAngularMomentum() + glm::cross(r, frictionImpulse));
+		SetAngularVelocity(GetAngularVelocity() + mInertiaTensorInverse * GetAngularMomentum());
+
+		std::cout << "r: " << r.x << ", " << r.y << ", " << r.z << std::endl;
+		std::cout << "impule: " << impulse.x << ", " << impulse.y << ", " << impulse.z << std::endl;
+		std::cout << "cross product: " << glm::cross(r, impulse).x << ", " << glm::cross(r, impulse).y << ", " << glm::cross(r, impulse).z << std::endl;
+		std::cout << "GetAngularVelocity(): " << GetAngularVelocity().x << ", " << GetAngularVelocity().y << ", " << GetAngularVelocity().z << std::endl;
 	}
 
 	glm::vec3 Rigidbody::FrictionForce(glm::vec3 _relativeVelocity, glm::vec3 _contactNormal, glm::vec3 _forceNormal, float mu)

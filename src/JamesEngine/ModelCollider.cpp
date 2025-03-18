@@ -13,6 +13,7 @@
 #ifdef _DEBUG
 #include "Camera.h"
 #include "Entity.h"
+#include "Transform.h"
 
 #include <glm/glm.hpp>
 #include <glm/ext/matrix_transform.hpp>
@@ -20,6 +21,7 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/euler_angles.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 namespace JamesEngine
 {
@@ -247,7 +249,7 @@ namespace JamesEngine
 			glm::vec3 thisBoxRotation = GetRotation();// + GetRotationOffset();
 			glm::vec3 thisBoxSize = glm::vec3((mModel->mModel->get_width() * GetScale().x), (mModel->mModel->get_height() * GetScale().y), (mModel->mModel->get_length() * GetScale().z));
 
-            glm::vec3 otherBoxPos = otherModel->GetPosition() + otherModel->GetPositionOffset();
+            glm::vec3 otherBoxPos = otherModel->GetPosition();// +otherModel->GetPositionOffset();
             glm::vec3 otherBoxRotation = otherModel->GetRotation();// +otherModel->GetRotationOffset();
             glm::vec3 otherBoxSize = glm::vec3((otherModel->mModel->mModel->get_width() * otherModel->GetScale().x), (otherModel->mModel->mModel->get_height() * otherModel->GetScale().y), (otherModel->mModel->mModel->get_length() * otherModel->GetScale().z));
 
@@ -336,7 +338,16 @@ namespace JamesEngine
 
                         // Store this collision information
                         contactPoints.push_back(collisionPoint);
-                        penetrationDepths.push_back(penetrationDepth);
+
+                        if (penetrationDepth < 1)
+                        {
+                            penetrationDepths.push_back(penetrationDepth);
+                        }
+                        else
+                        {
+                            std::cout << "Penetration depth not included, was " << penetrationDepth << std::endl;
+                        }
+
                         contactNormals.push_back(normalThis);
                     }
                 }
@@ -345,6 +356,16 @@ namespace JamesEngine
             // If we found at least one intersection, compute the final response.
             if (!contactPoints.empty())
             {
+                glm::vec3 totalPoints{ 0 };
+                for (size_t i = 0; i < contactPoints.size(); ++i)
+                {
+                    totalPoints += contactPoints[i];
+                }
+                glm::vec3 averagedContactPoint{ 0 };
+                averagedContactPoint.x = totalPoints.x / contactPoints.size();
+                averagedContactPoint.y = totalPoints.y / contactPoints.size();
+                averagedContactPoint.z = totalPoints.z / contactPoints.size();
+
                 // Find the deepest penetration depth
                 float maxPenetrationDepth = -1.f;
                 size_t maxIndex = 0;
@@ -366,7 +387,7 @@ namespace JamesEngine
                 weightedNormal = glm::normalize(weightedNormal);
 
                 // Assign final values
-                _collisionPoint = contactPoints[maxIndex]; // Use the deepest contact point
+                _collisionPoint = averagedContactPoint; // Use the deepest contact point
                 _penetrationDepth = maxPenetrationDepth;
                 _normal = weightedNormal;
 
@@ -444,6 +465,8 @@ namespace JamesEngine
         // Scale the inertia tensor from "volume mass" to the actual mass.
         // (totalVolume here is proportional to mass if density is 1; scale by _mass / totalVolume)
         glm::mat3 inertiaTensor = I_com * (_mass / totalVolume);
+
+        //return glm::mat3((2.0f / 5.0f) * _mass * mModel->mModel->get_length() * mModel->mModel->get_width());
         return inertiaTensor;
     }
 

@@ -74,6 +74,7 @@ struct boxController : public Component
 int main()
 {
 	std::shared_ptr<Core> core = Core::Initialize(ivec2(1920, 1080));
+	core->SetTimeScale(0.3f);
 
 	// Scope to ensure the entities aren't being held in main if they're destroyed
 	{
@@ -85,8 +86,8 @@ int main()
 
 		std::shared_ptr<Entity> cameraEntity = core->AddEntity();
 		std::shared_ptr<Camera> camera = cameraEntity->AddComponent<Camera>();
-		cameraEntity->GetComponent<Transform>()->SetPosition(vec3(7.5, 10, 30));
-		cameraEntity->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
+		cameraEntity->GetComponent<Transform>()->SetPosition(vec3(10, 10, 6));
+		cameraEntity->GetComponent<Transform>()->SetRotation(vec3(0, 90, 0));
 		cameraEntity->AddComponent<freelookCamController>();
 
 		/*std::shared_ptr<Entity> boxEntity = core->AddEntity();
@@ -102,15 +103,15 @@ int main()
 		boxEntity->AddComponent<boxController>();*/
 
 		std::shared_ptr<Entity> testEntity = core->AddEntity();
-		testEntity->GetComponent<Transform>()->SetPosition(vec3(4.76718, 9.54134, 9.64885));
-		testEntity->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
+		testEntity->GetComponent<Transform>()->SetPosition(vec3(4.80949, 9.48961, 6.23224));
+		testEntity->GetComponent<Transform>()->SetRotation(vec3(0, 90, 0));
 		testEntity->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
 		std::shared_ptr<TriangleRenderer> testTR = testEntity->AddComponent<TriangleRenderer>();
 
 		std::shared_ptr<Entity> boxEntity2 = core->AddEntity();
 		boxEntity2->SetTag("box2");
-		boxEntity2->GetComponent<Transform>()->SetPosition(vec3(5, 15.f, 10));
-		boxEntity2->GetComponent<Transform>()->SetRotation(vec3(0, 0, 45));
+		boxEntity2->GetComponent<Transform>()->SetPosition(vec3(5, 15.f, 6));
+		boxEntity2->GetComponent<Transform>()->SetRotation(vec3(0, 90, 100));
 		boxEntity2->GetComponent<Transform>()->SetScale(vec3(0.5, 0.5, 0.5));
 		boxEntity2->AddComponent<TriangleRenderer>();
 		std::shared_ptr<ModelRenderer> boxMR2 = boxEntity2->AddComponent<ModelRenderer>();
@@ -165,7 +166,7 @@ int main()
 
 		std::shared_ptr<Rigidbody> box2rb = boxEntity2->AddComponent<Rigidbody>();
 		//box2rb->AddForce(glm::vec3(300, 0, 0));
-		//box2rb->SetMass(1);
+		box2rb->SetMass(1);
 
 		//std::shared_ptr<Rigidbody> box3rb = boxEntity3->AddComponent<Rigidbody>();
 		//box3rb->AddForce(glm::vec3(-300, 0, 0));

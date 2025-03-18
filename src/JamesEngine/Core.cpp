@@ -36,11 +36,11 @@ namespace JamesEngine
 		while (mIsRunning)
 		{
 			mDeltaTime = mDeltaTimer.Stop();
-			mDeltaTime = mDeltaTime / mTimeScale;
+			mDeltaTime = mDeltaTime * mTimeScale;
 
 			mDeltaTimer.Start();
 
-			std::cout << "FPS: " << 1.0f / mDeltaTime << std::endl;
+			//std::cout << "FPS: " << 1.0f / mDeltaTime << std::endl;
 
 			if (mDeltaTimeZero)
 			{
