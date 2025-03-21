@@ -6,6 +6,8 @@
 
 #include "MathsHelper.h"
 
+#include <ColDet/coldet.h>
+
 #include <iostream>
 #include <algorithm>
 #include <iomanip>
@@ -311,6 +313,7 @@ namespace JamesEngine
             std::vector<glm::vec3> contactPoints;
             std::vector<float> penetrationDepths;
             std::vector<glm::vec3> contactNormals;
+
 
             for (const auto& faceA : facesA)
             {
