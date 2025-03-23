@@ -6,8 +6,6 @@
 
 #include "MathsHelper.h"
 
-#include <ColDet/coldet.h>
-
 #include <iostream>
 #include <algorithm>
 #include <iomanip>
@@ -314,7 +312,6 @@ namespace JamesEngine
             std::vector<float> penetrationDepths;
             std::vector<glm::vec3> contactNormals;
 
-
             for (const auto& faceA : facesA)
             {
                 glm::vec3 A0 = glm::vec3(modelMatrix * glm::vec4(faceA.a.position, 1.0f));
@@ -332,6 +329,15 @@ namespace JamesEngine
                     {
                         // Calculate an improved collision point.
                         glm::vec3 collisionPoint = Maths::CalculateCollisionPoint(A0, A1, A2, B0, B1, B2);
+
+                        /*std::cout << std::endl;
+						std::cout << "Collision point: " << collisionPoint.x << ", " << collisionPoint.y << ", " << collisionPoint.z << std::endl;
+						std::cout << "A0: " << A0.x << ", " << A0.y << ", " << A0.z << std::endl;
+						std::cout << "A1: " << A1.x << ", " << A1.y << ", " << A1.z << std::endl;
+						std::cout << "A2: " << A2.x << ", " << A2.y << ", " << A2.z << std::endl;
+						std::cout << "B0: " << B0.x << ", " << B0.y << ", " << B0.z << std::endl;
+						std::cout << "B1: " << B1.x << ", " << B1.y << ", " << B1.z << std::endl;
+						std::cout << "B2: " << B2.x << ", " << B2.y << ", " << B2.z << std::endl;*/
 
                         // Compute face normal from triangle A.
                         glm::vec3 normalThis = glm::normalize(glm::cross(A1 - A0, A2 - A0));
@@ -390,7 +396,10 @@ namespace JamesEngine
                 weightedNormal = glm::normalize(weightedNormal);
 
                 // Assign final values
-                _collisionPoint = averagedContactPoint; // Use the deepest contact point
+                _collisionPoint = averagedContactPoint;
+                std::cout << std::endl;
+				std::cout << "Final computed Collision point: " << _collisionPoint.x << ", " << _collisionPoint.y << ", " << _collisionPoint.z << std::endl;
+				std::cout << "Computed using " << contactPoints.size() << " contact points" << std::endl;
                 _penetrationDepth = maxPenetrationDepth;
                 _normal = weightedNormal;
 

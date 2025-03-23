@@ -7,7 +7,7 @@ using namespace JamesEngine;
 struct freelookCamController : public Component
 {
 	float normalSpeed = 5.f;
-	float fastSpeed = 20.f;
+	float fastSpeed = 30.f;
 	float sensitivity = 45.f;
 
 	void OnTick()
@@ -70,11 +70,21 @@ struct boxController : public Component
 	}
 };
 
+struct CollisionTest : public Component
+{
+	std::shared_ptr<Rigidbody> rb;
+
+	void OnTick()
+	{
+		GetTransform()->SetPosition(rb->mCollisionPoint);
+	}
+};
+
 #undef main
 int main()
 {
 	std::shared_ptr<Core> core = Core::Initialize(ivec2(1920, 1080));
-	core->SetTimeScale(0.3f);
+	core->SetTimeScale(1.f);
 
 	// Scope to ensure the entities aren't being held in main if they're destroyed
 	{
@@ -86,7 +96,7 @@ int main()
 
 		std::shared_ptr<Entity> cameraEntity = core->AddEntity();
 		std::shared_ptr<Camera> camera = cameraEntity->AddComponent<Camera>();
-		cameraEntity->GetComponent<Transform>()->SetPosition(vec3(10, 10, 6));
+		cameraEntity->GetComponent<Transform>()->SetPosition(vec3(15, 2.f, -16));
 		cameraEntity->GetComponent<Transform>()->SetRotation(vec3(0, 90, 0));
 		cameraEntity->AddComponent<freelookCamController>();
 
@@ -102,23 +112,17 @@ int main()
 		boxCollider->SetModel(core->GetResources()->Load<Model>("models/curuthers/curuthers"));
 		boxEntity->AddComponent<boxController>();*/
 
-		std::shared_ptr<Entity> testEntity = core->AddEntity();
-		testEntity->GetComponent<Transform>()->SetPosition(vec3(4.80949, 9.48961, 6.23224));
-		testEntity->GetComponent<Transform>()->SetRotation(vec3(0, 90, 0));
-		testEntity->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
-		std::shared_ptr<TriangleRenderer> testTR = testEntity->AddComponent<TriangleRenderer>();
-
 		std::shared_ptr<Entity> boxEntity2 = core->AddEntity();
 		boxEntity2->SetTag("box2");
-		boxEntity2->GetComponent<Transform>()->SetPosition(vec3(5, 15.f, 6));
-		boxEntity2->GetComponent<Transform>()->SetRotation(vec3(0, 90, 100));
+		boxEntity2->GetComponent<Transform>()->SetPosition(vec3(5, 10.f, -16));
+		boxEntity2->GetComponent<Transform>()->SetRotation(vec3(-45, 0, 0));
 		boxEntity2->GetComponent<Transform>()->SetScale(vec3(0.5, 0.5, 0.5));
-		boxEntity2->AddComponent<TriangleRenderer>();
+		//boxEntity2->AddComponent<TriangleRenderer>();
 		std::shared_ptr<ModelRenderer> boxMR2 = boxEntity2->AddComponent<ModelRenderer>();
-		boxMR2->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
+		boxMR2->SetModel(core->GetResources()->Load<Model>("shapes/capsule"));
 		boxMR2->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
 		std::shared_ptr<ModelCollider> boxCollider2 = boxEntity2->AddComponent<ModelCollider>();
-		boxCollider2->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
+		boxCollider2->SetModel(core->GetResources()->Load<Model>("shapes/capsule"));
 		boxEntity2->AddComponent<boxController>();
 
 		std::shared_ptr<Entity> boxEntity3 = core->AddEntity();
@@ -174,6 +178,14 @@ int main()
 
 		//std::shared_ptr<Rigidbody> box4rb = boxEntity4->AddComponent<Rigidbody>();
 		//box4rb->AddForce(glm::vec3(-500, 0, 0));
+
+
+		std::shared_ptr<Entity> testEntity = core->AddEntity();
+		testEntity->GetComponent<Transform>()->SetPosition(vec3(4.80949, 9.48961, 6.23224));
+		testEntity->GetComponent<Transform>()->SetRotation(vec3(0, 90, 0));
+		testEntity->GetComponent<Transform>()->SetScale(vec3(0.1, 0.1, 0.1));
+		std::shared_ptr<TriangleRenderer> testTR = testEntity->AddComponent<TriangleRenderer>();
+		testEntity->AddComponent<CollisionTest>()->rb = box2rb;
 
 
 	}

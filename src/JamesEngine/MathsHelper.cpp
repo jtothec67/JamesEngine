@@ -1,5 +1,7 @@
 #include "MathsHelper.h"
 
+#include <algorithm>
+
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/norm.hpp>
 
@@ -386,79 +388,6 @@ namespace Maths
         minDist = std::min(minDist, d8);
 
         return minDist;
-    }
-
-    // Helper: Computes the closest points on two segments.
-    void ClosestPointsSegmentSegment(const glm::vec3& P0, const glm::vec3& P1,
-        const glm::vec3& Q0, const glm::vec3& Q1,
-        glm::vec3& outP, glm::vec3& outQ)
-    {
-        glm::vec3 u = P1 - P0;
-        glm::vec3 v = Q1 - Q0;
-        glm::vec3 w = P0 - Q0;
-        float a = glm::dot(u, u);
-        float b = glm::dot(u, v);
-        float c = glm::dot(v, v);
-        float d = glm::dot(u, w);
-        float e = glm::dot(v, w);
-        float D = a * c - b * b;
-        float sc, sN, sD = D;
-        float tc, tN, tD = D;
-        const float EPSILON = 1e-6f;
-        if (D < EPSILON)
-        {
-            sN = 0.0f;
-            sD = 1.0f;
-            tN = e;
-            tD = c;
-        }
-        else
-        {
-            sN = (b * e - c * d);
-            tN = (a * e - b * d);
-            if (sN < 0.0f)
-            {
-                sN = 0.0f;
-                tN = e;
-                tD = c;
-            }
-            else if (sN > sD)
-            {
-                sN = sD;
-                tN = e + b;
-                tD = c;
-            }
-        }
-        if (tN < 0.0f)
-        {
-            tN = 0.0f;
-            if (-d < 0.0f)
-                sN = 0.0f;
-            else if (-d > a)
-                sN = sD;
-            else
-            {
-                sN = -d;
-                sD = a;
-            }
-        }
-        else if (tN > tD)
-        {
-            tN = tD;
-            if ((-d + b) < 0.0f)
-                sN = 0.0f;
-            else if ((-d + b) > a)
-                sN = sD;
-            else
-            {
-                sN = (-d + b);
-                sD = a;
-            }
-        }
-        sc = (std::abs(sN) < EPSILON ? 0.0f : sN / sD);
-        tc = (std::abs(tN) < EPSILON ? 0.0f : tN / tD);
-        outP = P0 + sc * u;
-        outQ = Q0 + tc * v;
     }
 
     bool PointInTriangle(const glm::vec3& P, const glm::vec3& A, const glm::vec3& B, const glm::vec3& C) {

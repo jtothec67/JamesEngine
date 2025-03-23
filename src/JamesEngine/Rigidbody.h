@@ -37,6 +37,8 @@ namespace JamesEngine
 		void SetAngularVelocity(glm::vec3 _angularVelocity) { mAngularVelocity = _angularVelocity; }
 		glm::vec3 GetAngularVelocity() { return mAngularVelocity; }
 
+		glm::vec3 mCollisionPoint = glm::vec3(0);
+
 	private:
 
 		void ApplyImpulseResponse(std::shared_ptr<Rigidbody> _other, glm::vec3 _normal, glm::vec3 _collisionPoint);
