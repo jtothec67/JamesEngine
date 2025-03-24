@@ -390,8 +390,6 @@ namespace JamesEngine
     
 		// Determine the component of the velocity along the collision normal.
 		float velAlongNormal = glm::dot(v, _normal);
-
-		std::cout << "Normal: " << _normal.x << ", " << _normal.y << ", " << _normal.z << std::endl;
     
 		// If the dynamic object is moving away from the static object, no impulse is needed.
 		if (velAlongNormal > 0)
@@ -417,8 +415,8 @@ namespace JamesEngine
 		// Apply the impulse: update linear and angular velocities.
 		SetVelocity(GetVelocity() + impulse * (1.0f / GetMass()));
 
-		SetAngularMomentum(GetAngularMomentum() + glm::cross(impulse, r));
-		//SetAngularMomentum(GetAngularMomentum() + glm::cross(r, impulse));
+		//SetAngularMomentum(GetAngularMomentum() + glm::cross(impulse, r));
+		SetAngularMomentum(GetAngularMomentum() + glm::cross(r, impulse));
 		SetAngularVelocity(GetAngularVelocity() + mInertiaTensorInverse * GetAngularMomentum());
     
 		// --- Coulomb Friction ---
@@ -452,8 +450,8 @@ namespace JamesEngine
 		// Apply the friction impulse.
 		SetVelocity(GetVelocity() + frictionImpulse * (1.0f / GetMass()));
 
-		SetAngularMomentum(GetAngularMomentum() + glm::cross(frictionImpulse, r));
-		//SetAngularMomentum(GetAngularMomentum() + glm::cross(r, frictionImpulse));
+		//SetAngularMomentum(GetAngularMomentum() + glm::cross(frictionImpulse, r));
+		SetAngularMomentum(GetAngularMomentum() + glm::cross(r, frictionImpulse));
 		SetAngularVelocity(GetAngularVelocity() + mInertiaTensorInverse * GetAngularMomentum());
 	}
 

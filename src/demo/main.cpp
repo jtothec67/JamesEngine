@@ -77,6 +77,15 @@ struct CollisionTest : public Component
 	void OnTick()
 	{
 		GetTransform()->SetPosition(rb->mCollisionPoint);
+
+		if (GetKeyboard()->IsKeyDown(SDLK_o))
+		{
+			GetCore()->SetTimeScale(0.1);
+		}
+		else if (GetKeyboard()->IsKeyDown(SDLK_p))
+		{
+			GetCore()->SetTimeScale(1);
+		}
 	}
 };
 
@@ -184,7 +193,9 @@ int main()
 		testEntity->GetComponent<Transform>()->SetPosition(vec3(4.80949, 9.48961, 6.23224));
 		testEntity->GetComponent<Transform>()->SetRotation(vec3(0, 90, 0));
 		testEntity->GetComponent<Transform>()->SetScale(vec3(0.1, 0.1, 0.1));
-		std::shared_ptr<TriangleRenderer> testTR = testEntity->AddComponent<TriangleRenderer>();
+		std::shared_ptr<ModelRenderer> testTR = testEntity->AddComponent<ModelRenderer>();
+		testTR->SetModel(core->GetResources()->Load<Model>("shapes/sphere"));
+		testTR->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
 		testEntity->AddComponent<CollisionTest>()->rb = box2rb;
 
 
