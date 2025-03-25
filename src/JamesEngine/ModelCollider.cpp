@@ -362,12 +362,13 @@ namespace JamesEngine
             Eigen::Quaterniond q1(GetTransform()->GetQuaternion().w, GetTransform()->GetQuaternion().x, GetTransform()->GetQuaternion().y, GetTransform()->GetQuaternion().z);
             tf1.linear() = q1.toRotationMatrix();
             tf1.translation() = fcl::Vector3d(GetPosition().x, GetPosition().y, GetPosition().z);
-            auto objA = CreateCollisionObject(facesA, tf1);
 
             fcl::Transform3d tf2;
             Eigen::Quaterniond q2(otherModel->GetTransform()->GetQuaternion().w, otherModel->GetTransform()->GetQuaternion().x, otherModel->GetTransform()->GetQuaternion().y, otherModel->GetTransform()->GetQuaternion().z);
             tf2.linear() = q2.toRotationMatrix();
             tf2.translation() = fcl::Vector3d(otherModel->GetPosition().x, otherModel->GetPosition().y, otherModel->GetPosition().z);
+            
+            auto objA = CreateCollisionObject(facesA, tf1);
             auto objB = CreateCollisionObject(facesB, tf2);
 
             // Set up collision request; enable contact info.
@@ -401,14 +402,14 @@ namespace JamesEngine
                     _normal = normal;
 
                     
-                    std::cout << "Collision detected!\n";
+                    /*std::cout << "Collision detected!\n";
                     std::cout << "Contact point: " << collisionPoint.x << ", "
                         << collisionPoint.y << ", " << collisionPoint.z << "\n";
                     std::cout << "Normal: " << normal.x << ", " << normal.y << ", " << normal.z << "\n";
-                    std::cout << "Penetration depth: " << penetration << "\n";
+                    std::cout << "Penetration depth: " << penetration << "\n";*/
                 }
 
-                return true;
+                //return true;
             }
 
             for (const auto& faceA : facesA)

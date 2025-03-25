@@ -124,7 +124,7 @@ int main()
 		std::shared_ptr<Entity> boxEntity2 = core->AddEntity();
 		boxEntity2->SetTag("box2");
 		boxEntity2->GetComponent<Transform>()->SetPosition(vec3(5, 10.f, -16));
-		boxEntity2->GetComponent<Transform>()->SetRotation(vec3(-45, 0, 0));
+		boxEntity2->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		boxEntity2->GetComponent<Transform>()->SetScale(vec3(0.5, 0.5, 0.5));
 		//boxEntity2->AddComponent<TriangleRenderer>();
 		std::shared_ptr<ModelRenderer> boxMR2 = boxEntity2->AddComponent<ModelRenderer>();

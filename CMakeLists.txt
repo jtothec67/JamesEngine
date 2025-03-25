@@ -10,6 +10,8 @@ include_directories(
 
 link_directories(
 	contrib/cl-windows-x84_64/lib
+	contrib/cl-windows-x84_64/lib/Release
+	contrib/cl-windows-x84_64/lib/Debug
 )
 
 add_library(JamesEngine
