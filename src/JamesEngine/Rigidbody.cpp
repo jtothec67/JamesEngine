@@ -190,8 +190,8 @@ namespace JamesEngine
 		float relVelAlongNormal = glm::dot(relativeVel, _normal);
 
 		// Do not resolve if moving apart.
-		//if (relVelAlongNormal > 0.0f)
-			//return;
+		if (relVelAlongNormal > 0.0f)
+			return;
 
 		// --- Effective mass (including rotation) for normal impulse ---
 		// Compute the effect of angular inertia.

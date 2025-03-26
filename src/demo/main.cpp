@@ -80,7 +80,7 @@ struct CollisionTest : public Component
 
 		if (GetKeyboard()->IsKeyDown(SDLK_o))
 		{
-			GetCore()->SetTimeScale(0.1);
+			GetCore()->SetTimeScale(0.05);
 		}
 		else if (GetKeyboard()->IsKeyDown(SDLK_p))
 		{
@@ -105,7 +105,7 @@ int main()
 
 		std::shared_ptr<Entity> cameraEntity = core->AddEntity();
 		std::shared_ptr<Camera> camera = cameraEntity->AddComponent<Camera>();
-		cameraEntity->GetComponent<Transform>()->SetPosition(vec3(15, 2.f, -16));
+		cameraEntity->GetComponent<Transform>()->SetPosition(vec3(15, 2.f, -19.5));
 		cameraEntity->GetComponent<Transform>()->SetRotation(vec3(0, 90, 0));
 		cameraEntity->AddComponent<freelookCamController>();
 
@@ -123,27 +123,28 @@ int main()
 
 		std::shared_ptr<Entity> boxEntity2 = core->AddEntity();
 		boxEntity2->SetTag("box2");
-		boxEntity2->GetComponent<Transform>()->SetPosition(vec3(5, 10.f, -16));
-		boxEntity2->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
+		boxEntity2->GetComponent<Transform>()->SetPosition(vec3(5, 5.5f, -23));
+		boxEntity2->GetComponent<Transform>()->SetRotation(vec3(45, 0, 0));
 		boxEntity2->GetComponent<Transform>()->SetScale(vec3(0.5, 0.5, 0.5));
 		//boxEntity2->AddComponent<TriangleRenderer>();
 		std::shared_ptr<ModelRenderer> boxMR2 = boxEntity2->AddComponent<ModelRenderer>();
-		boxMR2->SetModel(core->GetResources()->Load<Model>("shapes/capsule"));
+		boxMR2->SetModel(core->GetResources()->Load<Model>("shapes/sphere"));
 		boxMR2->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
-		std::shared_ptr<ModelCollider> boxCollider2 = boxEntity2->AddComponent<ModelCollider>();
-		boxCollider2->SetModel(core->GetResources()->Load<Model>("shapes/capsule"));
+		std::shared_ptr<SphereCollider> boxCollider2 = boxEntity2->AddComponent<SphereCollider>();
+		boxCollider2->SetRadius(0.5);
 		boxEntity2->AddComponent<boxController>();
 
 		std::shared_ptr<Entity> boxEntity3 = core->AddEntity();
 		boxEntity3->SetTag("box3");
-		boxEntity3->GetComponent<Transform>()->SetPosition(vec3(10, 20, 10));
+		boxEntity3->GetComponent<Transform>()->SetPosition(vec3(5, 5.f, -16));
 		boxEntity3->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
-		boxEntity3->GetComponent<Transform>()->SetScale(vec3(0.5, 0.5, 0.5));
+		boxEntity3->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
 		boxEntity3->AddComponent<TriangleRenderer>();
 		std::shared_ptr<ModelRenderer> boxMR3 = boxEntity3->AddComponent<ModelRenderer>();
 		boxMR3->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
 		boxMR3->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
 		std::shared_ptr<ModelCollider> boxCollider3 = boxEntity3->AddComponent<ModelCollider>();
+		boxCollider3->IsConvex(true);
 		boxCollider3->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
 		boxEntity3->AddComponent<boxController>();
 
@@ -178,12 +179,10 @@ int main()
 		////box1rb->AddTorque(glm::vec3(360, 0, 0));
 
 		std::shared_ptr<Rigidbody> box2rb = boxEntity2->AddComponent<Rigidbody>();
-		//box2rb->AddForce(glm::vec3(300, 0, 0));
-		box2rb->SetMass(1);
+		box2rb->AddForce(glm::vec3(0, 0, 500));
 
-		//std::shared_ptr<Rigidbody> box3rb = boxEntity3->AddComponent<Rigidbody>();
-		//box3rb->AddForce(glm::vec3(-300, 0, 0));
-		//box3rb->SetMass(1);
+		std::shared_ptr<Rigidbody> box3rb = boxEntity3->AddComponent<Rigidbody>();
+		box3rb->AddForce(glm::vec3(0, 0, -500));
 
 		//std::shared_ptr<Rigidbody> box4rb = boxEntity4->AddComponent<Rigidbody>();
 		//box4rb->AddForce(glm::vec3(-500, 0, 0));
