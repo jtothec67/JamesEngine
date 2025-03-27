@@ -244,21 +244,26 @@ namespace JamesEngine
             const float tol = 0.0001f; // Tolerance for duplicate detection.
             std::vector<fcl::Vector3d> uniqueVertices;
 
-            for (const auto& face : faces) {
+            for (const auto& face : faces)
+            {
                 // Each face has vertices a, b, and c.
                 glm::vec3 vertices[3] = { face.a.position, face.b.position, face.c.position };
 
-                for (int i = 0; i < 3; ++i) {
+                for (int i = 0; i < 3; ++i)
+                {
                     bool found = false;
                     // Check if this vertex is already in our unique list.
-                    for (const auto& uv : uniqueVertices) {
+                    for (const auto& uv : uniqueVertices)
+                    {
                         glm::vec3 uvglm(uv[0], uv[1], uv[2]);
-                        if (glm::length2(vertices[i] - uvglm) < tol * tol) {
+                        if (glm::length2(vertices[i] - uvglm) < tol * tol)
+                        {
                             found = true;
                             break;
                         }
                     }
-                    if (!found) {
+                    if (!found)
+                    {
                         uniqueVertices.push_back(fcl::Vector3d(vertices[i].x, vertices[i].y, vertices[i].z));
                     }
                 }
@@ -271,16 +276,19 @@ namespace JamesEngine
             std::vector<int> polygons;
             std::vector<int> polygonOffsets; // Not used by the FCL constructor but helps us count faces.
 
-            auto findVertexIndex = [&](const glm::vec3& pos) -> int {
-                for (size_t i = 0; i < uniqueVertices.size(); ++i) {
+            auto findVertexIndex = [&](const glm::vec3& pos) -> int
+            {
+                for (size_t i = 0; i < uniqueVertices.size(); ++i) 
+                {
                     glm::vec3 uv(uniqueVertices[i][0], uniqueVertices[i][1], uniqueVertices[i][2]);
                     if (glm::length2(pos - uv) < tol * tol)
                         return static_cast<int>(i);
                 }
                 return -1; // Should never happen if the vertex exists.
-                };
+            };
 
-            for (const auto& face : faces) {
+            for (const auto& face : faces)
+            {
                 // Record the starting offset for this face (for counting purposes)
                 polygonOffsets.push_back(static_cast<int>(polygons.size()));
                 // For a triangle, the first value is 3.
@@ -306,8 +314,6 @@ namespace JamesEngine
             // Step 4: Construct the convex collision geometry.
             mConvexShape = std::make_shared<fcl::Convexd>(vertices_ptr, num_faces, polygons_ptr, true);
             InitFCLObject(mConvexShape);
-
-			std::cout << "Convex shape created" << std::endl;
         }
     }
 

@@ -123,7 +123,7 @@ int main()
 
 		std::shared_ptr<Entity> boxEntity2 = core->AddEntity();
 		boxEntity2->SetTag("box2");
-		boxEntity2->GetComponent<Transform>()->SetPosition(vec3(5, 5.5f, -23));
+		boxEntity2->GetComponent<Transform>()->SetPosition(vec3(5, 5.f, -23));
 		boxEntity2->GetComponent<Transform>()->SetRotation(vec3(45, 0, 0));
 		boxEntity2->GetComponent<Transform>()->SetScale(vec3(0.5, 0.5, 0.5));
 		//boxEntity2->AddComponent<TriangleRenderer>();
@@ -141,11 +141,11 @@ int main()
 		boxEntity3->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
 		boxEntity3->AddComponent<TriangleRenderer>();
 		std::shared_ptr<ModelRenderer> boxMR3 = boxEntity3->AddComponent<ModelRenderer>();
-		boxMR3->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
+		boxMR3->SetModel(core->GetResources()->Load<Model>("shapes/sphere"));
 		boxMR3->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
 		std::shared_ptr<ModelCollider> boxCollider3 = boxEntity3->AddComponent<ModelCollider>();
 		boxCollider3->IsConvex(true);
-		boxCollider3->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
+		boxCollider3->SetModel(core->GetResources()->Load<Model>("shapes/sphere"));
 		boxEntity3->AddComponent<boxController>();
 
 		/*std::shared_ptr<Entity> boxEntity4 = core->AddEntity();
@@ -172,6 +172,7 @@ int main()
 		std::shared_ptr<ModelCollider> mouseCollider = mouseEntity->AddComponent<ModelCollider>();
 		mouseCollider->SetModel(core->GetResources()->Load<Model>("models/track/cartoon_track_trimmed"));
 		mouseCollider->SetRotationOffset(vec3(0, 0, 0));
+		mouseCollider->SetDebugVisual(false);
 		/*std::shared_ptr<CapsuleCollider> mouseCollider = mouseEntity->AddComponent<CapsuleCollider>();
 		mouseCollider->SetRotationOffset(vec3(0, 0, 0));*/
 
@@ -195,7 +196,7 @@ int main()
 		std::shared_ptr<ModelRenderer> testTR = testEntity->AddComponent<ModelRenderer>();
 		testTR->SetModel(core->GetResources()->Load<Model>("shapes/sphere"));
 		testTR->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
-		testEntity->AddComponent<CollisionTest>()->rb = box2rb;
+		testEntity->AddComponent<CollisionTest>()->rb = box3rb;
 
 
 	}

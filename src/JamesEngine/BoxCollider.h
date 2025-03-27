@@ -20,7 +20,7 @@ namespace JamesEngine
 #endif
 		void OnInitialize() override
 		{
-			std::shared_ptr<fcl::Boxd> boxShape = std::make_shared<fcl::Boxd>(mSize.x, mSize.y, mSize.z);
+			std::shared_ptr<fcl::Boxd> boxShape = std::make_shared<fcl::Boxd>(mSize.x * 2, mSize.y * 2, mSize.z * 2);
 			mShape = boxShape;
 			InitFCLObject(mShape);
 		}
@@ -34,7 +34,7 @@ namespace JamesEngine
 		void SetSize(glm::vec3 _size)
 		{ 
 			mSize = _size; 
-			std::shared_ptr<fcl::Boxd> boxShape = std::make_shared<fcl::Boxd>(mSize.x, mSize.y, mSize.z);
+			std::shared_ptr<fcl::Boxd> boxShape = std::make_shared<fcl::Boxd>(mSize.x*2, mSize.y*2, mSize.z*2);
 			mShape = boxShape;
 			InitFCLObject(mShape);
 		}
