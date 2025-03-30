@@ -4,6 +4,7 @@
 #include "SphereCollider.h"
 #include "BoxCollider.h"
 #include "Transform.h"
+#include "RayCollider.h"
 
 #include "MathsHelper.h"
 
@@ -79,6 +80,12 @@ namespace JamesEngine
 			return false;
 		}
 
+        std::shared_ptr<RayCollider> ray = std::dynamic_pointer_cast<RayCollider>(_other);
+		if (ray)
+		{
+			return false;
+		}
+
         UpdateFCLTransform(GetPosition(), GetRotation());
         _other->UpdateFCLTransform(_other->GetPosition(), _other->GetRotation());
 
@@ -109,17 +116,6 @@ namespace JamesEngine
                 _collisionPoint = glm::vec3(contact.pos[0], contact.pos[1], contact.pos[2]);
                 _normal = glm::vec3(contact.normal[0], contact.normal[1], contact.normal[2]);
                 _penetrationDepth = std::fabs(static_cast<float>(contact.penetration_depth));
-
-                std::cout << "Position 1: " << GetPosition().x << ", " << GetPosition().y << ", " << GetPosition().z << std::endl;
-                std::cout << "Rotation 1: " << GetRotation().x << ", " << GetRotation().y << ", " << GetRotation().z << std::endl;
-
-                std::cout << "Position 2: " << _other->GetPosition().x << ", " << _other->GetPosition().y << ", " << _other->GetPosition().z << std::endl;
-                std::cout << "Rotation 2: " << _other->GetRotation().x << ", " << _other->GetRotation().y << ", " << _other->GetRotation().z << std::endl;
-
-                std::cout << "Collision point: " << _collisionPoint.x << ", " << _collisionPoint.y << ", " << _collisionPoint.z << std::endl;
-                std::cout << "Normal: " << _normal.x << ", " << _normal.y << ", " << _normal.z << std::endl;
-                std::cout << "Penetration depth: " << _penetrationDepth << std::endl;
-                std::cout << std::endl;
 
                 return true;
             }
