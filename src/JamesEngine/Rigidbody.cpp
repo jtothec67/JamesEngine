@@ -42,18 +42,18 @@ namespace JamesEngine
 			if (otherCollider->GetTransform() == GetTransform())
 				continue;
 
-			std::shared_ptr<Collider> collider = GetEntity()->GetComponent<Collider>();
+			std::shared_ptr<Collider> ourCollider = GetEntity()->GetComponent<Collider>();
 
 			glm::vec3 collisionPoint;
 			glm::vec3 collisionNormal;
 			float penetrationDepth;
 
 			// Check if colliding
-			if (otherCollider->IsColliding(collider, collisionPoint, collisionNormal, penetrationDepth))
+			if (ourCollider->IsColliding(otherCollider, collisionPoint, collisionNormal, penetrationDepth))
 			{
 				mCollisionPoint = collisionPoint;
 
-				collisionNormal = glm::normalize(collisionNormal);
+				collisionNormal = glm::normalize(-collisionNormal);
 
 				// Call OnCOllision for all components on both entities
 				for (size_t ci = 0; ci < GetEntity()->mComponents.size(); ci++)
@@ -90,12 +90,15 @@ namespace JamesEngine
 			}
 		}
 
+		
+
 		// Step 5: Integration
 		//Euler();
 		Verlet();
-
-		// Setp 6: Convert to euler angles
+			
+		// Step 6: Convert to euler angles
 		CalculateAngles();
+		
 
 		// Step 7: Clear forces
 		ClearForces();
@@ -190,8 +193,8 @@ namespace JamesEngine
 		float relVelAlongNormal = glm::dot(relativeVel, _normal);
 
 		// Do not resolve if moving apart.
-		//if (relVelAlongNormal > 0.0f)
-			//return;
+		if (relVelAlongNormal > 0.0f)
+			return;
 
 		// --- Effective mass (including rotation) for normal impulse ---
 		// Compute the effect of angular inertia.
@@ -215,8 +218,11 @@ namespace JamesEngine
 		_other->SetVelocity(_other->GetVelocity() - impulse * invMassB);
 
 		// Apply angular impulse.
-		SetAngularMomentum(GetAngularMomentum() + glm::cross(ra, impulse));
-		_other->SetAngularMomentum(_other->GetAngularMomentum() - glm::cross(rb, impulse));
+		if (!GetLockRotation())
+			SetAngularMomentum(GetAngularMomentum() + glm::cross(ra, impulse));
+
+		if (!_other->GetLockRotation())
+			_other->SetAngularMomentum(_other->GetAngularMomentum() - glm::cross(rb, impulse));
 
 		// --- Friction Impulse ---
 		// Recompute contact velocities with updated velocities.
@@ -258,8 +264,12 @@ namespace JamesEngine
 		// Apply friction impulses.
 		SetVelocity(GetVelocity() + frictionImpulse * invMassA);
 		_other->SetVelocity(_other->GetVelocity() - frictionImpulse * invMassB);
-		SetAngularMomentum(GetAngularMomentum() + glm::cross(ra, frictionImpulse));
-		_other->SetAngularMomentum(_other->GetAngularMomentum() - glm::cross(rb, frictionImpulse));
+
+		if (!GetLockRotation())
+			SetAngularMomentum(GetAngularMomentum() + glm::cross(ra, frictionImpulse));
+
+		if (!_other->GetLockRotation())
+			_other->SetAngularMomentum(_other->GetAngularMomentum() - glm::cross(rb, frictionImpulse));
 	}
 
 	void Rigidbody::ApplyImpulseResponseStatic(glm::vec3 _normal, glm::vec3 _collisionPoint)
@@ -415,9 +425,12 @@ namespace JamesEngine
 		// Apply the impulse: update linear and angular velocities.
 		SetVelocity(GetVelocity() + impulse * (1.0f / GetMass()));
 
-		//SetAngularMomentum(GetAngularMomentum() + glm::cross(impulse, r));
-		SetAngularMomentum(GetAngularMomentum() + glm::cross(r, impulse));
-		SetAngularVelocity(GetAngularVelocity() + mInertiaTensorInverse * GetAngularMomentum());
+		if (!mLockRotation)
+		{
+			//SetAngularMomentum(GetAngularMomentum() + glm::cross(impulse, r));
+			SetAngularMomentum(GetAngularMomentum() + glm::cross(r, impulse));
+			SetAngularVelocity(GetAngularVelocity() + mInertiaTensorInverse * GetAngularMomentum());
+		}
     
 		// --- Coulomb Friction ---
 		// Recalculate the velocity at the collision point after applying the normal impulse.
@@ -450,9 +463,12 @@ namespace JamesEngine
 		// Apply the friction impulse.
 		SetVelocity(GetVelocity() + frictionImpulse * (1.0f / GetMass()));
 
-		//SetAngularMomentum(GetAngularMomentum() + glm::cross(frictionImpulse, r));
-		SetAngularMomentum(GetAngularMomentum() + glm::cross(r, frictionImpulse));
-		SetAngularVelocity(GetAngularVelocity() + mInertiaTensorInverse * GetAngularMomentum());
+		if (!mLockRotation)
+		{
+			//SetAngularMomentum(GetAngularMomentum() + glm::cross(frictionImpulse, r));
+			SetAngularMomentum(GetAngularMomentum() + glm::cross(r, frictionImpulse));
+			SetAngularVelocity(GetAngularVelocity() + mInertiaTensorInverse * GetAngularMomentum());
+		}
 	}
 
 	glm::vec3 Rigidbody::FrictionForce(glm::vec3 _relativeVelocity, glm::vec3 _contactNormal, glm::vec3 _forceNormal, float mu)
@@ -567,7 +583,6 @@ namespace JamesEngine
 	void Rigidbody::CalculateAngles()
 	{
 		glm::quat q = glm::quat_cast(mR);
-		q = glm::conjugate(q);
 		SetQuaternion(q);
 	}
 

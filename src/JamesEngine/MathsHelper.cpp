@@ -527,6 +527,36 @@ namespace Maths
         return penetration;
     }
 
+    bool RayTriangleIntersect(const glm::vec3& orig, const glm::vec3& dir, const glm::vec3& v0,
+        const glm::vec3& v1, const glm::vec3& v2, float& t, float& u, float& v)
+    {
+        const float EPSILON = 1e-6f;
+        glm::vec3 edge1 = v1 - v0;
+        glm::vec3 edge2 = v2 - v0;
+        glm::vec3 h = glm::cross(dir, edge2);
+        float a = glm::dot(edge1, h);
+
+        // If a is close to 0, the ray is parallel to the triangle.
+        if (a > -EPSILON && a < EPSILON)
+            return false;
+
+        float f = 1.0f / a;
+        glm::vec3 s = orig - v0;
+        u = f * glm::dot(s, h);
+        if (u < 0.0f || u > 1.0f)
+            return false;
+
+        glm::vec3 q = glm::cross(s, edge1);
+        v = f * glm::dot(dir, q);
+        if (v < 0.0f || u + v > 1.0f)
+            return false;
+
+        t = f * glm::dot(edge2, q);
+
+        // t > EPSILON ensures the intersection is along the ray (not behind the origin).
+        return (t > EPSILON);
+    }
+
 	//  ----------- TRIANGLE OVERLAP TEST FROM https://gamedev.stackexchange.com/questions/88060/triangle-triangle-intersection-code -----------
 
     /* some 3D macros */

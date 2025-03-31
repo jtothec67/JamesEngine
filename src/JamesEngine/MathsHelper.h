@@ -32,27 +32,14 @@ namespace Maths
     float DistanceSegmentSegment(const glm::vec3& P0, const glm::vec3& P1,
         const glm::vec3& Q0, const glm::vec3& Q1);
 
-    /*void ClosestPointsSegmentSegment(const glm::vec3& P0, const glm::vec3& P1,
-        const glm::vec3& Q0, const glm::vec3& Q1,
-        glm::vec3& outP, glm::vec3& outQ);
-
-
-    bool PointInTriangle(const glm::vec3& P, const glm::vec3& A, const glm::vec3& B, const glm::vec3& C);
-
-    bool GetLineSegmentTriangleIntersection(const glm::vec3& P, const glm::vec3& Q,
-        const glm::vec3& T0, const glm::vec3& T1, const glm::vec3& T2,
-        glm::vec3& intersection);
-
-    void IntersectionCheck(const glm::vec3& P, const glm::vec3& Q,
-        const glm::vec3& T0, const glm::vec3& T1, const glm::vec3& T2,
-        std::vector<glm::vec3>& intersectionPoints);*/
-
     glm::vec3 CalculateCollisionPoint(const glm::vec3& A0, const glm::vec3& A1, const glm::vec3& A2,
         const glm::vec3& B0, const glm::vec3& B1, const glm::vec3& B2);
 
-
     float CalculatePenetrationDepth(const glm::vec3& A0, const glm::vec3& A1, const glm::vec3& A2,
         const glm::vec3& B0, const glm::vec3& B1, const glm::vec3& B2);
+
+	bool RayTriangleIntersect(const glm::vec3& orig, const glm::vec3& dir, const glm::vec3& v0,
+        const glm::vec3& v1, const glm::vec3& v2, float& t, float& u, float& v);
 
 
 	//  ----------- TRIANGLE OVERLAP TEST FROM https://gamedev.stackexchange.com/questions/88060/triangle-triangle-intersection-code -----------

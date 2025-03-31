@@ -79,6 +79,9 @@ add_library(JamesEngine
 	src/JamesEngine/ModelCollider.h
 	src/JamesEngine/ModelCollider.cpp
 
+	src/JamesEngine/RayCollider.h
+	src/JamesEngine/RayCollider.cpp
+
 	src/JamesEngine/Rigidbody.h
 	src/JamesEngine/Rigidbody.cpp
 

@@ -48,6 +48,8 @@ struct boxController : public Component
 	float speed = 1.f;
 	float sinValue = 0;
 
+	std::shared_ptr<Rigidbody> rb;
+
 	void OnTick()
 	{
 		//GetEntity()->GetComponent<Rigidbody>()->AddTorque(glm::vec3(90, 0, 0) * GetCore()->DeltaTime());
@@ -59,6 +61,16 @@ struct boxController : public Component
 		{
 			GetTransform()->Rotate(glm::vec3(0, 0, 45) * speed * GetCore()->DeltaTime());
 			GetTransform()->Move(glm::vec3(0, -1, 0) * speed * GetCore()->DeltaTime());
+		}
+
+		if (GetKeyboard()->IsKeyDown(SDLK_m))
+		{
+			rb->AddForce(glm::vec3(0, 0, -1000));
+		}
+
+		if (GetKeyboard()->IsKeyDown(SDLK_n))
+		{
+			rb->AddForce(glm::vec3(0, 0, 1000));
 		}
 
 		//std::cout << "Position: " << GetTransform()->GetPosition().x << ", " << GetTransform()->GetPosition().y << ", " << GetTransform()->GetPosition().z << std::endl;
@@ -124,19 +136,21 @@ int main()
 		std::shared_ptr<Entity> boxEntity2 = core->AddEntity();
 		boxEntity2->SetTag("box2");
 		boxEntity2->GetComponent<Transform>()->SetPosition(vec3(5, 10.f, -16));
-		boxEntity2->GetComponent<Transform>()->SetRotation(vec3(-45, 0, 0));
+		boxEntity2->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		boxEntity2->GetComponent<Transform>()->SetScale(vec3(0.5, 0.5, 0.5));
 		//boxEntity2->AddComponent<TriangleRenderer>();
 		std::shared_ptr<ModelRenderer> boxMR2 = boxEntity2->AddComponent<ModelRenderer>();
 		boxMR2->SetModel(core->GetResources()->Load<Model>("shapes/capsule"));
 		boxMR2->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
-		std::shared_ptr<ModelCollider> boxCollider2 = boxEntity2->AddComponent<ModelCollider>();
-		boxCollider2->SetModel(core->GetResources()->Load<Model>("shapes/capsule"));
-		boxEntity2->AddComponent<boxController>();
+		std::shared_ptr<RayCollider> boxCollider2 = boxEntity2->AddComponent<RayCollider>();
+		boxCollider2->SetDirection(vec3(0, -1, 0));
+		boxCollider2->SetLength(1);
+		
+
 
 		std::shared_ptr<Entity> boxEntity3 = core->AddEntity();
 		boxEntity3->SetTag("box3");
-		boxEntity3->GetComponent<Transform>()->SetPosition(vec3(10, 20, 10));
+		boxEntity3->GetComponent<Transform>()->SetPosition(vec3(5, 5.f, -14));
 		boxEntity3->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		boxEntity3->GetComponent<Transform>()->SetScale(vec3(0.5, 0.5, 0.5));
 		boxEntity3->AddComponent<TriangleRenderer>();
@@ -145,7 +159,7 @@ int main()
 		boxMR3->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
 		std::shared_ptr<ModelCollider> boxCollider3 = boxEntity3->AddComponent<ModelCollider>();
 		boxCollider3->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
-		boxEntity3->AddComponent<boxController>();
+		//boxEntity3->AddComponent<boxController>();
 
 		/*std::shared_ptr<Entity> boxEntity4 = core->AddEntity();
 		boxEntity4->GetComponent<Transform>()->SetPosition(vec3(15, 20, 10));
@@ -171,6 +185,7 @@ int main()
 		std::shared_ptr<ModelCollider> mouseCollider = mouseEntity->AddComponent<ModelCollider>();
 		mouseCollider->SetModel(core->GetResources()->Load<Model>("models/track/cartoon_track_trimmed"));
 		mouseCollider->SetRotationOffset(vec3(0, 0, 0));
+		mouseCollider->SetDebugVisual(false);
 		/*std::shared_ptr<CapsuleCollider> mouseCollider = mouseEntity->AddComponent<CapsuleCollider>();
 		mouseCollider->SetRotationOffset(vec3(0, 0, 0));*/
 
@@ -180,6 +195,8 @@ int main()
 		std::shared_ptr<Rigidbody> box2rb = boxEntity2->AddComponent<Rigidbody>();
 		//box2rb->AddForce(glm::vec3(300, 0, 0));
 		box2rb->SetMass(1);
+		box2rb->LockRotation(false);
+		boxEntity2->AddComponent<boxController>()->rb = box2rb;
 
 		//std::shared_ptr<Rigidbody> box3rb = boxEntity3->AddComponent<Rigidbody>();
 		//box3rb->AddForce(glm::vec3(-300, 0, 0));

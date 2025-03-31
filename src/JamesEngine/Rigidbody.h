@@ -39,6 +39,9 @@ namespace JamesEngine
 
 		glm::vec3 mCollisionPoint = glm::vec3(0);
 
+		void LockRotation(bool _lock) { mLockRotation = _lock; }
+		bool GetLockRotation() { return mLockRotation; }
+
 	private:
 
 		void ApplyImpulseResponse(std::shared_ptr<Rigidbody> _other, glm::vec3 _normal, glm::vec3 _collisionPoint);
@@ -70,6 +73,8 @@ namespace JamesEngine
 									0.0f, 0.0f, 1.0f);
 
 		float globalDamping = 64;
+
+		bool mLockRotation = false;
 	};
 
 }
