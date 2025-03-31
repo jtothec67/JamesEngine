@@ -3,7 +3,6 @@
 #include "Core.h"
 #include "SphereCollider.h"
 #include "BoxCollider.h"
-#include "Transform.h"
 
 #include "MathsHelper.h"
 
@@ -14,12 +13,11 @@
 #ifdef _DEBUG
 #include "Camera.h"
 #include "Entity.h"
+#include "Transform.h"
 
 #include <glm/glm.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #endif
-
-#include <fcl/fcl.h>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/euler_angles.hpp>
@@ -31,8 +29,8 @@ namespace JamesEngine
 #ifdef _DEBUG
     void ModelCollider::OnGUI()
     {
-		if (!mDebugVisual)
-			return;
+        if (!mDebugVisual)
+            return;
 
         if (mModel == nullptr)
             return;
@@ -65,52 +63,6 @@ namespace JamesEngine
     }
 #endif
 
-    fcl::Vector3d glmToFcl(const glm::vec3& v) {
-        return fcl::Vector3d(v.x, v.y, v.z);
-    }
-
-    void buildMeshData(const std::vector<Renderer::Model::Face>& faces,
-        std::vector<fcl::Vector3d>& vertices,
-        std::vector<fcl::Triangle>& triangles)
-    {
-        // We will push back 3 vertices per face (even if duplicated)
-        vertices.clear();
-        triangles.clear();
-        for (size_t i = 0; i < faces.size(); i++) {
-            const Renderer::Model::Face& face = faces[i];
-            // Convert each vertex from glm to fcl type
-            fcl::Vector3d v0 = glmToFcl(face.a.position);
-            fcl::Vector3d v1 = glmToFcl(face.b.position);
-            fcl::Vector3d v2 = glmToFcl(face.c.position);
-            // Append vertices
-            vertices.push_back(v0);
-            vertices.push_back(v1);
-            vertices.push_back(v2);
-            // Create a triangle using the 3 new vertices
-            triangles.push_back(fcl::Triangle(static_cast<unsigned>(i * 3),
-                static_cast<unsigned>(i * 3 + 1),
-                static_cast<unsigned>(i * 3 + 2)));
-        }
-    }
-
-    std::shared_ptr<fcl::CollisionObjectd> CreateCollisionObject(
-        const std::vector<Renderer::Model::Face>& faces,
-        const fcl::Transform3d& transform)
-    {
-        // Convert faces to a list of vertices and triangle indices
-        std::vector<fcl::Vector3d> vertices;
-        std::vector<fcl::Triangle> triangles;
-        buildMeshData(faces, vertices, triangles);
-
-        // Create a BVH model; here we use OBBRSS which works well for many cases.
-        auto meshModel = std::make_shared<fcl::BVHModel<fcl::OBBRSSd>>();
-        meshModel->beginModel();
-        meshModel->addSubModel(vertices, triangles);
-        meshModel->endModel();
-
-        return std::make_shared<fcl::CollisionObjectd>(meshModel, transform);
-    }
-
     bool ModelCollider::IsColliding(std::shared_ptr<Collider> _other, glm::vec3& _collisionPoint, glm::vec3& _normal, float& _penetrationDepth)
     {
         if (_other == nullptr)
@@ -119,16 +71,16 @@ namespace JamesEngine
             return false;
         }
 
-		if (mModel == nullptr)
-		{
-			std::cout << "You need to add a model to the model collider" << std::endl;
-			return false;
-		}
+        if (mModel == nullptr)
+        {
+            std::cout << "You need to add a model to the model collider" << std::endl;
+            return false;
+        }
 
-		// We are model, other is sphere
+        // We are model, other is sphere
         std::shared_ptr<SphereCollider> otherSphere = std::dynamic_pointer_cast<SphereCollider>(_other);
-		if (otherSphere)
-		{
+        if (otherSphere)
+        {
             // Get sphere world position and radius.
             glm::vec3 spherePos = otherSphere->GetPosition() + otherSphere->GetPositionOffset();
             float sphereRadius = otherSphere->GetRadius();
@@ -186,12 +138,12 @@ namespace JamesEngine
                     return true;
                 }
             }
-		}
+        }
 
-		// We are model, other is box
+        // We are model, other is box
         std::shared_ptr<BoxCollider> otherBox = std::dynamic_pointer_cast<BoxCollider>(_other);
         if (otherBox)
-		{
+        {
             // Get the box's world parameters.
             glm::vec3 boxPos = otherBox->GetPosition() + otherBox->GetPositionOffset();
             glm::vec3 boxRotation = otherBox->GetRotation() + otherBox->GetRotationOffset();
@@ -218,7 +170,7 @@ namespace JamesEngine
             modelMatrix = glm::scale(modelMatrix, modelScale);
 
             // Test returned triangle faces of the model's BVH against the box.
-			std::vector<Renderer::Model::Face> faces = GetTriangles(boxPos, boxRotation, boxSize);
+            std::vector<Renderer::Model::Face> faces = GetTriangles(boxPos, boxRotation, boxSize);
             for (const auto& face : faces)
             {
                 // Transform triangle vertices into world space.
@@ -264,10 +216,10 @@ namespace JamesEngine
                     return true;
                 }
             }
-		}
+        }
 
-		// We are model, other is model
-		std::shared_ptr<ModelCollider> otherModel = std::dynamic_pointer_cast<ModelCollider>(_other);
+        // We are model, other is model
+        std::shared_ptr<ModelCollider> otherModel = std::dynamic_pointer_cast<ModelCollider>(_other);
         if (otherModel)
         {
             // Build world transform for "this" model.
@@ -293,9 +245,9 @@ namespace JamesEngine
             otherModelMatrix = glm::scale(otherModelMatrix, otherModelScale);
 
             // Get faces for each model.
-			glm::vec3 thisBoxPos = GetPosition();// + GetPositionOffset();
-			glm::vec3 thisBoxRotation = GetRotation();// + GetRotationOffset();
-			glm::vec3 thisBoxSize = glm::vec3((mModel->mModel->get_width() * GetScale().x), (mModel->mModel->get_height() * GetScale().y), (mModel->mModel->get_length() * GetScale().z));
+            glm::vec3 thisBoxPos = GetPosition();// + GetPositionOffset();
+            glm::vec3 thisBoxRotation = GetRotation();// + GetRotationOffset();
+            glm::vec3 thisBoxSize = glm::vec3((mModel->mModel->get_width() * GetScale().x), (mModel->mModel->get_height() * GetScale().y), (mModel->mModel->get_length() * GetScale().z));
 
             glm::vec3 otherBoxPos = otherModel->GetPosition();// +otherModel->GetPositionOffset();
             glm::vec3 otherBoxRotation = otherModel->GetRotation();// +otherModel->GetRotationOffset();
@@ -355,61 +307,10 @@ namespace JamesEngine
             const std::vector<Renderer::Model::Face>& facesA = GetTriangles(otherBoxPos, otherBoxRotation, otherBoxSize);
             const std::vector<Renderer::Model::Face>& facesB = otherModel->GetTriangles(thisBoxPos, thisBoxRotation, thisBoxSize);
 
-            if (facesA.size() == 0 || facesB.size() == 0) return false;
-
-            // Create FCL collision objects for each mesh
-            fcl::Transform3d tf1;
-            Eigen::Quaterniond q1(GetTransform()->GetQuaternion().w, GetTransform()->GetQuaternion().x, GetTransform()->GetQuaternion().y, GetTransform()->GetQuaternion().z);
-            tf1.linear() = q1.toRotationMatrix();
-            tf1.translation() = fcl::Vector3d(GetPosition().x, GetPosition().y, GetPosition().z);
-            auto objA = CreateCollisionObject(facesA, tf1);
-
-            fcl::Transform3d tf2;
-            Eigen::Quaterniond q2(otherModel->GetTransform()->GetQuaternion().w, otherModel->GetTransform()->GetQuaternion().x, otherModel->GetTransform()->GetQuaternion().y, otherModel->GetTransform()->GetQuaternion().z);
-            tf2.linear() = q2.toRotationMatrix();
-            tf2.translation() = fcl::Vector3d(otherModel->GetPosition().x, otherModel->GetPosition().y, otherModel->GetPosition().z);
-            auto objB = CreateCollisionObject(facesB, tf2);
-
-            // Set up collision request; enable contact info.
-            fcl::CollisionRequestd request;
-            request.enable_contact = true;
-            request.num_max_contacts = 10;
-
-            // Run the collision check
-            fcl::CollisionResultd result;
-            fcl::collide(objA.get(), objB.get(), request, result);
-
             // Store all collision data
             std::vector<glm::vec3> contactPoints;
             std::vector<float> penetrationDepths;
             std::vector<glm::vec3> contactNormals;
-
-            if (result.isCollision())
-            {
-                std::vector<fcl::Contactd> contacts;
-                result.getContacts(contacts);
-                if (!contacts.empty())
-                {
-                    const auto& contact = contacts.front();
-                    // Convert FCL vectors back to glm::vec3
-                    glm::vec3 collisionPoint(contact.pos[0], contact.pos[1], contact.pos[2]);
-                    glm::vec3 normal(contact.normal[0], contact.normal[1], contact.normal[2]);
-                    float penetration = static_cast<float>(contact.penetration_depth);
-
-                    _collisionPoint = collisionPoint;
-                    _penetrationDepth = penetration;
-                    _normal = normal;
-
-                    
-                    std::cout << "Collision detected!\n";
-                    std::cout << "Contact point: " << collisionPoint.x << ", "
-                        << collisionPoint.y << ", " << collisionPoint.z << "\n";
-                    std::cout << "Normal: " << normal.x << ", " << normal.y << ", " << normal.z << "\n";
-                    std::cout << "Penetration depth: " << penetration << "\n";
-                }
-
-                return true;
-            }
 
             for (const auto& faceA : facesA)
             {
@@ -429,23 +330,23 @@ namespace JamesEngine
                         // Calculate an improved collision point.
                         glm::vec3 collisionPoint = Maths::CalculateCollisionPoint(A0, A1, A2, B0, B1, B2);
 
-                        // Store this collision information
-                        contactPoints.push_back(collisionPoint);
-
                         /*std::cout << std::endl;
-						std::cout << "Collision point: " << collisionPoint.x << ", " << collisionPoint.y << ", " << collisionPoint.z << std::endl;
-						std::cout << "A0: " << A0.x << ", " << A0.y << ", " << A0.z << std::endl;
-						std::cout << "A1: " << A1.x << ", " << A1.y << ", " << A1.z << std::endl;
-						std::cout << "A2: " << A2.x << ", " << A2.y << ", " << A2.z << std::endl;
-						std::cout << "B0: " << B0.x << ", " << B0.y << ", " << B0.z << std::endl;
-						std::cout << "B1: " << B1.x << ", " << B1.y << ", " << B1.z << std::endl;
-						std::cout << "B2: " << B2.x << ", " << B2.y << ", " << B2.z << std::endl;*/
+                        std::cout << "Collision point: " << collisionPoint.x << ", " << collisionPoint.y << ", " << collisionPoint.z << std::endl;
+                        std::cout << "A0: " << A0.x << ", " << A0.y << ", " << A0.z << std::endl;
+                        std::cout << "A1: " << A1.x << ", " << A1.y << ", " << A1.z << std::endl;
+                        std::cout << "A2: " << A2.x << ", " << A2.y << ", " << A2.z << std::endl;
+                        std::cout << "B0: " << B0.x << ", " << B0.y << ", " << B0.z << std::endl;
+                        std::cout << "B1: " << B1.x << ", " << B1.y << ", " << B1.z << std::endl;
+                        std::cout << "B2: " << B2.x << ", " << B2.y << ", " << B2.z << std::endl;*/
 
                         // Compute face normal from triangle A.
                         glm::vec3 normalThis = glm::normalize(glm::cross(A1 - A0, A2 - A0));
 
                         // The penetration depth is the overlap between the two projection intervals.
                         float penetrationDepth = Maths::CalculatePenetrationDepth(A0, A1, A2, B0, B1, B2);
+
+                        // Store this collision information
+                        contactPoints.push_back(collisionPoint);
 
                         if (penetrationDepth < 1)
                         {
@@ -495,10 +396,7 @@ namespace JamesEngine
                 weightedNormal = glm::normalize(weightedNormal);
 
                 // Assign final values
-                //_collisionPoint = averagedContactPoint;
-                /*std::cout << std::endl;
-				std::cout << "Final computed Collision point: " << _collisionPoint.x << ", " << _collisionPoint.y << ", " << _collisionPoint.z << std::endl;
-				std::cout << "Computed using " << contactPoints.size() << " contact points" << std::endl;*/
+                _collisionPoint = averagedContactPoint;
                 _penetrationDepth = maxPenetrationDepth;
                 _normal = weightedNormal;
 
@@ -506,10 +404,8 @@ namespace JamesEngine
             }
         }
 
-		return false;
+        return false;
     }
-
-    
 
     float TetrahedronVolume(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c) {
         return glm::dot(a, glm::cross(b, c)) / 6.0f;
@@ -645,7 +541,7 @@ namespace JamesEngine
         return node;
     }
 
-    
+
     // --- BVH Query ---
     // Recursively traverses the BVH and adds any triangles in nodes whose AABB
     // overlaps the query AABB.
@@ -684,7 +580,7 @@ namespace JamesEngine
         if (mModel == nullptr)
             return result;
 
-        // (Re)build the BVH if it hasn’t been built yet or if the leaf threshold has changed.
+        // (Re)build the BVH if it hasn?t been built yet or if the leaf threshold has changed.
         if (!mBVHRoot || mBVHLeafThreshold != _leafThreshold)
         {
             mBVHLeafThreshold = _leafThreshold;
@@ -732,13 +628,13 @@ namespace JamesEngine
         // Transform each corner: first rotate, then translate, then bring into model space.
         for (auto& corner : corners)
         {
-            // Apply the box’s rotation and translation.
+            // Apply the box?s rotation and translation.
             corner = glm::vec3(boxRotMatrix * glm::vec4(corner, 1.0f)) + boxPos;
             // Transform from world space into model local space.
             corner = glm::vec3(invModelMatrix * glm::vec4(corner, 1.0f));
         }
 
-        // Compute an axis–aligned bounding box (AABB) from the transformed corners.
+        // Compute an axis?aligned bounding box (AABB) from the transformed corners.
         glm::vec3 queryMin = corners[0];
         glm::vec3 queryMax = corners[0];
         for (size_t i = 1; i < corners.size(); ++i)

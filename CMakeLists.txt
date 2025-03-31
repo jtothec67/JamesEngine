@@ -104,7 +104,7 @@ add_library(JamesEngine
 	src/JamesEngine/LightManager.cpp
 )
 
-target_link_libraries(JamesEngine Renderer openal32 fcl ccd octomap octomath)
+target_link_libraries(JamesEngine Renderer openal32)
 
 add_library(Renderer
 	src/Renderer/Font.h
