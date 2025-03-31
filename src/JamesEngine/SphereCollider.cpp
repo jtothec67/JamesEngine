@@ -62,44 +62,152 @@ namespace JamesEngine
 			return false;
 		}
 
-		UpdateFCLTransform(GetPosition(), GetRotation());
-		_other->UpdateFCLTransform(_other->GetPosition(), _other->GetRotation());
-
-		// Get FCL collision objects
-		fcl::CollisionObjectd* objA = GetFCLObject();
-		fcl::CollisionObjectd* objB = _other->GetFCLObject();
-
-		// Request contact information
-		fcl::CollisionRequestd request;
-		request.enable_contact = true;
-		request.num_max_contacts = 1;
-
-		fcl::CollisionResultd result;
-
-		// Perform collision
-		fcl::collide(objA, objB, request, result);
-
-		if (result.isCollision())
+		// We are sphere, other is box
+		std::shared_ptr<BoxCollider> otherBox = std::dynamic_pointer_cast<BoxCollider>(_other);
+		if (otherBox)
 		{
-			// Extract contact info
-			std::vector<fcl::Contactd> contacts;
-			result.getContacts(contacts);
+			glm::vec3 boxCenter = otherBox->GetPosition() + otherBox->mPositionOffset;
+			glm::vec3 boxHalfSize = otherBox->GetSize() / 2.0f;
+			glm::vec3 sphereCenter = GetPosition() + mPositionOffset;
+			float sphereRadius = GetRadius();
 
-			if (!contacts.empty())
+			glm::vec3 boxRotation = otherBox->GetRotation() + otherBox->GetRotationOffset();
+			glm::mat4 boxRotationMatrix = glm::yawPitchRoll(glm::radians(boxRotation.y), glm::radians(boxRotation.x), glm::radians(boxRotation.z));
+			glm::mat3 invBoxRotationMatrix = glm::transpose(glm::mat3(boxRotationMatrix));
+
+			glm::vec3 localSphereCenter = invBoxRotationMatrix * (sphereCenter - boxCenter);
+
+			glm::vec3 closestPoint = glm::clamp(localSphereCenter, -boxHalfSize, boxHalfSize);
+
+			closestPoint = glm::vec3(boxRotationMatrix * glm::vec4(closestPoint, 1.0f)) + boxCenter;
+
+			float distance = glm::length(closestPoint - sphereCenter);
+
+			if (distance <= sphereRadius)
 			{
-				const fcl::Contactd& contact = contacts[0];
+				_collisionPoint = closestPoint;
 
-				_collisionPoint = glm::vec3(contact.pos[0], contact.pos[1], contact.pos[2]);
-				_normal = glm::vec3(contact.normal[0], contact.normal[1], contact.normal[2]);
-				_penetrationDepth = std::fabs(static_cast<float>(contact.penetration_depth));
+				if (distance > 1e-6f)
+				{
+					// Sphere center is outside the box: use the vector from the closest point to the sphere center.
+					_normal = glm::normalize(sphereCenter - closestPoint);
+					_penetrationDepth = sphereRadius - distance;
+				}
+				else
+				{
+					// Sphere center is inside the box: compute penetration along each box axis in local space.
+					glm::vec3 absLocal = glm::abs(localSphereCenter);
+					glm::vec3 faceDistances = boxHalfSize - absLocal;
+					float minDistance = faceDistances.x;
+					int axisIndex = 0;
+					if (faceDistances.y < minDistance)
+					{
+						minDistance = faceDistances.y;
+						axisIndex = 1;
+					}
+					if (faceDistances.z < minDistance)
+					{
+						minDistance = faceDistances.z;
+						axisIndex = 2;
+					}
+					// Determine the normal in box-local space.
+					glm::vec3 localNormal(0.0f);
+					localNormal[axisIndex] = (localSphereCenter[axisIndex] >= 0.0f) ? 1.0f : -1.0f;
+					// Transform the local normal to world space.
+					_normal = glm::normalize(glm::vec3(boxRotationMatrix * glm::vec4(localNormal, 0.0f)));
+					_penetrationDepth = sphereRadius - minDistance;
+				}
 
 				return true;
 			}
 		}
-		else
+
+		// We are sphere, other is sphere
+		std::shared_ptr<SphereCollider> otherSphere = std::dynamic_pointer_cast<SphereCollider>(_other);
+		if (otherSphere)
 		{
+			glm::vec3 a = GetPosition() + mPositionOffset;
+			glm::vec3 b = otherSphere->GetPosition() + otherSphere->GetPositionOffset();
+			float ahs = mRadius;
+			float bhs = otherSphere->GetRadius();
+			float distance = glm::distance(a, b);
+			if (distance < ahs + bhs)
+			{
+				glm::vec3 direction = glm::normalize(b - a);
+				_collisionPoint = a + direction * ahs;
+
+				_normal = direction;
+				_penetrationDepth = (ahs + bhs) - distance;
+
+				return true;
+			}
 			return false;
 		}
+
+		// We are sphere, other is model
+		std::shared_ptr<ModelCollider> otherModel = std::dynamic_pointer_cast<ModelCollider>(_other);
+		if (otherModel)
+		{
+			// Get sphere world position and radius.
+			glm::vec3 spherePos = GetPosition() + GetPositionOffset();
+			float sphereRadius = GetRadius();
+			float sphereRadiusSq = sphereRadius * sphereRadius;
+
+			// Build the model's world transformation matrix.
+			glm::vec3 modelPos = otherModel->GetPosition() + otherModel->GetPositionOffset();
+			glm::vec3 modelScale = otherModel->GetScale();
+			glm::vec3 modelRotation = otherModel->GetRotation() + otherModel->GetRotationOffset();
+
+			glm::mat4 modelMatrix = glm::mat4(1.0f);
+			modelMatrix = glm::translate(modelMatrix, modelPos);
+			modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.x), glm::vec3(1, 0, 0));
+			modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.y), glm::vec3(0, 1, 0));
+			modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.z), glm::vec3(0, 0, 1));
+			modelMatrix = glm::scale(modelMatrix, modelScale);
+
+			// Test returned triangle faces of the model's BVH against the sphere.
+			std::vector<Renderer::Model::Face> faces = otherModel->GetTriangles(spherePos, glm::vec3(0), glm::vec3(sphereRadius * 2));
+			for (const auto& face : faces)
+			{
+				// Transform each vertex into world space.
+				glm::vec3 a = glm::vec3(modelMatrix * glm::vec4(face.a.position, 1.0f));
+				glm::vec3 b = glm::vec3(modelMatrix * glm::vec4(face.b.position, 1.0f));
+				glm::vec3 c = glm::vec3(modelMatrix * glm::vec4(face.c.position, 1.0f));
+
+				// Compute the closest point on this triangle to the sphere center.
+				glm::vec3 closestPoint = Maths::ClosestPointOnTriangle(spherePos, a, b, c);
+
+				// Check if the distance from the sphere's center to this point is within the radius.
+				glm::vec3 diff = spherePos - closestPoint;
+				float distanceSq = glm::dot(diff, diff);
+				if (distanceSq <= sphereRadiusSq)
+				{
+					_collisionPoint = closestPoint;
+
+					float distance = glm::length(diff);
+					if (distance > 1e-6f)
+					{
+						_normal = glm::normalize(diff);
+						_penetrationDepth = sphereRadius - distance;
+					}
+					else
+					{
+						// Degenerate case: sphere center is exactly on the triangle.
+						// Use the triangle's face normal as the collision normal.
+						glm::vec3 triNormal = glm::normalize(glm::cross(b - a, c - a));
+						// Ensure the normal points from the model toward the sphere.
+						if (glm::dot(spherePos - closestPoint, triNormal) < 0.0f)
+							triNormal = -triNormal;
+						_normal = triNormal;
+						_penetrationDepth = sphereRadius;
+					}
+
+					return true;
+				}
+			}
+		}
+
+		return false;
 	}
 
 	glm::mat3 SphereCollider::UpdateInertiaTensor(float _mass)

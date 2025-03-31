@@ -35,8 +35,6 @@ namespace JamesEngine
 		std::vector<std::shared_ptr<Collider>> colliders;
 		GetEntity()->GetCore()->FindComponents(colliders);
 
-		std::shared_ptr<Collider> ourCollider = GetEntity()->GetComponent<Collider>();
-
 		// Iterate through all colliders to see if we're colliding with any
 		for (auto& otherCollider : colliders)
 		{
@@ -44,17 +42,18 @@ namespace JamesEngine
 			if (otherCollider->GetTransform() == GetTransform())
 				continue;
 
+			std::shared_ptr<Collider> collider = GetEntity()->GetComponent<Collider>();
+
 			glm::vec3 collisionPoint;
 			glm::vec3 collisionNormal;
 			float penetrationDepth;
 
 			// Check if colliding
-			if (ourCollider->IsColliding(otherCollider, collisionPoint, collisionNormal, penetrationDepth))
+			if (otherCollider->IsColliding(collider, collisionPoint, collisionNormal, penetrationDepth))
 			{
-
 				mCollisionPoint = collisionPoint;
 
-				collisionNormal = glm::normalize(-collisionNormal);
+				collisionNormal = glm::normalize(collisionNormal);
 
 				// Call OnCOllision for all components on both entities
 				for (size_t ci = 0; ci < GetEntity()->mComponents.size(); ci++)
@@ -96,8 +95,7 @@ namespace JamesEngine
 		Verlet();
 
 		// Setp 6: Convert to euler angles
-		if (!mLockRotation)
-			CalculateAngles();
+		CalculateAngles();
 
 		// Step 7: Clear forces
 		ClearForces();
@@ -192,8 +190,8 @@ namespace JamesEngine
 		float relVelAlongNormal = glm::dot(relativeVel, _normal);
 
 		// Do not resolve if moving apart.
-		if (relVelAlongNormal > 0.0f)
-			return;
+		//if (relVelAlongNormal > 0.0f)
+			//return;
 
 		// --- Effective mass (including rotation) for normal impulse ---
 		// Compute the effect of angular inertia.
@@ -382,7 +380,7 @@ namespace JamesEngine
 		//// Apply friction impulse to the dynamic object.
 		//SetVelocity(GetVelocity() + frictionImpulse * invMass);
 		//SetAngularMomentum(GetAngularMomentum() + glm::cross(r, frictionImpulse));
-		
+
 		// ----------------------------- Third Implementation ---------------------------
 		// Compute the vector from the center of mass to the collision point.
 		glm::vec3 r = _collisionPoint - GetPosition();
@@ -427,7 +425,7 @@ namespace JamesEngine
     
 		// The static object has zero velocity, so the relative velocity is simply v.
 		glm::vec3 relativeVelocity = v;
-
+    
 		// Determine the tangent direction by removing the normal component.
 		glm::vec3 tangent = relativeVelocity - glm::dot(relativeVelocity, _normal) * _normal;
 		if (glm::length(tangent) > 0.0001f)

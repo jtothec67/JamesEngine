@@ -10,8 +10,6 @@ include_directories(
 
 link_directories(
 	contrib/cl-windows-x84_64/lib
-	contrib/cl-windows-x84_64/lib/Release
-	contrib/cl-windows-x84_64/lib/Debug
 )
 
 add_library(JamesEngine
@@ -78,14 +76,8 @@ add_library(JamesEngine
 	src/JamesEngine/SphereCollider.h
 	src/JamesEngine/SphereCollider.cpp
 
-	src/JamesEngine/CylinderCollider.h
-	src/JamesEngine/CylinderCollider.cpp
-
 	src/JamesEngine/ModelCollider.h
 	src/JamesEngine/ModelCollider.cpp
-
-	src/JamesEngine/RayCollider.h
-	src/JamesEngine/RayCollider.cpp
 
 	src/JamesEngine/Rigidbody.h
 	src/JamesEngine/Rigidbody.cpp
@@ -112,7 +104,7 @@ add_library(JamesEngine
 	src/JamesEngine/LightManager.cpp
 )
 
-target_link_libraries(JamesEngine Renderer openal32 fcl ccd)
+target_link_libraries(JamesEngine Renderer openal32 fcl ccd octomap octomath)
 
 add_library(Renderer
 	src/Renderer/Font.h

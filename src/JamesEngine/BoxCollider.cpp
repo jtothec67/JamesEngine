@@ -10,7 +10,6 @@
 #ifdef _DEBUG
 #include "Camera.h"
 #include "Entity.h"
-#include "Transform.h"
 
 #include <glm/glm.hpp>
 #include <glm/ext/matrix_transform.hpp>
@@ -34,19 +33,15 @@ namespace JamesEngine
 
 		mShader->uniform("view", camera->GetViewMatrix());
 
-        /*glm::mat4 mModelMatrix = glm::mat4(1.f);
+        glm::mat4 mModelMatrix = glm::mat4(1.f);
         mModelMatrix = glm::translate(mModelMatrix, GetPosition() + mPositionOffset);
         glm::vec3 rotation = GetRotation() + GetRotationOffset();
         mModelMatrix = glm::rotate(mModelMatrix, glm::radians(rotation.x), glm::vec3(1, 0, 0));
         mModelMatrix = glm::rotate(mModelMatrix, glm::radians(rotation.y), glm::vec3(0, 1, 0));
         mModelMatrix = glm::rotate(mModelMatrix, glm::radians(rotation.z), glm::vec3(0, 0, 1));
-		mModelMatrix = glm::scale(mModelMatrix, glm::vec3(mSize.x/2, mSize.y/2, mSize.z/2));*/
+		mModelMatrix = glm::scale(mModelMatrix, glm::vec3(mSize.x/2, mSize.y/2, mSize.z/2));
 
-        glm::mat4 mQuatModelMatrix = GetEntity()->GetComponent<Transform>()->GetModel();
-		mQuatModelMatrix = glm::scale(mQuatModelMatrix, glm::vec3(1/GetScale().x, 1/GetScale().y, 1/GetScale().z));
-		mQuatModelMatrix = glm::scale(mQuatModelMatrix, glm::vec3(mSize.x, mSize.y, mSize.z));
-
-		mShader->uniform("model", mQuatModelMatrix);
+		mShader->uniform("model", mModelMatrix);
 
 		mShader->uniform("outlineWidth", 1.f);
 
@@ -68,45 +63,281 @@ namespace JamesEngine
 			return false;
 		}
 
-        UpdateFCLTransform(GetPosition(), GetRotation());
-        _other->UpdateFCLTransform(_other->GetPosition(), _other->GetRotation());
+		// We are box, other is box
+		std::shared_ptr<BoxCollider> otherBox = std::dynamic_pointer_cast<BoxCollider>(_other);
+		if (otherBox)
+		{
+            glm::vec3 aPos = GetPosition() + mPositionOffset;
+            glm::vec3 bPos = otherBox->GetPosition() + otherBox->GetPositionOffset();
+            glm::vec3 aSize = GetSize() / 2.0f;
+            glm::vec3 bSize = otherBox->GetSize() / 2.0f;
 
-		
-        // Get FCL collision objects
-        fcl::CollisionObjectd* objA = GetFCLObject();
-        fcl::CollisionObjectd* objB = _other->GetFCLObject();
+            glm::vec3 aRotation = GetRotation() + mRotationOffset;
+            glm::vec3 bRotation = otherBox->GetRotation() + otherBox->GetRotationOffset();
 
-        // Request contact information
-        fcl::CollisionRequestd request;
-        request.enable_contact = true;
-        request.num_max_contacts = 1;
+            glm::mat4 aRotationMatrix = glm::yawPitchRoll(glm::radians(aRotation.y), glm::radians(aRotation.x), glm::radians(aRotation.z));
+            glm::mat4 bRotationMatrix = glm::yawPitchRoll(glm::radians(bRotation.y), glm::radians(bRotation.x), glm::radians(bRotation.z));
 
-        fcl::CollisionResultd result;
+            glm::vec3 aAxes[3] = {
+                glm::vec3(aRotationMatrix[0]),
+                glm::vec3(aRotationMatrix[1]),
+                glm::vec3(aRotationMatrix[2])
+            };
 
-        // Perform collision
-        fcl::collide(objA, objB, request, result);
+            glm::vec3 bAxes[3] = {
+                glm::vec3(bRotationMatrix[0]),
+                glm::vec3(bRotationMatrix[1]),
+                glm::vec3(bRotationMatrix[2])
+            };
 
-        if (result.isCollision())
-        {
-            // Extract contact info
-            std::vector<fcl::Contactd> contacts;
-            result.getContacts(contacts);
+            glm::vec3 translation = bPos - aPos;
+            translation = glm::vec3(glm::dot(translation, aAxes[0]), glm::dot(translation, aAxes[1]), glm::dot(translation, aAxes[2]));
 
-            if (!contacts.empty())
+            glm::mat3 rotation;
+            for (int i = 0; i < 3; i++)
             {
-                const fcl::Contactd& contact = contacts[0];
+                for (int j = 0; j < 3; j++)
+                {
+                    rotation[i][j] = glm::dot(aAxes[i], bAxes[j]);
+                }
+            }
 
-                _collisionPoint = glm::vec3(contact.pos[0], contact.pos[1], contact.pos[2]);
-                _normal = glm::vec3(contact.normal[0], contact.normal[1], contact.normal[2]);
-                _penetrationDepth = std::fabs(static_cast<float>(contact.penetration_depth));
+            glm::mat3 absRotation;
+            for (int i = 0; i < 3; i++)
+            {
+                for (int j = 0; j < 3; j++)
+                {
+                    absRotation[i][j] = std::abs(rotation[i][j]) + std::numeric_limits<float>::epsilon();
+                }
+            }
+
+            for (int i = 0; i < 3; i++)
+            {
+                float ra = aSize[i];
+                float rb = bSize[0] * absRotation[i][0] + bSize[1] * absRotation[i][1] + bSize[2] * absRotation[i][2];
+                if (std::abs(translation[i]) > ra + rb) return false;
+            }
+
+            for (int i = 0; i < 3; i++)
+            {
+                float ra = aSize[0] * absRotation[0][i] + aSize[1] * absRotation[1][i] + aSize[2] * absRotation[2][i];
+                float rb = bSize[i];
+                if (std::abs(translation[0] * rotation[0][i] + translation[1] * rotation[1][i] + translation[2] * rotation[2][i]) > ra + rb)
+                    return false;
+            }
+
+            for (int i = 0; i < 3; i++)
+            {
+                for (int j = 0; j < 3; j++)
+                {
+                    float ra = aSize[(i + 1) % 3] * absRotation[(i + 2) % 3][j] + aSize[(i + 2) % 3] * absRotation[(i + 1) % 3][j];
+                    float rb = bSize[(j + 1) % 3] * absRotation[i][(j + 2) % 3] + bSize[(j + 2) % 3] * absRotation[i][(j + 1) % 3];
+                    if (std::abs(translation[(i + 2) % 3] * rotation[(i + 1) % 3][j] - translation[(i + 1) % 3] * rotation[(i + 2) % 3][j]) > ra + rb)
+                        return false;
+                }
+            }
+
+            _collisionPoint = (aPos + bPos) / 2.0f;
+
+            float minPenetration = std::numeric_limits<float>::max();
+            glm::vec3 bestAxis(0.0f);
+
+            // Test the 3 axes of box A (aAxes)
+            for (int i = 0; i < 3; i++)
+            {
+                float ra = aSize[i];
+                float rb = bSize[0] * absRotation[i][0] + bSize[1] * absRotation[i][1] + bSize[2] * absRotation[i][2];
+                float axisProj = std::abs(translation[i]);
+                float overlap = (ra + rb) - axisProj;
+                if (overlap < minPenetration)
+                {
+                    minPenetration = overlap;
+                    bestAxis = aAxes[i] * ((translation[i] < 0.0f) ? -1.0f : 1.0f);
+                }
+            }
+
+            // Test the 3 axes of box B (bAxes)
+            for (int i = 0; i < 3; i++)
+            {
+                float ra = aSize[0] * absRotation[0][i] + aSize[1] * absRotation[1][i] + aSize[2] * absRotation[2][i];
+                float proj = translation[0] * rotation[0][i] + translation[1] * rotation[1][i] + translation[2] * rotation[2][i];
+                float rb = bSize[i];
+                float overlap = (ra + rb) - std::abs(proj);
+                if (overlap < minPenetration)
+                {
+                    minPenetration = overlap;
+                    bestAxis = bAxes[i] * ((proj < 0.0f) ? -1.0f : 1.0f);
+                }
+            }
+
+            // Test the 9 cross-product axes (aAxes[i] x bAxes[j])
+            for (int i = 0; i < 3; i++)
+            {
+                for (int j = 0; j < 3; j++)
+                {
+                    float cp = std::abs(translation[(i + 2) % 3] * rotation[(i + 1) % 3][j] - translation[(i + 1) % 3] * rotation[(i + 2) % 3][j]);
+                    float ra = aSize[(i + 1) % 3] * absRotation[(i + 2) % 3][j] + aSize[(i + 2) % 3] * absRotation[(i + 1) % 3][j];
+                    float rb = bSize[(j + 1) % 3] * absRotation[i][(j + 2) % 3] + bSize[(j + 2) % 3] * absRotation[i][(j + 1) % 3];
+                    float overlap = (ra + rb) - cp;
+                    if (overlap < minPenetration)
+                    {
+                        minPenetration = overlap;
+                        glm::vec3 axis = glm::cross(aAxes[i], bAxes[j]);
+                        if (glm::length(axis) > 0.0f)
+                            axis = glm::normalize(axis);
+                        // Ensure the axis points from this box to the other box.
+                        float dotProd = glm::dot(bPos - aPos, axis);
+                        if (dotProd < 0.0f)
+                            axis = -axis;
+                        bestAxis = axis;
+                    }
+                }
+            }
+
+            _normal = bestAxis;
+            _penetrationDepth = minPenetration;
+
+            return true;
+		}
+
+		// We are box, other is sphere
+		std::shared_ptr<SphereCollider> otherSphere = std::dynamic_pointer_cast<SphereCollider>(_other);
+		if (otherSphere)
+		{
+            glm::vec3 boxCenter = GetPosition() + mPositionOffset;
+            glm::vec3 boxHalfSize = GetSize() / 2.0f;
+            glm::vec3 sphereCenter = otherSphere->GetPosition() + otherSphere->mPositionOffset;
+            float sphereRadius = otherSphere->GetRadius();
+
+            glm::vec3 boxRotation = GetRotation() + mRotationOffset;
+            glm::mat4 boxRotationMatrix = glm::yawPitchRoll(glm::radians(boxRotation.y), glm::radians(boxRotation.x), glm::radians(boxRotation.z));
+            glm::mat3 invBoxRotationMatrix = glm::transpose(glm::mat3(boxRotationMatrix));
+
+            glm::vec3 localSphereCenter = invBoxRotationMatrix * (sphereCenter - boxCenter);
+
+            glm::vec3 closestPoint = glm::clamp(localSphereCenter, -boxHalfSize, boxHalfSize);
+
+            closestPoint = glm::vec3(boxRotationMatrix * glm::vec4(closestPoint, 1.0f)) + boxCenter;
+
+            float distance = glm::length(closestPoint - sphereCenter);
+
+            if (distance <= sphereRadius)
+            {
+                _collisionPoint = closestPoint;
+
+                if (distance > 1e-6f)
+                {
+                    // Sphere center is outside the box: use the vector from the closest point to the sphere center.
+                    _normal = glm::normalize(sphereCenter - closestPoint);
+                    _penetrationDepth = sphereRadius - distance;
+                }
+                else
+                {
+                    // Sphere center is inside the box: compute penetration along each box axis in local space.
+                    glm::vec3 absLocal = glm::abs(localSphereCenter);
+                    glm::vec3 faceDistances = boxHalfSize - absLocal;
+                    float minDistance = faceDistances.x;
+                    int axisIndex = 0;
+                    if (faceDistances.y < minDistance)
+                    {
+                        minDistance = faceDistances.y;
+                        axisIndex = 1;
+                    }
+                    if (faceDistances.z < minDistance)
+                    {
+                        minDistance = faceDistances.z;
+                        axisIndex = 2;
+                    }
+                    // Determine the normal in box-local space.
+                    glm::vec3 localNormal(0.0f);
+                    localNormal[axisIndex] = (localSphereCenter[axisIndex] >= 0.0f) ? 1.0f : -1.0f;
+                    // Transform the local normal to world space.
+                    _normal = glm::normalize(glm::vec3(boxRotationMatrix * glm::vec4(localNormal, 0.0f)));
+                    _penetrationDepth = sphereRadius - minDistance;
+                }
 
                 return true;
             }
-        }
-        else
+		}
+
+		// We are box, other is model
+		std::shared_ptr<ModelCollider> otherModel = std::dynamic_pointer_cast<ModelCollider>(_other);
+        if (otherModel)
         {
-			return false;
+            // Get the box's world parameters.
+            glm::vec3 boxPos = GetPosition() + GetPositionOffset();
+            glm::vec3 boxRotation = GetRotation() + GetRotationOffset();
+            glm::vec3 boxSize = GetSize();
+            glm::vec3 boxHalfSize = boxSize * 0.5f;
+
+            // Build the box's rotation matrix (from Euler angles).
+            glm::mat4 boxRotMatrix = glm::mat4(1.0f);
+            boxRotMatrix = glm::rotate(boxRotMatrix, glm::radians(boxRotation.x), glm::vec3(1, 0, 0));
+            boxRotMatrix = glm::rotate(boxRotMatrix, glm::radians(boxRotation.y), glm::vec3(0, 1, 0));
+            boxRotMatrix = glm::rotate(boxRotMatrix, glm::radians(boxRotation.z), glm::vec3(0, 0, 1));
+            // Inverse rotation (since the rotation matrix is orthonormal, the inverse is its transpose)
+            glm::mat4 invBoxRotMatrix = glm::transpose(boxRotMatrix);
+
+            // Build the model's world transformation matrix.
+            glm::vec3 modelPos = otherModel->GetPosition() + otherModel->GetPositionOffset();
+            glm::vec3 modelScale = otherModel->GetScale();
+            glm::vec3 modelRotation = otherModel->GetRotation() + otherModel->GetRotationOffset();
+            glm::mat4 modelMatrix = glm::mat4(1.0f);
+            modelMatrix = glm::translate(modelMatrix, modelPos);
+            modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.x), glm::vec3(1, 0, 0));
+            modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.y), glm::vec3(0, 1, 0));
+            modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.z), glm::vec3(0, 0, 1));
+            modelMatrix = glm::scale(modelMatrix, modelScale);
+
+            std::vector<Renderer::Model::Face> faces = otherModel->GetTriangles(boxPos, boxRotation, boxSize);
+            for (const auto& face : faces)
+            {
+                // Transform triangle vertices into world space.
+                glm::vec3 a = glm::vec3(modelMatrix * glm::vec4(face.a.position, 1.0f));
+                glm::vec3 b = glm::vec3(modelMatrix * glm::vec4(face.b.position, 1.0f));
+                glm::vec3 c = glm::vec3(modelMatrix * glm::vec4(face.c.position, 1.0f));
+
+                // Transform the vertices into the box's local space.
+                glm::vec3 aLocal = glm::vec3(invBoxRotMatrix * glm::vec4(a - boxPos, 1.0f));
+                glm::vec3 bLocal = glm::vec3(invBoxRotMatrix * glm::vec4(b - boxPos, 1.0f));
+                glm::vec3 cLocal = glm::vec3(invBoxRotMatrix * glm::vec4(c - boxPos, 1.0f));
+                glm::vec3 triVerts[3] = { aLocal, bLocal, cLocal };
+
+                // Use the SAT-based triangle-box test.
+                if (Maths::TriBoxOverlap(triVerts, boxHalfSize))
+                {
+                    // Compute an approximate collision point.
+                    // Here we take the closest point on the triangle (in world space)
+                    // to the box center.
+                    glm::vec3 closestPoint = Maths::ClosestPointOnTriangle(boxPos, a, b, c);
+                    _collisionPoint = closestPoint;
+
+                    // Compute the triangle's normal in world space.
+                    glm::vec3 triNormal = glm::normalize(glm::cross(b - a, c - a));
+                    // Ensure the normal points from the model (triangle) toward the box.
+                    if (glm::dot(boxPos - closestPoint, triNormal) < 0.0f)
+                        triNormal = -triNormal;
+                    _normal = triNormal;
+
+                    // To compute penetration depth, determine the box's support point
+                    // in the direction opposite to the collision normal.
+                    glm::vec3 localNormal = glm::vec3(invBoxRotMatrix * glm::vec4(_normal, 0.0f));
+                    glm::vec3 supportLocal;
+                    supportLocal.x = (localNormal.x >= 0.0f) ? -boxHalfSize.x : boxHalfSize.x;
+                    supportLocal.y = (localNormal.y >= 0.0f) ? -boxHalfSize.y : boxHalfSize.y;
+                    supportLocal.z = (localNormal.z >= 0.0f) ? -boxHalfSize.z : boxHalfSize.z;
+                    glm::vec3 supportWorld = boxPos + glm::vec3(boxRotMatrix * glm::vec4(supportLocal, 0.0f));
+
+                    // Penetration depth is approximated as the projection of the vector from the support point
+                    // to the collision point along the collision normal.
+                    _penetrationDepth = glm::dot(_normal, _collisionPoint - supportWorld);
+
+                    return true;
+                }
+            }
         }
+
+		return false;
 	}
 
     glm::mat3 BoxCollider::UpdateInertiaTensor(float _mass)
