@@ -16,8 +16,16 @@ namespace JamesEngine
 		void AddTorque(glm::vec3 _torque) { mTorque += _torque; }
 		void ClearForces() { mForce = glm::vec3(0); mTorque = glm::vec3(0); }
 
+		void ApplyImpulse(glm::vec3 _impulse) { mVelocity += _impulse / mMass; }
+
 		void SetMass(float _mass) { mMass = _mass; }
 		float GetMass() { return mMass; }
+
+		void SetFriction(float _friction) { mFriction = glm::clamp(_friction, 0.f, 1.f); }
+		float GetFriction() { return mFriction; }
+
+		void SetRestitution(float _restitution) { mRestitution = glm::clamp(_restitution, 0.f, 1.f); }
+		float GetRestitution() { return mRestitution; }
 
 		void SetForce(glm::vec3 _force) { mForce = _force; }
 		glm::vec3 GetForce() { return mForce; }
@@ -62,6 +70,8 @@ namespace JamesEngine
 		glm::vec3 mPreviousPosition = glm::vec3(0);
 
 		float mMass = 1;
+		float mFriction = 0.5f;
+		float mRestitution = 0.5f;
 
 		glm::vec3 mTorque = glm::vec3{ 0 };
 		glm::vec3 mAngularVelocity = glm::vec3{ 0 };

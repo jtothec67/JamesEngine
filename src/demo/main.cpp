@@ -63,14 +63,24 @@ struct boxController : public Component
 			GetTransform()->Move(glm::vec3(0, -1, 0) * speed * GetCore()->DeltaTime());
 		}
 
-		if (GetKeyboard()->IsKeyDown(SDLK_m))
+		if (GetKeyboard()->IsKeyDown(SDLK_u))
 		{
-			rb->AddForce(glm::vec3(0, 0, -1000));
+			rb->ApplyImpulse(glm::vec3(-1000, 0, 0) * GetCore()->DeltaTime());
 		}
 
-		if (GetKeyboard()->IsKeyDown(SDLK_n))
+		if (GetKeyboard()->IsKeyDown(SDLK_j))
 		{
-			rb->AddForce(glm::vec3(0, 0, 1000));
+			rb->ApplyImpulse(glm::vec3(1000, 0, 0) * GetCore()->DeltaTime());
+		}
+
+		if (GetKeyboard()->IsKeyDown(SDLK_h))
+		{
+			rb->ApplyImpulse(glm::vec3(0, 0, 1000) * GetCore()->DeltaTime());
+		}
+
+		if (GetKeyboard()->IsKeyDown(SDLK_k))
+		{
+			rb->ApplyImpulse(glm::vec3(0, 0, -1000) * GetCore()->DeltaTime());
 		}
 
 		//std::cout << "Position: " << GetTransform()->GetPosition().x << ", " << GetTransform()->GetPosition().y << ", " << GetTransform()->GetPosition().z << std::endl;
@@ -117,7 +127,7 @@ int main()
 
 		std::shared_ptr<Entity> cameraEntity = core->AddEntity();
 		std::shared_ptr<Camera> camera = cameraEntity->AddComponent<Camera>();
-		cameraEntity->GetComponent<Transform>()->SetPosition(vec3(15, 2.f, -16));
+		cameraEntity->GetComponent<Transform>()->SetPosition(vec3(0, 0.f, -0));
 		cameraEntity->GetComponent<Transform>()->SetRotation(vec3(0, 90, 0));
 		cameraEntity->AddComponent<freelookCamController>();
 
@@ -138,6 +148,7 @@ int main()
 		boxEntity2->GetComponent<Transform>()->SetPosition(vec3(5, 10.f, -16));
 		boxEntity2->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		boxEntity2->GetComponent<Transform>()->SetScale(vec3(0.5, 0.5, 0.5));
+		cameraEntity->GetComponent<Transform>()->SetParent(boxEntity2);
 		//boxEntity2->AddComponent<TriangleRenderer>();
 		std::shared_ptr<ModelRenderer> boxMR2 = boxEntity2->AddComponent<ModelRenderer>();
 		boxMR2->SetModel(core->GetResources()->Load<Model>("shapes/capsule"));
@@ -195,7 +206,7 @@ int main()
 		std::shared_ptr<Rigidbody> box2rb = boxEntity2->AddComponent<Rigidbody>();
 		//box2rb->AddForce(glm::vec3(300, 0, 0));
 		box2rb->SetMass(1);
-		box2rb->LockRotation(false);
+		box2rb->LockRotation(true);
 		boxEntity2->AddComponent<boxController>()->rb = box2rb;
 
 		//std::shared_ptr<Rigidbody> box3rb = boxEntity3->AddComponent<Rigidbody>();

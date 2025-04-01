@@ -127,7 +127,6 @@ namespace JamesEngine
             glm::vec3 bbSize = bbMax - bbMin;
 
             // Retrieve the triangles from the model that lie within the ray's AABB.
-            // (This assumes GetTriangles() can take a bounding box defined by an origin, zero rotation, and size.)
             std::vector<Renderer::Model::Face> faces = otherModel->GetTriangles(bbCenter, glm::vec3(0), bbSize);
 
             bool hit = false;
@@ -143,8 +142,6 @@ namespace JamesEngine
                 glm::vec3 c = glm::vec3(modelMatrix * glm::vec4(face.c.position, 1.0f));
 
                 // Test for ray-triangle intersection.
-                // Assume Maths::RayTriangleIntersect returns true if the ray intersects the triangle
-                // and outputs t (distance along the ray) as well as barycentric coordinates (u, v).
                 float t, u, v;
                 if (Maths::RayTriangleIntersect(rayOrigin, rayDirection, a, b, c, t, u, v))
                 {
@@ -155,7 +152,7 @@ namespace JamesEngine
                         hitPoint = rayOrigin + rayDirection * t;
                         // Compute the triangle's normal.
                         hitNormal = glm::normalize(glm::cross(b - a, c - a));
-                        // Make sure the normal points against the ray direction.
+                        // Ensure the normal points against the ray direction.
                         if (glm::dot(rayDirection, hitNormal) > 0.0f)
                             hitNormal = -hitNormal;
                         hit = true;
@@ -165,14 +162,24 @@ namespace JamesEngine
 
             if (hit)
             {
+                float surfaceAlignment = glm::dot(hitNormal, -rayDirection);
+
+                float groundPenetration = mLength - closestT;
+
+                // Should bounce off wall, not stand on top
+                if ((surfaceAlignment <= mSteepnessThreshold) && (groundPenetration >= mLength * mMinPenetrationPercentage))
+                {
+                    glm::vec3 objectToHit = hitPoint - rayOrigin;
+                    _penetrationDepth = glm::dot(objectToHit, hitNormal);
+                    _normal = -hitNormal;
+                }
+                else
+                {
+                    _penetrationDepth = groundPenetration;
+                    _normal = -hitNormal;
+                }
+
                 _collisionPoint = hitPoint;
-                _normal = -hitNormal;
-                _penetrationDepth = mLength - closestT;
-
-				std::cout << "Ray hit model at " << glm::to_string(_collisionPoint) << std::endl;
-				std::cout << "Normal: " << glm::to_string(_normal) << std::endl;
-				std::cout << "Penetration depth: " << _penetrationDepth << std::endl;
-
                 return true;
             }
         }
