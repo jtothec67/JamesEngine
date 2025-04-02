@@ -35,7 +35,7 @@ namespace JamesEngine
 		glm::vec3 mDirection{ 0, -1, 0 };
 		float mLength = 5;
 
-		float mSteepnessThreshold = 0.7f;
+		float mSteepnessThreshold = 0.5f;
 		float mMinPenetrationPercentage = 0.2f;
 
 #ifdef _DEBUG

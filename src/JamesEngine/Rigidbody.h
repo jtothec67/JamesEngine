@@ -17,6 +17,9 @@ namespace JamesEngine
 		void ClearForces() { mForce = glm::vec3(0); mTorque = glm::vec3(0); }
 
 		void ApplyImpulse(glm::vec3 _impulse) { mVelocity += _impulse / mMass; }
+		void ApplyTorqueImpulse(glm::vec3 _impulse) { mAngularMomentum += _impulse; }
+
+		void ApplyForce(glm::vec3 _force, glm::vec3 _point) { mForce += _force; mTorque += glm::cross(_point - GetPosition(), _force); }
 
 		void SetMass(float _mass) { mMass = _mass; }
 		float GetMass() { return mMass; }
@@ -44,6 +47,8 @@ namespace JamesEngine
 
 		void SetAngularVelocity(glm::vec3 _angularVelocity) { mAngularVelocity = _angularVelocity; }
 		glm::vec3 GetAngularVelocity() { return mAngularVelocity; }
+
+		glm::vec3 GetVelocityAtPoint(glm::vec3 _point) { return mVelocity + glm::cross(mAngularVelocity, _point - GetPosition()); }
 
 		glm::vec3 mCollisionPoint = glm::vec3(0);
 

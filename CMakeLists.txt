@@ -105,6 +105,9 @@ add_library(JamesEngine
 
 	src/JamesEngine/LightManager.h
 	src/JamesEngine/LightManager.cpp
+
+	src/JamesEngine/Suspension.h
+	src/JamesEngine/Suspension.cpp
 )
 
 target_link_libraries(JamesEngine Renderer openal32)

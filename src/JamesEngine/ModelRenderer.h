@@ -20,12 +20,18 @@ namespace JamesEngine
 
 		void SetSpecularStrength(float _strength) { mSpecularStrength = _strength; }
 
+		void SetPositionOffset(glm::vec3 _offset) { mPositionOffset = _offset; }
+		void SetRotationOffset(glm::vec3 _offset) { mRotationOffset = _offset; }
+
 	private:
 		std::shared_ptr<Model> mModel = nullptr;
 		std::shared_ptr<Texture> mTexture = nullptr;
 		std::shared_ptr<Shader> mShader;
 
 		float mSpecularStrength = 1.f;
+
+		glm::vec3 mPositionOffset{ 0 };
+		glm::vec3 mRotationOffset{ 0 };
 	};
 
 }

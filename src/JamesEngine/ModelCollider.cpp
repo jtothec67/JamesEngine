@@ -338,7 +338,7 @@ namespace JamesEngine
                 // Assign final values
                 _collisionPoint = averagedContactPoint;
                 _penetrationDepth = maxPenetrationDepth;
-                _normal = weightedNormal;
+                _normal = -weightedNormal;
 
                 return true;
             }

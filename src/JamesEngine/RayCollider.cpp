@@ -171,15 +171,16 @@ namespace JamesEngine
                 {
                     glm::vec3 objectToHit = hitPoint - rayOrigin;
                     _penetrationDepth = glm::dot(objectToHit, hitNormal);
-                    _normal = -hitNormal;
+                    _normal = hitNormal;
                 }
                 else
                 {
                     _penetrationDepth = groundPenetration;
-                    _normal = -hitNormal;
+                    _normal = hitNormal;
                 }
 
                 _collisionPoint = hitPoint;
+
                 return true;
             }
         }

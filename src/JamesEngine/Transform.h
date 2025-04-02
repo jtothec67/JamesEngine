@@ -15,6 +15,7 @@ namespace JamesEngine
         void SetParent(std::shared_ptr<Entity> _parent) { mParent = _parent; }
 
         void SetPosition(glm::vec3 _position) { mPosition = _position; }
+		glm::vec3 GetLocalPosition() { return mPosition; }
         glm::vec3 GetPosition();
 
         void SetRotation(glm::vec3 _rotation)

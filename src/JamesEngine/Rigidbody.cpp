@@ -53,7 +53,7 @@ namespace JamesEngine
 			{
 				mCollisionPoint = collisionPoint;
 
-				collisionNormal = glm::normalize(-collisionNormal);
+				collisionNormal = glm::normalize(collisionNormal);
 
 				// Call OnCOllision for all components on both entities
 				for (size_t ci = 0; ci < GetEntity()->mComponents.size(); ci++)
