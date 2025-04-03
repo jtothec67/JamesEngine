@@ -26,17 +26,17 @@ struct freelookCamController : public Component
 			GetTransform()->Move(-GetTransform()->GetRight() * speed * GetCore()->DeltaTime());
 		if (GetKeyboard()->IsKey(SDLK_d))
 			GetTransform()->Move(GetTransform()->GetRight() * speed * GetCore()->DeltaTime());
-		if (GetKeyboard()->IsKey(SDLK_q))
+		/*if (GetKeyboard()->IsKey(SDLK_q))
 			GetTransform()->Move(-GetTransform()->GetUp() * speed * GetCore()->DeltaTime());
 		if (GetKeyboard()->IsKey(SDLK_e))
-			GetTransform()->Move(GetTransform()->GetUp() * speed * GetCore()->DeltaTime());
+			GetTransform()->Move(GetTransform()->GetUp() * speed * GetCore()->DeltaTime());*/
 		if (GetKeyboard()->IsKey(SDLK_UP))
 			GetTransform()->Rotate(vec3(sensitivity * GetCore()->DeltaTime(), 0, 0));
 		if (GetKeyboard()->IsKey(SDLK_DOWN))
 			GetTransform()->Rotate(vec3(-sensitivity * GetCore()->DeltaTime(), 0, 0));
-		if (GetKeyboard()->IsKey(SDLK_LEFT))
+		if (GetKeyboard()->IsKey(SDLK_q))
 			GetTransform()->Rotate(vec3(0, sensitivity * GetCore()->DeltaTime(), 0));
-		if (GetKeyboard()->IsKey(SDLK_RIGHT))
+		if (GetKeyboard()->IsKey(SDLK_e))
 			GetTransform()->Rotate(vec3(0, -sensitivity * GetCore()->DeltaTime(), 0));
 		
 	}
@@ -45,28 +45,31 @@ struct freelookCamController : public Component
 struct boxController : public Component
 {
 	std::shared_ptr<Rigidbody> rb;
+	std::shared_ptr<Entity> carBody;
+
+	float speed = 100.f;
 
 	void OnTick()
 	{
 		if (GetKeyboard()->IsKey(SDLK_u))
 		{
-			rb->ApplyImpulse(glm::vec3(-10, 0, 0) * GetCore()->DeltaTime());
+			rb->ApplyImpulse(carBody->GetComponent<Transform>()->GetRight() * speed * GetCore()->DeltaTime());
 		}
 
 		if (GetKeyboard()->IsKey(SDLK_j))
 		{
-			rb->ApplyImpulse(glm::vec3(10, 0, 0) * GetCore()->DeltaTime());
+			rb->ApplyImpulse(-carBody->GetComponent<Transform>()->GetRight() * speed * GetCore()->DeltaTime());
 		}
 
-		if (GetKeyboard()->IsKey(SDLK_h))
+		/*if (GetKeyboard()->IsKey(SDLK_h))
 		{
-			rb->ApplyImpulse(glm::vec3(0, 0, 10) * GetCore()->DeltaTime());
+			rb->ApplyImpulse(-carBody->GetComponent<Transform>()->GetForward() * speed * GetCore()->DeltaTime());
 		}
 
 		if (GetKeyboard()->IsKey(SDLK_k))
 		{
-			rb->ApplyImpulse(glm::vec3(0, 0, -10) * GetCore()->DeltaTime());
-		}
+			rb->ApplyImpulse(carBody->GetComponent<Transform>()->GetForward() * speed * GetCore()->DeltaTime());
+		}*/
 	}
 
 	void OnCollision(std::shared_ptr<Entity> _otherEntity)
@@ -94,6 +97,29 @@ struct CollisionTest : public Component
 	}
 };
 
+struct CarController : public Component
+{
+	std::shared_ptr<Rigidbody> rb;
+
+	void OnTick()
+	{
+		if (GetKeyboard()->IsKey(SDLK_h))
+		{
+			rb->AddTorque(GetEntity()->GetComponent<Transform>()->GetUp() * 100000.f * GetCore()->DeltaTime());
+		}
+
+		if (GetKeyboard()->IsKey(SDLK_k))
+		{
+			rb->AddTorque(-GetEntity()->GetComponent<Transform>()->GetUp() * 100000.f * GetCore()->DeltaTime());
+		}
+
+		glm::vec3 backwards = -GetEntity()->GetComponent<Transform>()->GetRight();
+		
+		GetCore()->GetCamera()->GetTransform()->SetPosition(GetEntity()->GetComponent<Transform>()->GetPosition() + (backwards * 2.f) + glm::vec3(0, 1, 0));
+		GetCore()->GetCamera()->GetTransform()->SetRotation(glm::vec3(0,GetEntity()->GetComponent<Transform>()->GetRotation().y,0));
+	}
+};
+
 #undef main
 int main()
 {
@@ -108,47 +134,158 @@ int main()
 		core->GetLightManager()->AddLight("light1", vec3(0, 20, 0), vec3(1, 1, 1), 1.f);
 		core->GetLightManager()->SetAmbient(vec3(1.f));
 
+		// Camera
 		std::shared_ptr<Entity> cameraEntity = core->AddEntity();
 		std::shared_ptr<Camera> camera = cameraEntity->AddComponent<Camera>();
-		cameraEntity->GetComponent<Transform>()->SetPosition(vec3(0, 0.f, -0));
-		cameraEntity->GetComponent<Transform>()->SetRotation(vec3(0, 90, 0));
+		cameraEntity->GetComponent<Transform>()->SetPosition(vec3(-0.5, 1, 0));
+		cameraEntity->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		cameraEntity->AddComponent<freelookCamController>();
 
-
+		// Car Body
 		std::shared_ptr<Entity> carBody = core->AddEntity();
 		carBody->SetTag("carBody");
-		carBody->GetComponent<Transform>()->SetPosition(vec3(0, 2.f, -16));
+		carBody->GetComponent<Transform>()->SetPosition(vec3(0, 0.5, -16));
 		carBody->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
-		carBody->GetComponent<Transform>()->SetScale(vec3(1, 0.5, 0.5));
+		carBody->GetComponent<Transform>()->SetScale(vec3(1, 0.25, 0.5));
 		std::shared_ptr<ModelRenderer> carBodyMR = carBody->AddComponent<ModelRenderer>();
 		carBodyMR->SetModel(core->GetResources()->Load<Model>("shapes/cube"));
 		carBodyMR->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
 		std::shared_ptr<BoxCollider> carBodyCollider = carBody->AddComponent<BoxCollider>();
-		carBodyCollider->SetSize(vec3(2, 1, 1));
+		carBodyCollider->SetSize(vec3(2, 0.5, 0.5));
 		std::shared_ptr<Rigidbody> carBodyRB = carBody->AddComponent<Rigidbody>();
 		carBodyRB->SetMass(1);
+		carBody->AddComponent<CarController>()->rb = carBodyRB;
 
+		// Front Left Wheel
+		std::shared_ptr<Entity> FLWheel = core->AddEntity();
+		FLWheel->SetTag("wheel");
+		FLWheel->GetComponent<Transform>()->SetPosition(vec3(-1, 0.25, -15.5));
+		FLWheel->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
+		FLWheel->GetComponent<Transform>()->SetScale(vec3(0.5, 0.5, 0.15));
+		std::shared_ptr<ModelRenderer> FLWheelMR = FLWheel->AddComponent<ModelRenderer>();
+		FLWheelMR->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
+		FLWheelMR->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
+		FLWheelMR->SetRotationOffset(vec3(90, 0, 0));
+		std::shared_ptr<RayCollider> FLWheelCollider = FLWheel->AddComponent<RayCollider>();
+		FLWheelCollider->SetDirection(vec3(0, -1, 0));
+		FLWheelCollider->SetLength(0.5);
+		std::shared_ptr<Rigidbody> FLWheelRB = FLWheel->AddComponent<Rigidbody>();
+		FLWheelRB->SetMass(5);
+		FLWheelRB->LockRotation(true);
+		std::shared_ptr<boxController> FLBC = FLWheel->AddComponent<boxController>();
+		FLBC->rb = FLWheelRB;
+		FLBC->carBody = carBody;
 
+		// Front Right Wheel
+		std::shared_ptr<Entity> FRWheel = core->AddEntity();
+		FRWheel->SetTag("wheel");
+		FRWheel->GetComponent<Transform>()->SetPosition(vec3(1, 0.25, -15.5));
+		FRWheel->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
+		FRWheel->GetComponent<Transform>()->SetScale(vec3(0.5, 0.5, 0.15));
+		std::shared_ptr<ModelRenderer> FRWheelMR = FRWheel->AddComponent<ModelRenderer>();
+		FRWheelMR->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
+		FRWheelMR->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
+		FRWheelMR->SetRotationOffset(vec3(90, 0, 0));
+		std::shared_ptr<RayCollider> FRWheelCollider = FRWheel->AddComponent<RayCollider>();
+		FRWheelCollider->SetDirection(vec3(0, -1, 0));
+		FRWheelCollider->SetLength(0.5);
+		std::shared_ptr<Rigidbody> FRWheelRB = FRWheel->AddComponent<Rigidbody>();
+		FRWheelRB->SetMass(5);
+		FRWheelRB->LockRotation(true);
+		std::shared_ptr<boxController> FRBC = FRWheel->AddComponent<boxController>();
+		FRBC->rb = FRWheelRB;
+		FRBC->carBody = carBody;
 
-		std::shared_ptr<Entity> wheel = core->AddEntity();
-		wheel->SetTag("wheel");
-		wheel->GetComponent<Transform>()->SetPosition(vec3(5, 2.f, -16));
-		wheel->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
-		wheel->GetComponent<Transform>()->SetScale(vec3(0.5, 0.5, 0.15));
-		cameraEntity->GetComponent<Transform>()->SetParent(wheel);
-		std::shared_ptr<ModelRenderer> wheelMR = wheel->AddComponent<ModelRenderer>();
-		wheelMR->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
-		wheelMR->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
-		wheelMR->SetRotationOffset(vec3(90, 0, 0));
-		std::shared_ptr<RayCollider> wheelCollider = wheel->AddComponent<RayCollider>();
-		wheelCollider->SetDirection(vec3(0, -1, 0));
-		wheelCollider->SetLength(0.5);
-		std::shared_ptr<Rigidbody> wheelRB = wheel->AddComponent<Rigidbody>();
-		wheelRB->SetMass(1);
-		wheelRB->LockRotation(true);
-		wheel->AddComponent<boxController>()->rb = wheelRB;
+		// Rear Left Wheel
+		std::shared_ptr<Entity> RLWheel = core->AddEntity();
+		RLWheel->SetTag("wheel");
+		RLWheel->GetComponent<Transform>()->SetPosition(vec3(-1, 0.25, -16.5));
+		RLWheel->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
+		RLWheel->GetComponent<Transform>()->SetScale(vec3(0.5, 0.5, 0.15));
+		std::shared_ptr<ModelRenderer> RLWheelMR = RLWheel->AddComponent<ModelRenderer>();
+		RLWheelMR->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
+		RLWheelMR->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
+		RLWheelMR->SetRotationOffset(vec3(90, 0, 0));
+		std::shared_ptr<RayCollider> RLWheelCollider = RLWheel->AddComponent<RayCollider>();
+		RLWheelCollider->SetDirection(vec3(0, -1, 0));
+		RLWheelCollider->SetLength(0.5);
+		std::shared_ptr<Rigidbody> RLWheelRB = RLWheel->AddComponent<Rigidbody>();
+		RLWheelRB->SetMass(5);
+		RLWheelRB->LockRotation(true);
+		std::shared_ptr<boxController> RLBC = RLWheel->AddComponent<boxController>();
+		RLBC->rb = RLWheelRB;
+		RLBC->carBody = carBody;
 
+		// Rear Right Wheel
+		std::shared_ptr<Entity> RRWheel = core->AddEntity();
+		RRWheel->SetTag("wheel");
+		RRWheel->GetComponent<Transform>()->SetPosition(vec3(1, 0.25, -16.5));
+		RRWheel->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
+		RRWheel->GetComponent<Transform>()->SetScale(vec3(0.5, 0.5, 0.15));
+		std::shared_ptr<ModelRenderer> RRWheelMR = RRWheel->AddComponent<ModelRenderer>();
+		RRWheelMR->SetModel(core->GetResources()->Load<Model>("shapes/cylinder"));
+		RRWheelMR->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
+		RRWheelMR->SetRotationOffset(vec3(90, 0, 0));
+		std::shared_ptr<RayCollider> RRWheelCollider = RRWheel->AddComponent<RayCollider>();
+		RRWheelCollider->SetDirection(vec3(0, -1, 0));
+		RRWheelCollider->SetLength(0.5);
+		std::shared_ptr<Rigidbody> RRWheelRB = RRWheel->AddComponent<Rigidbody>();
+		RRWheelRB->SetMass(5);
+		RRWheelRB->LockRotation(true);
+		std::shared_ptr<boxController> RRBC = RRWheel->AddComponent<boxController>();
+		RRBC->rb = RRWheelRB;
+		RRBC->carBody = carBody;
 
+		// Wheel Anchors
+		std::shared_ptr<Entity> FLWheelAnchor = core->AddEntity();
+		FLWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(-1, -0.25, 0.5));
+		FLWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.1, 0.1, 0.1));
+		FLWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
+		std::shared_ptr<ModelRenderer> FLWheelAnchorMR = FLWheelAnchor->AddComponent<ModelRenderer>();
+		FLWheelAnchorMR->SetModel(core->GetResources()->Load<Model>("shapes/sphere"));
+		FLWheelAnchorMR->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
+		std::shared_ptr<Suspension> FLWheelAnchorSuspension = FLWheelAnchor->AddComponent<Suspension>();
+		FLWheelAnchorSuspension->SetWheel(FLWheel);
+		FLWheelAnchorSuspension->SetCarBody(carBody);
+		FLWheelAnchorSuspension->SetAnchorPoint(FLWheelAnchor);
+
+		std::shared_ptr<Entity> FRWheelAnchor = core->AddEntity();
+		FRWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(1, -0.25, 0.5));
+		FRWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.1, 0.1, 0.1));
+		FRWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
+		std::shared_ptr<ModelRenderer> FRWheelAnchorMR = FRWheelAnchor->AddComponent<ModelRenderer>();
+		FRWheelAnchorMR->SetModel(core->GetResources()->Load<Model>("shapes/sphere"));
+		FRWheelAnchorMR->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
+		std::shared_ptr<Suspension> FRWheelAnchorSuspension = FRWheelAnchor->AddComponent<Suspension>();
+		FRWheelAnchorSuspension->SetWheel(FRWheel);
+		FRWheelAnchorSuspension->SetCarBody(carBody);
+		FRWheelAnchorSuspension->SetAnchorPoint(FRWheelAnchor);
+
+		std::shared_ptr<Entity> RLWheelAnchor = core->AddEntity();
+		RLWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(-1, -0.25, -0.5));
+		RLWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.1, 0.1, 0.1));
+		RLWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
+		std::shared_ptr<ModelRenderer> RLWheelAnchorMR = RLWheelAnchor->AddComponent<ModelRenderer>();
+		RLWheelAnchorMR->SetModel(core->GetResources()->Load<Model>("shapes/sphere"));
+		RLWheelAnchorMR->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
+		std::shared_ptr<Suspension> RLWheelAnchorSuspension = RLWheelAnchor->AddComponent<Suspension>();
+		RLWheelAnchorSuspension->SetWheel(RLWheel);
+		RLWheelAnchorSuspension->SetCarBody(carBody);
+		RLWheelAnchorSuspension->SetAnchorPoint(RLWheelAnchor);
+
+		std::shared_ptr<Entity> RRWheelAnchor = core->AddEntity();
+		RRWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(1, -0.25, -0.5));
+		RRWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.1, 0.1, 0.1));
+		RRWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
+		std::shared_ptr<ModelRenderer> RRWheelAnchorMR = RRWheelAnchor->AddComponent<ModelRenderer>();
+		RRWheelAnchorMR->SetModel(core->GetResources()->Load<Model>("shapes/sphere"));
+		RRWheelAnchorMR->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
+		std::shared_ptr<Suspension> RRWheelAnchorSuspension = RRWheelAnchor->AddComponent<Suspension>();
+		RRWheelAnchorSuspension->SetWheel(RRWheel);
+		RRWheelAnchorSuspension->SetCarBody(carBody);
+		RRWheelAnchorSuspension->SetAnchorPoint(RRWheelAnchor);
+
+		// Track
 		std::shared_ptr<Entity> track = core->AddEntity();
 		track->GetComponent<Transform>()->SetPosition(vec3(0, 0, 10));
 		track->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
@@ -168,7 +305,7 @@ int main()
 		std::shared_ptr<ModelRenderer> testTR = testEntity->AddComponent<ModelRenderer>();
 		testTR->SetModel(core->GetResources()->Load<Model>("shapes/sphere"));
 		testTR->SetTexture(core->GetResources()->Load<Texture>("images/cat"));
-		testEntity->AddComponent<CollisionTest>()->rb = wheelRB;
+		testEntity->AddComponent<CollisionTest>()->rb = FLWheelRB;
 
 
 	}

@@ -115,9 +115,6 @@ namespace JamesEngine
 		// Step 5: Integration
 		//Euler();
 		Verlet();
-			
-		// Step 6: Convert to euler angles
-		CalculateAngles();
 		
 
 		// Step 7: Clear forces
@@ -398,24 +395,34 @@ namespace JamesEngine
 		ComputeInverseInertiaTensor();
 		// Update angular velocity
 		mAngularVelocity = mInertiaTensorInverse * mAngularMomentum;
-		// Construct skew matrix omega star
-		glm::mat3 omegaStar(0.0f);
-		omegaStar[0][1] = -mAngularVelocity.z;
-		omegaStar[0][2] = mAngularVelocity.y;
-		omegaStar[1][0] = mAngularVelocity.z;
-		omegaStar[1][2] = -mAngularVelocity.x;
-		omegaStar[2][0] = -mAngularVelocity.y;
-		omegaStar[2][1] = mAngularVelocity.x;
-		// Update rotation matrix
-		mR += omegaStar * mR * dt;
+		//// Construct skew matrix omega star
+		//glm::mat3 omegaStar(0.0f);
+		//omegaStar[0][1] = -mAngularVelocity.z;
+		//omegaStar[0][2] = mAngularVelocity.y;
+		//omegaStar[1][0] = mAngularVelocity.z;
+		//omegaStar[1][2] = -mAngularVelocity.x;
+		//omegaStar[2][0] = -mAngularVelocity.y;
+		//omegaStar[2][1] = mAngularVelocity.x;
+		//// Update rotation matrix
+		//mR += omegaStar * mR * dt;
 
-		mR = glm::orthonormalize(mR);
-	}
+		//mR = glm::orthonormalize(mR);
+		// 
+		// Integrate orientation using quaternion
+		glm::vec3 w = mAngularVelocity;
+		glm::quat q = GetQuaternion(); // current orientation
 
-	void Rigidbody::CalculateAngles()
-	{
-		glm::quat q = glm::quat_cast(mR);
+		// dq/dt = 0.5 * omega * q
+		glm::quat omegaQuat(0.0f, w.x, w.y, w.z);
+		glm::quat dq = 0.5f * omegaQuat * q;
+
+		// Integrate orientation
+		q += dq * dt;
+		q = glm::normalize(q);
 		SetQuaternion(q);
+
+		// Update rotation matrix for convenience
+		mR = glm::mat3_cast(q);
 	}
 
 	void Rigidbody::UpdateInertiaTensor()
@@ -429,7 +436,9 @@ namespace JamesEngine
 
 	void Rigidbody::ComputeInverseInertiaTensor()
 	{
-		mInertiaTensorInverse = mR * mBodyInertiaTensorInverse * glm::transpose(mR);
+		//mInertiaTensorInverse = mR * mBodyInertiaTensorInverse * glm::transpose(mR);
+		glm::mat3 R = glm::mat3_cast(GetQuaternion());
+		mInertiaTensorInverse = R * mBodyInertiaTensorInverse * glm::transpose(R);
 	}
 
 }

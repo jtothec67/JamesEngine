@@ -64,14 +64,13 @@ namespace JamesEngine
 
 		void UpdateInertiaTensor();
 		void ComputeInverseInertiaTensor();
-		void CalculateAngles();
 
 		void Euler();
 		void Verlet();
 
 		glm::vec3 mForce = glm::vec3(0);
 		glm::vec3 mVelocity = glm::vec3(0);
-		glm::vec3 mAcceleration = glm::vec3(0, -9.81f, 0);
+		glm::vec3 mAcceleration = glm::vec3(0, -9.81, 0);
 		glm::vec3 mPreviousPosition = glm::vec3(0);
 
 		float mMass = 1;

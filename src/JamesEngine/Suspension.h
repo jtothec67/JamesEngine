@@ -38,12 +38,12 @@ namespace JamesEngine
 		std::shared_ptr<Rigidbody> mWheelRb;
 		std::shared_ptr<Rigidbody> mCarRb;
 
-		float mRestLength = 0.3f;
-		float mStiffness = 30000.0f;
-		float mDamping = 3000.0f;
+		float mRestLength = 0.1f;
+		float mStiffness = 70000.0f;
+		float mDamping = 70000.0f;
 
-		float mMinLength = 0.1f;
-		float mMaxLength = 0.5f;
+		float mMinLength = 0.0f;
+		float mMaxLength = 0.4f;
 
 #ifdef _DEBUG
 		std::shared_ptr<Renderer::Shader> mShader = std::make_shared<Renderer::Shader>("../assets/shaders/OutlineShader.vert", "../assets/shaders/OutlineShader.frag");
