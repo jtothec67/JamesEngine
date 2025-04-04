@@ -44,8 +44,8 @@ namespace JamesEngine
 		}
 
         // Get positions and the suspension axis (local y of the anchor)
-        auto anchorTransform = mAnchorPoint->GetComponent<Transform>();
-        auto wheelTransform = mWheel->GetComponent<Transform>();
+        std::shared_ptr<Transform> anchorTransform = mAnchorPoint->GetComponent<Transform>();
+        std::shared_ptr<Transform> wheelTransform = mWheel->GetComponent<Transform>();
         glm::vec3 anchorPos = anchorTransform->GetPosition();
         glm::vec3 wheelPos = wheelTransform->GetPosition();
         glm::vec3 suspensionAxis = glm::normalize(anchorTransform->GetUp());
@@ -77,8 +77,8 @@ namespace JamesEngine
         glm::vec3 lateralVel = wheelVel - suspensionAxis * glm::dot(wheelVel, suspensionAxis);
 
         // Use stronger stiffness and damping to quickly correct lateral motion.
-        const float lateralStiffness = mStiffness * 10;
-        const float lateralDamping = mDamping * 1;
+        const float lateralStiffness = mStiffness * 20;
+        const float lateralDamping = mDamping * 4;
         glm::vec3 lateralForce = -lateralStiffness * lateralError - lateralDamping * lateralVel;
 
         // --- Total Force and Application ---

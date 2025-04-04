@@ -21,18 +21,9 @@ namespace JamesEngine
 
 	glm::mat4 Camera::GetViewMatrix()
 	{
+		std::shared_ptr<Transform> transform = GetEntity()->GetComponent<Transform>();
 
-		/*glm::mat4 view(1.0f);
-		view = glm::translate(view, GetPosition());
-		view = glm::rotate(view, glm::radians(GetRotation().y), glm::vec3(0, 1, 0));
-		view = glm::rotate(view, glm::radians(GetRotation().x), glm::vec3(1, 0, 0));
-		view = glm::rotate(view, glm::radians(GetRotation().z), glm::vec3(0, 0, 1));
-		view = glm::inverse(view);
-
-		return view;*/
-		auto transform = GetEntity()->GetComponent<Transform>();
-
-		glm::quat orientation = transform->GetQuaternion();
+		glm::quat orientation = transform->GetWorldRotation();
 		glm::vec3 position = transform->GetPosition();
 
 		glm::mat4 rotation = glm::mat4_cast(glm::conjugate(orientation));

@@ -425,7 +425,7 @@ namespace JamesEngine
     // Recursively builds a BVH node from a set of faces.
     std::unique_ptr<ModelCollider::BVHNode> ModelCollider::BuildBVH(const std::vector<Renderer::Model::Face>& faces, unsigned int leafThreshold)
     {
-        auto node = std::make_unique<BVHNode>();
+        std::unique_ptr<BVHNode> node = std::make_unique<BVHNode>();
 
         // Compute the AABB that contains all triangles in this node.
         glm::vec3 aabbMin(FLT_MAX);

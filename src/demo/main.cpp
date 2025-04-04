@@ -26,17 +26,17 @@ struct freelookCamController : public Component
 			GetTransform()->Move(-GetTransform()->GetRight() * speed * GetCore()->DeltaTime());
 		if (GetKeyboard()->IsKey(SDLK_d))
 			GetTransform()->Move(GetTransform()->GetRight() * speed * GetCore()->DeltaTime());
-		/*if (GetKeyboard()->IsKey(SDLK_q))
+		if (GetKeyboard()->IsKey(SDLK_q))
 			GetTransform()->Move(-GetTransform()->GetUp() * speed * GetCore()->DeltaTime());
 		if (GetKeyboard()->IsKey(SDLK_e))
-			GetTransform()->Move(GetTransform()->GetUp() * speed * GetCore()->DeltaTime());*/
+			GetTransform()->Move(GetTransform()->GetUp() * speed * GetCore()->DeltaTime());
 		if (GetKeyboard()->IsKey(SDLK_UP))
 			GetTransform()->Rotate(vec3(sensitivity * GetCore()->DeltaTime(), 0, 0));
 		if (GetKeyboard()->IsKey(SDLK_DOWN))
 			GetTransform()->Rotate(vec3(-sensitivity * GetCore()->DeltaTime(), 0, 0));
-		if (GetKeyboard()->IsKey(SDLK_q))
+		if (GetKeyboard()->IsKey(SDLK_LEFT))
 			GetTransform()->Rotate(vec3(0, sensitivity * GetCore()->DeltaTime(), 0));
-		if (GetKeyboard()->IsKey(SDLK_e))
+		if (GetKeyboard()->IsKey(SDLK_RIGHT))
 			GetTransform()->Rotate(vec3(0, -sensitivity * GetCore()->DeltaTime(), 0));
 		
 	}
@@ -112,11 +112,6 @@ struct CarController : public Component
 		{
 			rb->AddTorque(-GetEntity()->GetComponent<Transform>()->GetUp() * 100000.f * GetCore()->DeltaTime());
 		}
-
-		glm::vec3 backwards = -GetEntity()->GetComponent<Transform>()->GetRight();
-		
-		GetCore()->GetCamera()->GetTransform()->SetPosition(GetEntity()->GetComponent<Transform>()->GetPosition() + (backwards * 2.f) + glm::vec3(0, 1, 0));
-		GetCore()->GetCamera()->GetTransform()->SetRotation(glm::vec3(0,GetEntity()->GetComponent<Transform>()->GetRotation().y,0));
 	}
 };
 
@@ -138,13 +133,13 @@ int main()
 		std::shared_ptr<Entity> cameraEntity = core->AddEntity();
 		std::shared_ptr<Camera> camera = cameraEntity->AddComponent<Camera>();
 		cameraEntity->GetComponent<Transform>()->SetPosition(vec3(-0.5, 1, 0));
-		cameraEntity->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
+		cameraEntity->GetComponent<Transform>()->SetRotation(vec3(0, -90, 0));
 		cameraEntity->AddComponent<freelookCamController>();
 
 		// Car Body
 		std::shared_ptr<Entity> carBody = core->AddEntity();
 		carBody->SetTag("carBody");
-		carBody->GetComponent<Transform>()->SetPosition(vec3(0, 0.5, -16));
+		carBody->GetComponent<Transform>()->SetPosition(vec3(0, 0.75, -16));
 		carBody->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		carBody->GetComponent<Transform>()->SetScale(vec3(1, 0.25, 0.5));
 		std::shared_ptr<ModelRenderer> carBodyMR = carBody->AddComponent<ModelRenderer>();
@@ -155,6 +150,7 @@ int main()
 		std::shared_ptr<Rigidbody> carBodyRB = carBody->AddComponent<Rigidbody>();
 		carBodyRB->SetMass(1);
 		carBody->AddComponent<CarController>()->rb = carBodyRB;
+		cameraEntity->GetComponent<Transform>()->SetParent(carBody);
 
 		// Front Left Wheel
 		std::shared_ptr<Entity> FLWheel = core->AddEntity();

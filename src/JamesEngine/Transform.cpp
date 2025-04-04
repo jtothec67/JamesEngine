@@ -11,9 +11,9 @@ namespace JamesEngine
 
     glm::vec3 Transform::GetPosition()
     {
-        if (auto parent = mParent.lock())
+        if (std::shared_ptr<Entity> parent = mParent.lock())
         {
-            auto parentTransform = parent->GetComponent<Transform>();
+            std::shared_ptr<Transform> parentTransform = parent->GetComponent<Transform>();
             glm::vec3 parentPosition = parentTransform->GetPosition();
 
             glm::mat4 rotationMatrix = glm::toMat4(parentTransform->GetWorldRotation());
@@ -26,7 +26,7 @@ namespace JamesEngine
 
     glm::vec3 Transform::GetScale()
     {
-        if (auto parent = mParent.lock())
+        if (std::shared_ptr<Entity> parent = mParent.lock())
             return mScale * parent->GetComponent<Transform>()->GetScale();
         return mScale;
     }
@@ -61,9 +61,9 @@ namespace JamesEngine
 
     glm::quat Transform::GetWorldRotation()
     {
-        if (auto parent = mParent.lock())
+        if (std::shared_ptr<Entity> parent = mParent.lock())
         {
-            auto parentTransform = parent->GetComponent<Transform>();
+            std::shared_ptr<Transform> parentTransform = parent->GetComponent<Transform>();
             return parentTransform->GetWorldRotation() * mRotation;
         }
         return mRotation;
