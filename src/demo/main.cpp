@@ -51,15 +51,17 @@ struct boxController : public Component
 
 	void OnTick()
 	{
-		if (GetKeyboard()->IsKey(SDLK_u))
+		/*if (GetKeyboard()->IsKey(SDLK_u))
 		{
 			rb->ApplyImpulse(carBody->GetComponent<Transform>()->GetRight() * speed * GetCore()->DeltaTime());
+			std::cout << "u" << std::endl;
 		}
 
 		if (GetKeyboard()->IsKey(SDLK_j))
 		{
 			rb->ApplyImpulse(-carBody->GetComponent<Transform>()->GetRight() * speed * GetCore()->DeltaTime());
-		}
+			std::cout << "j" << std::endl;
+		}*/
 
 		/*if (GetKeyboard()->IsKey(SDLK_h))
 		{
@@ -101,16 +103,33 @@ struct CarController : public Component
 {
 	std::shared_ptr<Rigidbody> rb;
 
+	float forwardSpeed = 50.f;
+	float turnSpeed = 10000.f;
+
 	void OnTick()
 	{
 		if (GetKeyboard()->IsKey(SDLK_h))
 		{
-			rb->AddTorque(GetEntity()->GetComponent<Transform>()->GetUp() * 100000.f * GetCore()->DeltaTime());
+			rb->AddTorque(GetEntity()->GetComponent<Transform>()->GetUp() * turnSpeed * GetCore()->DeltaTime());
+			std::cout << "h" << std::endl;
 		}
 
 		if (GetKeyboard()->IsKey(SDLK_k))
 		{
-			rb->AddTorque(-GetEntity()->GetComponent<Transform>()->GetUp() * 100000.f * GetCore()->DeltaTime());
+			rb->AddTorque(-GetEntity()->GetComponent<Transform>()->GetUp() * turnSpeed * GetCore()->DeltaTime());
+			std::cout << "k" << std::endl;
+		}
+
+		if (GetKeyboard()->IsKey(SDLK_u))
+		{
+			rb->ApplyImpulse(GetEntity()->GetComponent<Transform>()->GetRight() * forwardSpeed * GetCore()->DeltaTime());
+			std::cout << "u" << std::endl;
+		}
+
+		if (GetKeyboard()->IsKey(SDLK_j))
+		{
+			rb->ApplyImpulse(-GetEntity()->GetComponent<Transform>()->GetRight() * forwardSpeed * GetCore()->DeltaTime());
+			std::cout << "j" << std::endl;
 		}
 	}
 };

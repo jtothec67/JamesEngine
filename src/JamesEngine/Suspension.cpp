@@ -50,7 +50,6 @@ namespace JamesEngine
         glm::vec3 wheelPos = wheelTransform->GetPosition();
         glm::vec3 suspensionAxis = glm::normalize(anchorTransform->GetUp());
 
-        // --- Spring/Damper along the suspension axis ---
         // Compute the offset and the component along the suspension axis.
         glm::vec3 offset = wheelPos - anchorPos;
         float currentLength = glm::dot(offset, suspensionAxis);
@@ -68,27 +67,21 @@ namespace JamesEngine
         float damperForceMag = mDamping * relativeVel;
         glm::vec3 suspensionForce = suspensionAxis * (springForceMag - damperForceMag);
 
-        // --- Lateral Correction to Lock Movement to the Y Axis ---
         // Project the wheel position onto the suspension axis line (through anchorPos)
         glm::vec3 projectedPos = anchorPos + suspensionAxis * currentLength;
-        // The error is any deviation from the projection (i.e. lateral offset)
-        glm::vec3 lateralError = wheelPos - projectedPos;
-        // Remove any component of the wheel's velocity that is along the suspension axis
-        glm::vec3 lateralVel = wheelVel - suspensionAxis * glm::dot(wheelVel, suspensionAxis);
 
-        // Use stronger stiffness and damping to quickly correct lateral motion.
-        const float lateralStiffness = mStiffness * 20;
-        const float lateralDamping = mDamping * 4;
-        glm::vec3 lateralForce = -lateralStiffness * lateralError - lateralDamping * lateralVel;
-
-        // --- Total Force and Application ---
         // Combine the suspension (spring/damper) force with the lateral correction force.
-        glm::vec3 totalForce = suspensionForce + lateralForce;
+        glm::vec3 totalForce = suspensionForce;
         float dt = GetCore()->DeltaTime();
 
         // Apply equal and opposite forces to the wheel and the car body.
         mWheelRb->ApplyForce(totalForce * dt, wheelPos);
         mCarRb->ApplyForce(-totalForce * dt, anchorPos);
+
+        // Correct the wheel laterally over time to avoid snapping
+        float alpha = 0.5f;
+        glm::vec3 correctedPos = glm::mix(wheelTransform->GetPosition(), projectedPos, alpha);
+        wheelTransform->SetPosition(correctedPos);
 	}
 
 }

@@ -74,8 +74,8 @@ namespace JamesEngine
 		glm::vec3 mPreviousPosition = glm::vec3(0);
 
 		float mMass = 1;
-		float mFriction = 0.5f;
-		float mRestitution = 0.5f;
+		float mFriction = 0.9f;
+		float mRestitution = 0.1f;
 
 		glm::vec3 mTorque = glm::vec3{ 0 };
 		glm::vec3 mAngularVelocity = glm::vec3{ 0 };

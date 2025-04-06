@@ -108,6 +108,9 @@ add_library(JamesEngine
 
 	src/JamesEngine/Suspension.h
 	src/JamesEngine/Suspension.cpp
+
+	src/JamesEngine/Tire.h
+	src/JamesEngine/Tire.cpp
 )
 
 target_link_libraries(JamesEngine Renderer openal32)
