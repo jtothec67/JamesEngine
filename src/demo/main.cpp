@@ -111,25 +111,21 @@ struct CarController : public Component
 		if (GetKeyboard()->IsKey(SDLK_h))
 		{
 			rb->AddTorque(GetEntity()->GetComponent<Transform>()->GetUp() * turnSpeed * GetCore()->DeltaTime());
-			std::cout << "h" << std::endl;
 		}
 
 		if (GetKeyboard()->IsKey(SDLK_k))
 		{
 			rb->AddTorque(-GetEntity()->GetComponent<Transform>()->GetUp() * turnSpeed * GetCore()->DeltaTime());
-			std::cout << "k" << std::endl;
 		}
 
 		if (GetKeyboard()->IsKey(SDLK_u))
 		{
 			rb->ApplyImpulse(GetEntity()->GetComponent<Transform>()->GetRight() * forwardSpeed * GetCore()->DeltaTime());
-			std::cout << "u" << std::endl;
 		}
 
 		if (GetKeyboard()->IsKey(SDLK_j))
 		{
 			rb->ApplyImpulse(-GetEntity()->GetComponent<Transform>()->GetRight() * forwardSpeed * GetCore()->DeltaTime());
-			std::cout << "j" << std::endl;
 		}
 	}
 };

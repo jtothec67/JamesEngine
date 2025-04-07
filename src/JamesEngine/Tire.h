@@ -20,8 +20,8 @@ namespace JamesEngine
 	public:
 		void OnTick();
 
-		void ApplyDriveTorque(float _torque);
-		void ApplyBrakeTorque(float _torque);
+		void ApplyDriveTorque(float _torque) { mDriveTorque += _torque; }
+		void ApplyBrakeTorque(float _torque) { mBrakeTorque += _torque; }
 
 		void SetCarBody(std::shared_ptr<Entity> _carBody) { mCarBody = _carBody; }
 		void SetAnchorPoint(std::shared_ptr<Entity> _anchorPoint) { mAnchorPoint = _anchorPoint; }
@@ -36,6 +36,9 @@ namespace JamesEngine
 		std::shared_ptr<Rigidbody> mCarRb;
 
 		TireParams mTireParams;
+
+		float mDriveTorque = 0.f;
+		float mBrakeTorque = 0.f;
 	};
 
 }
