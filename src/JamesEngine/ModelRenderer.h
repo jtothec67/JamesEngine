@@ -2,6 +2,8 @@
 
 #include "Component.h"
 
+#include <vector>
+
 namespace JamesEngine
 {
 	class Model;
@@ -15,7 +17,7 @@ namespace JamesEngine
 		void OnRender();
 
 		void SetModel(std::shared_ptr<Model> _model) { mModel = _model; }
-		void SetTexture(std::shared_ptr<Texture> _texture) { mTexture = _texture; }
+		void AddTexture(std::shared_ptr<Texture> _texture) { mTextures.push_back(_texture); }
 		void SetShader(std::shared_ptr<Shader> _shader) { mShader = _shader; }
 
 		void SetSpecularStrength(float _strength) { mSpecularStrength = _strength; }
@@ -25,8 +27,9 @@ namespace JamesEngine
 
 	private:
 		std::shared_ptr<Model> mModel = nullptr;
-		std::shared_ptr<Texture> mTexture = nullptr;
-		std::shared_ptr<Shader> mShader;
+		std::shared_ptr<Shader> mShader = nullptr;
+
+		std::vector<std::shared_ptr<Texture>> mTextures;
 
 		float mSpecularStrength = 1.f;
 

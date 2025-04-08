@@ -160,7 +160,7 @@ namespace JamesEngine
 		// Used when loading scenes to ensure first frame doesn't have a large delta time
 		bool mDeltaTimeZero = true;
 		int mDeltaTimeZeroCounter = 0;
-		int mNumDeltaTimeZeros = 2;
+		int mNumDeltaTimeZeros = 10;
 
 		float mTimeScale = 1.f;
 	};

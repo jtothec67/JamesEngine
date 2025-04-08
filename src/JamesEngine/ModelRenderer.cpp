@@ -27,9 +27,6 @@ namespace JamesEngine
 		if (!mModel)
 			return;
 
-		if (!mTexture)
-			return;
-
 		std::shared_ptr<Core> core = GetEntity()->GetCore();
 
 		std::shared_ptr<Camera> camera = core->GetCamera();
@@ -70,7 +67,14 @@ namespace JamesEngine
 
 		mShader->mShader->uniform("u_SpecStrength", mSpecularStrength);
 
-		mShader->mShader->draw(mModel->mModel.get(), mTexture->mTexture.get());
+		std::vector<Renderer::Texture*> rawTextures;
+		for (const auto& tex : mTextures)
+		{
+			rawTextures.push_back(tex->mTexture.get());
+		}
+
+		// Call the updated draw function with support for multi-materials
+		mShader->mShader->draw(mModel->mModel.get(), rawTextures);
 	}
 
 }

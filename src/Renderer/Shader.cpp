@@ -182,11 +182,47 @@ namespace Renderer
 		glUseProgram(0);
 	}
 
+	void Shader::draw(Model* _model, std::vector<Texture*>& _textures)
+	{
+		glUseProgram(id());
+
+		if (!_model->usesMaterials())
+		{
+			if (!_textures.empty())
+			{
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, _textures[0]->id());
+				glUniform1i(glGetUniformLocation(id(), "u_Texture"), 0);
+			}
+			GLuint legacyVAO = _model->vao_id();
+			glBindVertexArray(legacyVAO);
+			glDrawArrays(GL_TRIANGLES, 0, _model->vertex_count());
+		}
+		else
+		{
+			const auto& groups = _model->GetMaterialGroups();
+			for (size_t i = 0; i < groups.size(); ++i)
+			{
+				if (i < _textures.size())
+				{
+					glActiveTexture(GL_TEXTURE0);
+					glBindTexture(GL_TEXTURE_2D, _textures[i]->id());
+					glUniform1i(glGetUniformLocation(id(), "u_Texture"), 0);
+				}
+				glBindVertexArray(groups[i].vao);
+				glDrawArrays(GL_TRIANGLES, 0, groups[i].faces.size() * 3);
+			}
+		}
+		glBindVertexArray(0);
+		glUseProgram(0);
+	}
+
 	void Shader::draw(Model* _model, Texture* _tex)
 	{
 		glUseProgram(id());
 		glBindVertexArray(_model->vao_id());
 		glBindTexture(GL_TEXTURE_2D, _tex->id());
+		glUniform1i(glGetUniformLocation(id(), "u_Texture"), 0);
 		glDrawArrays(GL_TRIANGLES, 0, _model->vertex_count());
 		glBindVertexArray(0);
 		glBindTexture(GL_TEXTURE_2D, 0);
@@ -198,6 +234,7 @@ namespace Renderer
 		glUseProgram(id());
 		glBindVertexArray(_mesh->id());
 		glBindTexture(GL_TEXTURE_2D, _tex->id());
+		glUniform1i(glGetUniformLocation(id(), "u_Texture"), 0);
 		glDrawArrays(GL_TRIANGLES, 0, _mesh->vertex_count());
 		glBindVertexArray(0);
 		glBindTexture(GL_TEXTURE_2D, 0);
@@ -209,6 +246,7 @@ namespace Renderer
 		glUseProgram(id());
 		glBindVertexArray(_mesh.id());
 		glBindTexture(GL_TEXTURE_2D, _tex.id());
+		glUniform1i(glGetUniformLocation(id(), "u_Texture"), 0);
 		glDrawArrays(GL_TRIANGLES, 0, _mesh.vertex_count());
 		glBindVertexArray(0);
 		glBindTexture(GL_TEXTURE_2D, 0);
@@ -220,6 +258,7 @@ namespace Renderer
 		glUseProgram(id());
 		glBindVertexArray(_mesh.id());
 		glBindTexture(GL_TEXTURE_2D, _texId);
+		glUniform1i(glGetUniformLocation(id(), "u_Texture"), 0);
 		glDrawArrays(GL_TRIANGLES, 0, _mesh.vertex_count());
 		glUseProgram(0);
 	}
@@ -229,6 +268,7 @@ namespace Renderer
 		glUseProgram(id());
 		glBindVertexArray(_model.vao_id());
 		glBindTexture(GL_TEXTURE_2D, _tex.id());
+		glUniform1i(glGetUniformLocation(id(), "u_Texture"), 0);
 		glDrawArrays(GL_TRIANGLES, 0, _model.vertex_count());
 		glUseProgram(0);
 	}
@@ -238,6 +278,7 @@ namespace Renderer
 		glUseProgram(id());
 		glBindVertexArray(_model.vao_id());
 		glBindTexture(GL_TEXTURE_2D, _texId);
+		glUniform1i(glGetUniformLocation(id(), "u_Texture"), 0);
 		glDrawArrays(GL_TRIANGLES, 0, _model.vertex_count());
 		glUseProgram(0);
 	}

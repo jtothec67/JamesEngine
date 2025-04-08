@@ -27,7 +27,7 @@ namespace JamesEngine
 	void Rigidbody::OnTick()
 	{
 		// Step 1: Compute each of the forces acting on the object (only gravity by default)
-		glm::vec3 force = mMass * mAcceleration;
+		glm::vec3 force = mMass * mAcceleration;// *GetCore()->DeltaTime();
 		AddForce(force);
 
 		// Step 2: Compute collisions

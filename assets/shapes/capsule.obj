@@ -1,6 +1,5 @@
 # Blender 4.1.1
 # www.blender.org
-mtllib capsule.mtl
 o Sphere.001
 v 0.000000 -0.691342 0.461940
 v 0.000000 -0.500000 0.500000

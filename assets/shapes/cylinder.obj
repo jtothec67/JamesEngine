@@ -1,6 +1,5 @@
 # This file uses centimeters as units for non-parametric coordinates.
 
-mtllib cylinder.mtl
 g default
 v 0.951057 -1.425313 -0.309017
 v 0.809018 -1.425313 -0.587786
@@ -755,7 +754,6 @@ vn 0.000000 1.000000 -0.000000
 vn 0.000000 1.000000 -0.000000
 s 1
 g pCylinder1
-usemtl initialShadingGroup
 f 1/21/1 2/22/2 22/43/3 21/42/4
 f 2/22/2 3/23/5 23/44/6 22/43/3
 f 3/23/5 4/24/7 24/45/8 23/44/6
