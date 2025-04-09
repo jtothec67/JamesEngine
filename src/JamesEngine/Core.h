@@ -152,15 +152,10 @@ namespace JamesEngine
 
 		bool mIsRunning = true;
 
-		/*glm::vec3 mLightPos = glm::vec3(0.f, 20.f, 0.f);
-		glm::vec3 mLightColor = glm::vec3(1.f, 1.f, 1.f);
-		glm::vec3 mAmbient = glm::vec3(0.1f, 0.1f, 0.1f);
-		float mLightStrength = 1.f;*/
-
 		// Used when loading scenes to ensure first frame doesn't have a large delta time
 		bool mDeltaTimeZero = true;
 		int mDeltaTimeZeroCounter = 0;
-		int mNumDeltaTimeZeros = 10;
+		int mNumDeltaTimeZeros = 3;
 
 		float mTimeScale = 1.f;
 	};

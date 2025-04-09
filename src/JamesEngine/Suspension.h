@@ -30,6 +30,8 @@ namespace JamesEngine
 		void SetMinLength(float _minLength) { mMinLength = _minLength; }
 		void SetMaxLength(float _maxLength) { mMaxLength = _maxLength; }
 
+		void SetDebugVisual(bool _value) { mDebugVisual = _value; }
+
 	private:
 		std::shared_ptr<Entity> mWheel;
 		std::shared_ptr<Entity> mCarBody;
@@ -38,16 +40,19 @@ namespace JamesEngine
 		std::shared_ptr<Rigidbody> mWheelRb;
 		std::shared_ptr<Rigidbody> mCarRb;
 
-		float mRestLength = 0.0f;
-		float mStiffness = 50000.0f;
-		float mDamping = 5000.0f;
+		float mStiffness = 30000;
+		float mDamping = 100;
+
+		float mRestLength = 0.2f;
 
 		float mMinLength = 0.0f;
 		float mMaxLength = 0.4f;
 
+		bool mDebugVisual = true;
+
 #ifdef _DEBUG
 		std::shared_ptr<Renderer::Shader> mShader = std::make_shared<Renderer::Shader>("../assets/shaders/OutlineShader.vert", "../assets/shaders/OutlineShader.frag");
-		std::shared_ptr<Renderer::Model> mModel = std::make_shared<Renderer::Model>("../assets/shapes/cylinder.obj");
+		std::shared_ptr<Renderer::Model> mModel = std::make_shared<Renderer::Model>("../assets/shapes/spring.obj");
 #endif
 	};
 

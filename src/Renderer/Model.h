@@ -177,19 +177,31 @@ namespace Renderer
                 std::vector<std::string> sub;
                 split_string(tokens.at(1), '/', sub);
                 if (sub.size() >= 1) f.a.position = positions.at(atoi(sub.at(0).c_str()) - 1);
-                if (sub.size() >= 2) f.a.texcoord = tcs.at(atoi(sub.at(1).c_str()) - 1);
+                if (sub.size() >= 2 && !sub.at(1).empty()) {
+                    int texIndex = atoi(sub.at(1).c_str()) - 1;
+                    if (texIndex >= 0 && texIndex < tcs.size())
+                        f.a.texcoord = tcs.at(texIndex);
+                }
                 if (sub.size() >= 3) f.a.normal = normals.at(atoi(sub.at(2).c_str()) - 1);
 
                 for (size_t ti = 2; ti < tokens.size(); ti++)
                 {
                     split_string(tokens.at(ti - 1), '/', sub);
                     if (sub.size() >= 1) f.b.position = positions.at(atoi(sub.at(0).c_str()) - 1);
-                    if (sub.size() >= 2) f.b.texcoord = tcs.at(atoi(sub.at(1).c_str()) - 1);
+                    if (sub.size() >= 2 && !sub.at(1).empty()) {
+                        int texIndex = atoi(sub.at(1).c_str()) - 1;
+                        if (texIndex >= 0 && texIndex < tcs.size())
+                            f.b.texcoord = tcs.at(texIndex);
+                    }
                     if (sub.size() >= 3) f.b.normal = normals.at(atoi(sub.at(2).c_str()) - 1);
 
                     split_string(tokens.at(ti), '/', sub);
                     if (sub.size() >= 1) f.c.position = positions.at(atoi(sub.at(0).c_str()) - 1);
-                    if (sub.size() >= 2) f.c.texcoord = tcs.at(atoi(sub.at(1).c_str()) - 1);
+                    if (sub.size() >= 2 && !sub.at(1).empty()) {
+                        int texIndex = atoi(sub.at(1).c_str()) - 1;
+                        if (texIndex >= 0 && texIndex < tcs.size())
+                            f.c.texcoord = tcs.at(texIndex);
+                    }
                     if (sub.size() >= 3) f.c.normal = normals.at(atoi(sub.at(2).c_str()) - 1);
 
                     if (m_useMaterials)

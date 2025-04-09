@@ -114,8 +114,8 @@ namespace JamesEngine
 
 		// Step 5: Integration
 		//Euler();
-		Verlet();
-		
+		SemiImplicitEuler();
+		//Verlet();
 
 		// Step 7: Clear forces
 		ClearForces();
@@ -380,6 +380,42 @@ namespace JamesEngine
 		mR = glm::orthonormalize(mR);
 	}
 
+	void Rigidbody::SemiImplicitEuler()
+	{
+		float dt = GetCore()->DeltaTime();
+
+		// ----- Linear Integration -----
+		glm::vec3 acceleration = mForce / mMass;
+		mVelocity += acceleration * dt;
+		SetPosition(GetPosition() + mVelocity * dt);
+
+		// Optionally, reset the force accumulator if that's how your engine works
+		// mForce = glm::vec3(0.0f);
+
+		// ----- Angular Integration -----
+		mAngularMomentum += mTorque * dt;
+		// Recompute the inverse inertia tensor (if it depends on orientation or other factors)
+		ComputeInverseInertiaTensor();
+		mAngularVelocity = mInertiaTensorInverse * mAngularMomentum;
+
+		// Integrate orientation using quaternions:
+		// Get the current quaternion (representing orientation)
+		glm::quat q = GetQuaternion();
+		// Form the quaternion representing angular velocity (with a zero real part)
+		glm::quat omegaQuat(0.0f, mAngularVelocity.x, mAngularVelocity.y, mAngularVelocity.z);
+		glm::quat dq = 0.5f * omegaQuat * q;
+		// Update the quaternion using the new derivative
+		q += dq * dt;
+		// Normalize to prevent drift and rounding errors
+		q = glm::normalize(q);
+		// Set the updated orientation
+		SetQuaternion(q);
+
+		// Update the rotation matrix for convenience (if needed)
+		mR = glm::mat3_cast(q);
+	}
+
+
 	void Rigidbody::Verlet()
 	{
 		float dt = GetCore()->DeltaTime();
@@ -395,19 +431,7 @@ namespace JamesEngine
 		ComputeInverseInertiaTensor();
 		// Update angular velocity
 		mAngularVelocity = mInertiaTensorInverse * mAngularMomentum;
-		//// Construct skew matrix omega star
-		//glm::mat3 omegaStar(0.0f);
-		//omegaStar[0][1] = -mAngularVelocity.z;
-		//omegaStar[0][2] = mAngularVelocity.y;
-		//omegaStar[1][0] = mAngularVelocity.z;
-		//omegaStar[1][2] = -mAngularVelocity.x;
-		//omegaStar[2][0] = -mAngularVelocity.y;
-		//omegaStar[2][1] = mAngularVelocity.x;
-		//// Update rotation matrix
-		//mR += omegaStar * mR * dt;
-
-		//mR = glm::orthonormalize(mR);
-		// 
+		
 		// Integrate orientation using quaternion
 		glm::vec3 w = mAngularVelocity;
 		glm::quat q = GetQuaternion(); // current orientation

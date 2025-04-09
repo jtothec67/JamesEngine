@@ -10,7 +10,7 @@ float Timer::Stop()
 {
 	if (!mRunning)
 	{
-		return 0.016f;
+		return 0.0f;
 	}
 
 	mEnd = std::chrono::steady_clock::now();

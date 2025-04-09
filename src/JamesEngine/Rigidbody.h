@@ -65,6 +65,7 @@ namespace JamesEngine
 		void ComputeInverseInertiaTensor();
 
 		void Euler();
+		void SemiImplicitEuler();
 		void Verlet();
 
 		glm::vec3 mForce = glm::vec3(0);
