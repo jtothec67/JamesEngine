@@ -7,6 +7,8 @@
 #include "Collider.h"
 #include "RayCollider.h"
 
+#include "Timer.h"
+
 #include <vector>
 #include <iostream>
 
@@ -24,10 +26,10 @@ namespace JamesEngine
 		mR = glm::toMat4(GetQuaternion());
 	}
 
-	void Rigidbody::OnTick()
+	void Rigidbody::OnFixedTick()
 	{
 		// Step 1: Compute each of the forces acting on the object (only gravity by default)
-		glm::vec3 force = mMass * mAcceleration;// *GetCore()->DeltaTime();
+		glm::vec3 force = mMass * mAcceleration;// *GetCore()->FixedDeltaTime();
 		AddForce(force);
 
 		// Step 2: Compute collisions
@@ -325,25 +327,7 @@ namespace JamesEngine
 
 	void Rigidbody::Euler()
 	{
-		//float oneOverMass = 1 / mMass;
-		//// Compute the current velocity based on the previous velocity
-		//mVelocity += (mForce * oneOverMass) * GetCore()->DeltaTime();
-		//// Compute the current position based on the previous position
-		//Move(mVelocity * GetCore()->DeltaTime());
-
-		//// Angular motion update
-		//mAngularMomentum += mTorque * GetCore()->DeltaTime();
-		//ComputeInverseInertiaTensor();
-		//// Update angular velocity
-		//mAngularVelocity = mInertiaTensorInverse * mAngularMomentum;
-		//// Construct skew matrix omega star
-		//glm::mat3 omega_star = glm::mat3(0.0f, -mAngularVelocity.z, mAngularVelocity.y,
-		//	mAngularVelocity.z, 0.0f, -mAngularVelocity.x,
-		//	-mAngularVelocity.y, mAngularVelocity.x, 0.0f);
-		//// Update rotation matrix
-		//mR += omega_star * mR * GetCore()->DeltaTime();
-		// Get the time step.
-		float dt = GetCore()->DeltaTime();
+		float dt = GetCore()->FixedDeltaTime();
 
 		// --- Linear Dynamics ---
 		// Compute inverse mass (if mass is zero, the body is static).
@@ -355,34 +339,31 @@ namespace JamesEngine
 		Move(mVelocity * dt);
 
 		// --- Angular Dynamics ---
-		// Update angular momentum from applied torques.
 		mAngularMomentum += mTorque * dt;
-
-		// Recompute inverse inertia tensor in world space.
-		// (ComputeInverseInertiaTensor() should update mInertiaTensorInverse using mR and the body inertia tensor.)
+		// Recompute the inverse inertia tensor (if it depends on orientation or other factors)
 		ComputeInverseInertiaTensor();
-
-		// Update angular velocity.
 		mAngularVelocity = mInertiaTensorInverse * mAngularMomentum;
 
-		// Build the skew-symmetric matrix for angular velocity.
-		glm::mat3 omegaStar(0.0f);
-		omegaStar[0][1] = -mAngularVelocity.z;
-		omegaStar[0][2] = mAngularVelocity.y;
-		omegaStar[1][0] = mAngularVelocity.z;
-		omegaStar[1][2] = -mAngularVelocity.x;
-		omegaStar[2][0] = -mAngularVelocity.y;
-		omegaStar[2][1] = mAngularVelocity.x;
+		// Integrate orientation using quaternions:
+		// Get the current quaternion (representing orientation)
+		glm::quat q = GetQuaternion();
+		// Form the quaternion representing angular velocity (with a zero real part)
+		glm::quat omegaQuat(0.0f, mAngularVelocity.x, mAngularVelocity.y, mAngularVelocity.z);
+		glm::quat dq = 0.5f * omegaQuat * q;
+		// Update the quaternion using the new derivative
+		q += dq * dt;
+		// Normalize to prevent drift and rounding errors
+		q = glm::normalize(q);
+		// Set the updated orientation
+		SetQuaternion(q);
 
-		// Update the rotation matrix (Euler integration on SO(3)).
-		mR += omegaStar * mR * dt;
-		// Re-orthonormalize the rotation matrix to prevent drift.
-		mR = glm::orthonormalize(mR);
+		// Update the rotation matrix for convenience (if needed)
+		mR = glm::mat3_cast(q);
 	}
 
 	void Rigidbody::SemiImplicitEuler()
 	{
-		float dt = GetCore()->DeltaTime();
+		float dt = GetCore()->FixedDeltaTime();
 
 		// ----- Linear Integration -----
 		glm::vec3 acceleration = mForce / mMass;
@@ -418,7 +399,7 @@ namespace JamesEngine
 
 	void Rigidbody::Verlet()
 	{
-		float dt = GetCore()->DeltaTime();
+		float dt = GetCore()->FixedDeltaTime();
 
 		glm::vec3 acceleration = mForce / mMass;
 		mPreviousPosition = GetPosition() - mVelocity * dt + 0.5f * acceleration * dt * dt;
@@ -428,24 +409,24 @@ namespace JamesEngine
 
 		// Angular motion update
 		mAngularMomentum += mTorque * dt;
+		// Recompute the inverse inertia tensor (if it depends on orientation or other factors)
 		ComputeInverseInertiaTensor();
-		// Update angular velocity
 		mAngularVelocity = mInertiaTensorInverse * mAngularMomentum;
-		
-		// Integrate orientation using quaternion
-		glm::vec3 w = mAngularVelocity;
-		glm::quat q = GetQuaternion(); // current orientation
 
-		// dq/dt = 0.5 * omega * q
-		glm::quat omegaQuat(0.0f, w.x, w.y, w.z);
+		// Integrate orientation using quaternions:
+		// Get the current quaternion (representing orientation)
+		glm::quat q = GetQuaternion();
+		// Form the quaternion representing angular velocity (with a zero real part)
+		glm::quat omegaQuat(0.0f, mAngularVelocity.x, mAngularVelocity.y, mAngularVelocity.z);
 		glm::quat dq = 0.5f * omegaQuat * q;
-
-		// Integrate orientation
+		// Update the quaternion using the new derivative
 		q += dq * dt;
+		// Normalize to prevent drift and rounding errors
 		q = glm::normalize(q);
+		// Set the updated orientation
 		SetQuaternion(q);
 
-		// Update rotation matrix for convenience
+		// Update the rotation matrix for convenience (if needed)
 		mR = glm::mat3_cast(q);
 	}
 

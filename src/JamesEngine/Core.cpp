@@ -41,7 +41,7 @@ namespace JamesEngine
 
 			mDeltaTime = mDeltaTime * mTimeScale;
 
-			std::cout << "deltaTime: " << mDeltaTime << std::endl;
+			//std::cout << "deltaTime: " << mDeltaTime << std::endl;
 
 			mDeltaTimer.Start();
 
@@ -56,6 +56,37 @@ namespace JamesEngine
 				if (mDeltaTimeZeroCounter >= mNumDeltaTimeZeros)
 					mDeltaTimeZero = false;
 			}
+
+			mFixedTimeAccumulator += mDeltaTime;
+
+			if (mFixedTimeAccumulator > 0.25f) // Allow max 12 fixed updates per frame
+				mFixedTimeAccumulator = 0.25f;
+
+			Timer debugTimer;
+			debugTimer.Start();
+
+			int numFixedUpdates = 0;
+
+			while (mFixedTimeAccumulator >= mFixedDeltaTime)
+			{
+				for (size_t ei = 0; ei < mEntities.size(); ++ei)
+				{
+					mEntities[ei]->OnFixedTick();
+				}
+
+				numFixedUpdates++;
+
+				//std::cout << "Fixed delta time: " << mFixedDeltaTime << std::endl;
+
+				mFixedTimeAccumulator -= mFixedDeltaTime;
+			}
+
+			if (numFixedUpdates > 0)
+			{
+				std::cout << "Fixed time step took: " << debugTimer.Stop() << std::endl;
+				std::cout << "Fixed updates this frame: " << numFixedUpdates << std::endl;
+			}
+			
 
 			mInput->Update();
 			

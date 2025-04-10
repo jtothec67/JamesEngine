@@ -63,6 +63,18 @@ namespace JamesEngine
     }
 #endif
 
+    void ModelCollider::OnAlive()
+    {
+        if (mModel == nullptr)
+        {
+            std::cout << "You need to add a model to the model collider" << std::endl;
+            return;
+        }
+		// Build the BVH from the model's triangles.
+        mBVHRoot = BuildBVH(mModel->mModel->GetFaces(), mBVHLeafThreshold);
+        const std::vector<Renderer::Model::Face>& faces = mModel->mModel->GetFaces();
+    }
+
     bool ModelCollider::IsColliding(std::shared_ptr<Collider> _other, glm::vec3& _collisionPoint, glm::vec3& _normal, float& _penetrationDepth)
     {
         if (_other == nullptr)
@@ -73,7 +85,6 @@ namespace JamesEngine
 
         if (mModel == nullptr)
         {
-            std::cout << "You need to add a model to the model collider" << std::endl;
             return false;
         }
 
@@ -134,8 +145,6 @@ namespace JamesEngine
                         _normal = triNormal;
                         _penetrationDepth = sphereRadius;
                     }
-
-                    return true;
                 }
             }
         }
@@ -514,16 +523,15 @@ namespace JamesEngine
 
     // --- GetTriangles using BVH ---
 
-    std::vector<Renderer::Model::Face> ModelCollider::GetTriangles(const glm::vec3& boxPos, const glm::vec3& boxRotation, const glm::vec3& boxSize, unsigned int _leafThreshold)
+    std::vector<Renderer::Model::Face> ModelCollider::GetTriangles(const glm::vec3& boxPos, const glm::vec3& boxRotation, const glm::vec3& boxSize)
     {
         std::vector<Renderer::Model::Face> result;
         if (mModel == nullptr)
             return result;
 
         // (Re)build the BVH if it hasn?t been built yet or if the leaf threshold has changed.
-        if (!mBVHRoot || mBVHLeafThreshold != _leafThreshold)
+        if (!mBVHRoot)
         {
-            mBVHLeafThreshold = _leafThreshold;
             const std::vector<Renderer::Model::Face>& faces = mModel->mModel->GetFaces();
             mBVHRoot = BuildBVH(faces, mBVHLeafThreshold);
         }

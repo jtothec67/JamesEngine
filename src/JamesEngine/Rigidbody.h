@@ -9,7 +9,7 @@ namespace JamesEngine
 	{
 	public:
 		void OnInitialize();
-		void OnTick();
+		void OnFixedTick();
 
 		void AddForce(glm::vec3 _force) { mForce += _force; }
 		void AddTorque(glm::vec3 _torque) { mTorque += _torque; }

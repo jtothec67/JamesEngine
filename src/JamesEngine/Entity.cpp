@@ -13,9 +13,26 @@ namespace JamesEngine
 
 	void Entity::OnTick()
 	{
+		if (mJustCreated)
+		{
+			mJustCreated = false;
+			for (size_t ci = 0; ci < mComponents.size(); ++ci)
+			{
+				mComponents.at(ci)->Alive();
+			}
+		}
+
 		for (size_t ci = 0; ci < mComponents.size(); ++ci)
 		{
 			mComponents.at(ci)->Tick();
+		}
+	}
+
+	void Entity::OnFixedTick()
+	{
+		for (size_t ci = 0; ci < mComponents.size(); ++ci)
+		{
+			mComponents.at(ci)->FixedTick();
 		}
 	}
 

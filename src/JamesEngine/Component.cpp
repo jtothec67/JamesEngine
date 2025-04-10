@@ -99,6 +99,11 @@ namespace JamesEngine
 		OnTick();
 	}
 
+	void Component::FixedTick()
+	{
+		OnFixedTick();
+	}
+
 	void Component::Render()
 	{
 		OnRender();
@@ -112,6 +117,11 @@ namespace JamesEngine
 	void Component::Destroy()
 	{
 		OnDestroy();
+	}
+
+	void Component::Alive()
+	{
+		OnAlive();
 	}
 
 }

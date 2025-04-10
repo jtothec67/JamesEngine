@@ -103,8 +103,8 @@ struct CarController : public Component
 {
 	std::shared_ptr<Rigidbody> rb;
 
-	float forwardSpeed = 50000.f;
-	float turnSpeed = 10000.f;
+	float forwardSpeed = 100.f;
+	float turnSpeed = 100.f;
 
 	void OnTick()
 	{
@@ -203,47 +203,45 @@ int main()
 		carBodyRB->SetMass(1235);
 		carBody->AddComponent<CarController>()->rb = carBodyRB;
 		//cameraEntity->GetComponent<Transform>()->SetParent(carBody);
+		
+		// Wheel Anchors
+		std::shared_ptr<Entity> FLWheelAnchor = core->AddEntity();
+		FLWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(-1, -0.25, 0.5));
+		FLWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.1, 0.1, 0.1));
+		FLWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
+		std::shared_ptr<ModelRenderer> FLWheelAnchorMR = FLWheelAnchor->AddComponent<ModelRenderer>();
+		FLWheelAnchorMR->SetModel(core->GetResources()->Load<Model>("shapes/sphere"));
+		FLWheelAnchorMR->AddTexture(core->GetResources()->Load<Texture>("images/cat"));
 
-		//std::shared_ptr<Entity> mercedes = core->AddEntity();
-		//mercedes->GetComponent<Transform>()->SetPosition(vec3(0, 0, -20));
-		//std::shared_ptr<ModelRenderer> mercedesMR = mercedes->AddComponent<ModelRenderer>();
-		//mercedesMR->SetModel(core->GetResources()->Load<Model>("models/Mercedes/source/mercedes"));
-		//mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_0"));
-		//mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_3"));
-		//mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_2"));
-		//mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_5"));
-		//mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_7"));
-		//mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_9"));
-		//mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_2"));
-		//mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_11"));
-		//mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_13"));
-		//mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_15"));
-		//mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_2"));
-		//mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_2"));
-		//mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_9"));
-		//mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_2"));
-		//mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_11"));
-		//mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_22"));
-		//mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_13"));
-		//mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_24"));
-		//mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_15"));
-		//mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_0"));
-		//mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_26"));
-		//mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_28"));
-		//mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_28"));
-		//mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_30")); // Car Exterior
-		//mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_33"));
-		//mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_34"));
-		//mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_37"));
-		//mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_37-clear"));
-		//mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_39"));
-		//mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/mirrors"));
+		std::shared_ptr<Entity> FRWheelAnchor = core->AddEntity();
+		FRWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(1, -0.25, 0.5));
+		FRWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.1, 0.1, 0.1));
+		FRWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
+		std::shared_ptr<ModelRenderer> FRWheelAnchorMR = FRWheelAnchor->AddComponent<ModelRenderer>();
+		FRWheelAnchorMR->SetModel(core->GetResources()->Load<Model>("shapes/sphere"));
+		FRWheelAnchorMR->AddTexture(core->GetResources()->Load<Texture>("images/cat"));
+
+		std::shared_ptr<Entity> RLWheelAnchor = core->AddEntity();
+		RLWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(-1, -0.25, -0.5));
+		RLWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.1, 0.1, 0.1));
+		RLWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
+		std::shared_ptr<ModelRenderer> RLWheelAnchorMR = RLWheelAnchor->AddComponent<ModelRenderer>();
+		RLWheelAnchorMR->SetModel(core->GetResources()->Load<Model>("shapes/sphere"));
+		RLWheelAnchorMR->AddTexture(core->GetResources()->Load<Texture>("images/cat"));
+
+		std::shared_ptr<Entity> RRWheelAnchor = core->AddEntity();
+		RRWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(1, -0.25, -0.5));
+		RRWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.1, 0.1, 0.1));
+		RRWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
+		std::shared_ptr<ModelRenderer> RRWheelAnchorMR = RRWheelAnchor->AddComponent<ModelRenderer>();
+		RRWheelAnchorMR->SetModel(core->GetResources()->Load<Model>("shapes/sphere"));
+		RRWheelAnchorMR->AddTexture(core->GetResources()->Load<Texture>("images/cat"));
 
 
 		// Front Left Wheel
 		std::shared_ptr<Entity> FLWheel = core->AddEntity();
 		FLWheel->SetTag("wheel");
-		FLWheel->GetComponent<Transform>()->SetPosition(vec3(-1, 0.55, -15.5));
+		FLWheel->GetComponent<Transform>()->SetPosition(vec3(-1, 0.8, -15.5));
 		FLWheel->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		FLWheel->GetComponent<Transform>()->SetScale(vec3(0.75, 0.75, 0.15));
 		std::shared_ptr<ModelRenderer> FLWheelMR = FLWheel->AddComponent<ModelRenderer>();
@@ -259,11 +257,15 @@ int main()
 		std::shared_ptr<boxController> FLBC = FLWheel->AddComponent<boxController>();
 		FLBC->rb = FLWheelRB;
 		FLBC->carBody = carBody;
+		std::shared_ptr<Suspension> FLWheelSuspension = FLWheel->AddComponent<Suspension>();
+		FLWheelSuspension->SetWheel(FLWheel);
+		FLWheelSuspension->SetCarBody(carBody);
+		FLWheelSuspension->SetAnchorPoint(FLWheelAnchor);
 
 		// Front Right Wheel
 		std::shared_ptr<Entity> FRWheel = core->AddEntity();
 		FRWheel->SetTag("wheel");
-		FRWheel->GetComponent<Transform>()->SetPosition(vec3(1, 0.55, -15.5));
+		FRWheel->GetComponent<Transform>()->SetPosition(vec3(1, 0.8, -15.5));
 		FRWheel->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		FRWheel->GetComponent<Transform>()->SetScale(vec3(0.75, 0.75, 0.15));
 		std::shared_ptr<ModelRenderer> FRWheelMR = FRWheel->AddComponent<ModelRenderer>();
@@ -279,11 +281,15 @@ int main()
 		std::shared_ptr<boxController> FRBC = FRWheel->AddComponent<boxController>();
 		FRBC->rb = FRWheelRB;
 		FRBC->carBody = carBody;
+		std::shared_ptr<Suspension> FRWheelSuspension = FRWheel->AddComponent<Suspension>();
+		FRWheelSuspension->SetWheel(FRWheel);
+		FRWheelSuspension->SetCarBody(carBody);
+		FRWheelSuspension->SetAnchorPoint(FRWheelAnchor);
 
 		// Rear Left Wheel
 		std::shared_ptr<Entity> RLWheel = core->AddEntity();
 		RLWheel->SetTag("wheel");
-		RLWheel->GetComponent<Transform>()->SetPosition(vec3(-1, 0.55, -16.5));
+		RLWheel->GetComponent<Transform>()->SetPosition(vec3(-1, 0.8, -16.5));
 		RLWheel->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		RLWheel->GetComponent<Transform>()->SetScale(vec3(0.75, 0.75, 0.15));
 		std::shared_ptr<ModelRenderer> RLWheelMR = RLWheel->AddComponent<ModelRenderer>();
@@ -299,11 +305,15 @@ int main()
 		std::shared_ptr<boxController> RLBC = RLWheel->AddComponent<boxController>();
 		RLBC->rb = RLWheelRB;
 		RLBC->carBody = carBody;
+		std::shared_ptr<Suspension> RLWheelSuspension = RLWheel->AddComponent<Suspension>();
+		RLWheelSuspension->SetWheel(RLWheel);
+		RLWheelSuspension->SetCarBody(carBody);
+		RLWheelSuspension->SetAnchorPoint(RLWheelAnchor);
 
 		// Rear Right Wheel
 		std::shared_ptr<Entity> RRWheel = core->AddEntity();
 		RRWheel->SetTag("wheel");
-		RRWheel->GetComponent<Transform>()->SetPosition(vec3(1, 0.55, -16.5));
+		RRWheel->GetComponent<Transform>()->SetPosition(vec3(1, 0.8, -16.5));
 		RRWheel->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		RRWheel->GetComponent<Transform>()->SetScale(vec3(0.75, 0.75, 0.15));
 		std::shared_ptr<ModelRenderer> RRWheelMR = RRWheel->AddComponent<ModelRenderer>();
@@ -319,58 +329,15 @@ int main()
 		std::shared_ptr<boxController> RRBC = RRWheel->AddComponent<boxController>();
 		RRBC->rb = RRWheelRB;
 		RRBC->carBody = carBody;
-
-		// Wheel Anchors
-		std::shared_ptr<Entity> FLWheelAnchor = core->AddEntity();
-		FLWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(-1, -0.25, 0.5));
-		FLWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.1, 0.1, 0.1));
-		FLWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
-		std::shared_ptr<ModelRenderer> FLWheelAnchorMR = FLWheelAnchor->AddComponent<ModelRenderer>();
-		FLWheelAnchorMR->SetModel(core->GetResources()->Load<Model>("shapes/sphere"));
-		FLWheelAnchorMR->AddTexture(core->GetResources()->Load<Texture>("images/cat"));
-		std::shared_ptr<Suspension> FLWheelAnchorSuspension = FLWheelAnchor->AddComponent<Suspension>();
-		FLWheelAnchorSuspension->SetWheel(FLWheel);
-		FLWheelAnchorSuspension->SetCarBody(carBody);
-		FLWheelAnchorSuspension->SetAnchorPoint(FLWheelAnchor);
-
-		std::shared_ptr<Entity> FRWheelAnchor = core->AddEntity();
-		FRWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(1, -0.25, 0.5));
-		FRWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.1, 0.1, 0.1));
-		FRWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
-		std::shared_ptr<ModelRenderer> FRWheelAnchorMR = FRWheelAnchor->AddComponent<ModelRenderer>();
-		FRWheelAnchorMR->SetModel(core->GetResources()->Load<Model>("shapes/sphere"));
-		FRWheelAnchorMR->AddTexture(core->GetResources()->Load<Texture>("images/cat"));
-		std::shared_ptr<Suspension> FRWheelAnchorSuspension = FRWheelAnchor->AddComponent<Suspension>();
-		FRWheelAnchorSuspension->SetWheel(FRWheel);
-		FRWheelAnchorSuspension->SetCarBody(carBody);
-		FRWheelAnchorSuspension->SetAnchorPoint(FRWheelAnchor);
-
-		std::shared_ptr<Entity> RLWheelAnchor = core->AddEntity();
-		RLWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(-1, -0.25, -0.5));
-		RLWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.1, 0.1, 0.1));
-		RLWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
-		std::shared_ptr<ModelRenderer> RLWheelAnchorMR = RLWheelAnchor->AddComponent<ModelRenderer>();
-		RLWheelAnchorMR->SetModel(core->GetResources()->Load<Model>("shapes/sphere"));
-		RLWheelAnchorMR->AddTexture(core->GetResources()->Load<Texture>("images/cat"));
-		std::shared_ptr<Suspension> RLWheelAnchorSuspension = RLWheelAnchor->AddComponent<Suspension>();
-		RLWheelAnchorSuspension->SetWheel(RLWheel);
-		RLWheelAnchorSuspension->SetCarBody(carBody);
-		RLWheelAnchorSuspension->SetAnchorPoint(RLWheelAnchor);
-
-		std::shared_ptr<Entity> RRWheelAnchor = core->AddEntity();
-		RRWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(1, -0.25, -0.5));
-		RRWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.1, 0.1, 0.1));
-		RRWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
-		std::shared_ptr<ModelRenderer> RRWheelAnchorMR = RRWheelAnchor->AddComponent<ModelRenderer>();
-		RRWheelAnchorMR->SetModel(core->GetResources()->Load<Model>("shapes/sphere"));
-		RRWheelAnchorMR->AddTexture(core->GetResources()->Load<Texture>("images/cat"));
-		std::shared_ptr<Suspension> RRWheelAnchorSuspension = RRWheelAnchor->AddComponent<Suspension>();
-		RRWheelAnchorSuspension->SetWheel(RRWheel);
-		RRWheelAnchorSuspension->SetCarBody(carBody);
-		RRWheelAnchorSuspension->SetAnchorPoint(RRWheelAnchor);
+		std::shared_ptr<Suspension> RRWheelSuspension = RRWheel->AddComponent<Suspension>();
+		RRWheelSuspension->SetWheel(RRWheel);
+		RRWheelSuspension->SetCarBody(carBody);
+		RRWheelSuspension->SetAnchorPoint(RRWheelAnchor);
+		
 
 		// Track
 		std::shared_ptr<Entity> track = core->AddEntity();
+		track->SetTag("track");
 		track->GetComponent<Transform>()->SetPosition(vec3(0, 0, 10));
 		track->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		std::shared_ptr<ModelRenderer> trackMR = track->AddComponent<ModelRenderer>();

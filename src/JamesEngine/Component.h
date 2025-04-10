@@ -51,6 +51,10 @@ namespace JamesEngine
 		 */
 		virtual void OnTick() { }
 		/**
+		 * @brief Called 50 times a second.
+		 */
+		virtual void OnFixedTick() {}
+		/**
 		 * @brief Called after OnTick().
 		 */
 		virtual void OnRender() { }
@@ -67,6 +71,10 @@ namespace JamesEngine
 		 * @param _tag The tag of the entity it collided with.
 		 */
 		virtual void OnCollision(std::shared_ptr<Entity> _collidedEntity) { }
+		/**
+		 * @brief Called on the first frame entity has been created.
+		 */
+		virtual void OnAlive() {}
 
 	private:
 		friend class JamesEngine::Entity;
@@ -74,8 +82,10 @@ namespace JamesEngine
 		std::weak_ptr<Entity> mEntity;
 
 		void Tick();
+		void FixedTick();
 		void Render();
 		void GUI();
 		void Destroy();
+		void Alive();
 	};
 }

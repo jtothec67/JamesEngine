@@ -18,6 +18,7 @@ namespace JamesEngine
 		void OnGUI();
 #endif
 
+		void OnFixedTick();
 		void OnTick();
 
 		void SetWheel(std::shared_ptr<Entity> _wheel) { mWheel = _wheel; }
@@ -30,6 +31,8 @@ namespace JamesEngine
 		void SetMinLength(float _minLength) { mMinLength = _minLength; }
 		void SetMaxLength(float _maxLength) { mMaxLength = _maxLength; }
 
+		void SetCollision(bool _groundContact) { mGroundContact = _groundContact; }
+
 		void SetDebugVisual(bool _value) { mDebugVisual = _value; }
 
 	private:
@@ -40,13 +43,15 @@ namespace JamesEngine
 		std::shared_ptr<Rigidbody> mWheelRb;
 		std::shared_ptr<Rigidbody> mCarRb;
 
-		float mStiffness = 30000;
-		float mDamping = 100;
+		float mStiffness = 100000;
+		float mDamping = 1;
 
 		float mRestLength = 0.2f;
 
 		float mMinLength = 0.0f;
 		float mMaxLength = 0.4f;
+
+		bool mGroundContact = false;
 
 		bool mDebugVisual = true;
 

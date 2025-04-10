@@ -17,6 +17,8 @@ namespace JamesEngine
 #ifdef _DEBUG
         void OnGUI();
 #endif
+		void OnAlive();
+
         bool IsColliding(std::shared_ptr<Collider> _other, glm::vec3& _collisionPoint, glm::vec3& _normal, float& _penetrationDepth);
 
         glm::mat3 UpdateInertiaTensor(float _mass);
@@ -27,7 +29,7 @@ namespace JamesEngine
         // GetTriangles returns the candidate triangles (in model space)
         // that lie within (or near) the provided BoxCollider. The _leafThreshold
         // parameter controls how many triangles are allowed per leaf node.
-        std::vector<Renderer::Model::Face> GetTriangles(const glm::vec3& boxPos, const glm::vec3& boxRotation, const glm::vec3& boxSize, unsigned int _leafThreshold = 2);
+        std::vector<Renderer::Model::Face> GetTriangles(const glm::vec3& boxPos, const glm::vec3& boxRotation, const glm::vec3& boxSize);
 
     private:
         std::shared_ptr<Model> mModel = nullptr;
@@ -47,7 +49,7 @@ namespace JamesEngine
         // Cached BVH built from the model’s triangles (in local space)
         std::unique_ptr<BVHNode> mBVHRoot = nullptr;
         // The leaf–threshold used for the current BVH
-        unsigned int mBVHLeafThreshold = 10;
+        unsigned int mBVHLeafThreshold = 2;
 
         // Helper functions to build and query the BVH.
         std::unique_ptr<BVHNode> BuildBVH(const std::vector<Renderer::Model::Face>& faces, unsigned int leafThreshold);

@@ -54,12 +54,6 @@ namespace JamesEngine
 		std::shared_ptr<Entity> AddEntity();
 
 		/**
-		 * @brief Gets the delta time.
-		 * @return The time taken for the last frame to update and draw.
-		 */
-		float DeltaTime() { return mDeltaTime; }
-
-		/**
 		 * @brief Gets the current camera with the highest priority.
 		 * @return A shared pointer to the camera.
 		 */
@@ -134,8 +128,16 @@ namespace JamesEngine
 			return nullptr;
 		}
 
+		/**
+		 * @brief Gets the delta time.
+		 * @return The time taken for the last frame to update and draw.
+		 */
+		float DeltaTime() { return mDeltaTime; }
+
 		float GetTimeScale() { return mTimeScale; }
 		void SetTimeScale(float _timeScale) { mTimeScale = _timeScale; }
+
+		float FixedDeltaTime() { return mFixedDeltaTime; }
 
 	private:
 		std::shared_ptr<Window> mWindow;
@@ -148,16 +150,19 @@ namespace JamesEngine
 		std::vector<std::shared_ptr<Entity>> mEntities;
 		std::weak_ptr<Core> mSelf;
 
-		float mDeltaTime = 0.0f;
-
 		bool mIsRunning = true;
 
-		// Used when loading scenes to ensure first frame doesn't have a large delta time
+		float mDeltaTime = 0.0f;
+
+		float mFixedDeltaTime = 0.02f; // 50 fps
+		float mFixedTimeAccumulator = 0.0f;
+
+		float mTimeScale = 1.f;
+
+		// Used when loading scenes to ensure first frames don't have a large delta time
 		bool mDeltaTimeZero = true;
 		int mDeltaTimeZeroCounter = 0;
 		int mNumDeltaTimeZeros = 3;
-
-		float mTimeScale = 1.f;
 	};
 
 }

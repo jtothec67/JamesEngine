@@ -99,7 +99,7 @@ namespace JamesEngine
 	}
 #endif
 
-    void Suspension::OnTick()
+    void Suspension::OnFixedTick()
     {
         if (!mWheel || !mCarBody || !mAnchorPoint)
         {
@@ -141,23 +141,71 @@ namespace JamesEngine
 
         // Calculate the spring and damper contributions
         float springForceMag = mStiffness * compression;
-        float c = 2 * sqrt(mStiffness * mWheelRb->GetMass());
         float damperForceMag = -mDamping * relativeVel;
         glm::vec3 suspensionForce = suspensionAxis * (springForceMag + damperForceMag);
 
-        // Project the wheel position onto the suspension axis line (through anchorPos)
+        // Apply forces only if the wheel is in contact with the ground.
+        if (mGroundContact)
+        {
+            // When grounded, apply full suspension forces to both bodies.
+            mWheelRb->ApplyForce(suspensionForce, wheelPos);
+            mCarRb->ApplyForce(-suspensionForce, anchorPos);
+
+			std::cout << "Suspension force applied: " << suspensionForce.x << ", " << suspensionForce.y << ", " << suspensionForce.z << std::endl;
+        }
+        else
+        {
+            // Not in contact: apply a reduced "recovery" spring force to the wheel only.
+            // Adjust 'recoveryFactor' as needed (e.g., 0.5 for half stiffness).
+            float recoveryFactor = 0.000f;
+            float recoveryForceMag = mStiffness * recoveryFactor * compression;
+            glm::vec3 recoveryForce = suspensionAxis * recoveryForceMag;
+            mWheelRb->ApplyForce(recoveryForce, wheelPos);
+			std::cout << "Compressions: " << compression << std::endl;
+            // Do not apply any force to the car body when the wheel is airborne.
+        }
+
+
+        //// Project the wheel position onto the suspension axis (vertical line from the anchor)
         glm::vec3 projectedPos = anchorPos + suspensionAxis * currentLength;
 
-		float dt = GetCore()->DeltaTime();
 
-        // Apply equal and opposite forces to the wheel and the car body.
-        mWheelRb->ApplyForce(suspensionForce, wheelPos);
-        mCarRb->ApplyForce(-suspensionForce, anchorPos);
+        //// Lateral offset: difference between the actual wheel position and its projection
+        //glm::vec3 lateralOffset = wheelPos - projectedPos;
 
-        // Correct the wheel laterally over time to avoid snapping
-        float alpha = 0.5f;
-        glm::vec3 correctedPos = glm::mix(wheelTransform->GetPosition(), projectedPos, alpha);
-        wheelTransform->SetPosition(correctedPos);
+        //// Compute the relative lateral velocity:
+        //// Get full relative velocity between the wheel and the car at the anchor,
+        //// then remove the component along the suspension axis.
+        //glm::vec3 relativeVelVec = wheelVel - carVel;
+        //glm::vec3 lateralVelocity = relativeVelVec - suspensionAxis * glm::dot(relativeVelVec, suspensionAxis);
+
+        //// Choose appropriate tuning values for the lateral correction.
+        //float lateralStiffness = 100.0f; // adjust this value as needed
+        //float lateralDamping = 1.0f;  // adjust this value as needed
+
+        //// Calculate lateral spring and damper forces.
+        //glm::vec3 lateralSpringForce = -lateralStiffness * lateralOffset;
+        //glm::vec3 lateralDamperForce = -lateralDamping * lateralVelocity;
+        //glm::vec3 lateralForce = lateralSpringForce + lateralDamperForce;
+
+        //// Apply the lateral forces: one to correct the wheel and an equal/opposite reaction on the car body.
+        //mWheelRb->ApplyForce(lateralForce, wheelPos);
+        //mCarRb->ApplyForce(-lateralForce, anchorPos);
+
+        
 	}
+
+    void Suspension::OnTick()
+    {
+        glm::vec3 anchorPos = mAnchorPoint->GetComponent<Transform>()->GetPosition();
+        glm::vec3 suspensionAxis = glm::normalize(mAnchorPoint->GetComponent<Transform>()->GetUp());
+        glm::vec3 offset = mWheel->GetComponent<Transform>()->GetPosition() - anchorPos;
+        float currentLength = glm::dot(offset, suspensionAxis);
+        glm::vec3 projectedPos = anchorPos + suspensionAxis * currentLength;
+
+        float alpha = 1.f;
+        glm::vec3 correctedPos = glm::mix(mWheel->GetComponent<Transform>()->GetPosition(), projectedPos, alpha);
+        mWheel->GetComponent<Transform>()->SetPosition(correctedPos);
+    }
 
 }

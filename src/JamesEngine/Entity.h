@@ -85,7 +85,10 @@ namespace JamesEngine
 
 		bool mAlive = true;
 
+		bool mJustCreated = true;
+
 		void OnTick();
+		void OnFixedTick();
 		void OnRender();
 		void OnGUI();
 	};

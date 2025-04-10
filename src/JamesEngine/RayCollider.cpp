@@ -3,6 +3,8 @@
 #include "Core.h"
 #include "ModelCollider.h"
 #include "MathsHelper.h"
+#include "Entity.h"
+#include "Suspension.h"
 
 #include <iostream>
 
@@ -181,9 +183,17 @@ namespace JamesEngine
 
                 _collisionPoint = hitPoint;
 
+				std::shared_ptr<Suspension> sus = GetEntity()->GetComponent<Suspension>();
+				if (sus)
+					sus->SetCollision(true);
+
                 return true;
             }
         }
+
+        std::shared_ptr<Suspension> sus = GetEntity()->GetComponent<Suspension>();
+        if (sus)
+            sus->SetCollision(false);
 
         return false;
     }
