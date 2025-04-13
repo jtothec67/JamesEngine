@@ -17,6 +17,9 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/euler_angles.hpp>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 namespace JamesEngine
 {
@@ -33,15 +36,20 @@ namespace JamesEngine
 
 		mShader->uniform("view", camera->GetViewMatrix());
 
-        glm::mat4 mModelMatrix = glm::mat4(1.f);
-        mModelMatrix = glm::translate(mModelMatrix, GetPosition() + mPositionOffset);
-        glm::vec3 rotation = GetRotation() + GetRotationOffset();
-        mModelMatrix = glm::rotate(mModelMatrix, glm::radians(rotation.x), glm::vec3(1, 0, 0));
-        mModelMatrix = glm::rotate(mModelMatrix, glm::radians(rotation.y), glm::vec3(0, 1, 0));
-        mModelMatrix = glm::rotate(mModelMatrix, glm::radians(rotation.z), glm::vec3(0, 0, 1));
-		mModelMatrix = glm::scale(mModelMatrix, glm::vec3(mSize.x/2, mSize.y/2, mSize.z/2));
+        glm::mat4 baseMatrix = glm::mat4(1.f);
+        baseMatrix = glm::translate(baseMatrix, GetPosition() + mPositionOffset);
+        baseMatrix *= glm::toMat4(GetWorldRotation());
+		baseMatrix = glm::scale(baseMatrix, glm::vec3(mSize.x/2, mSize.y/2, mSize.z/2));
 
-		mShader->uniform("model", mModelMatrix);
+        glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(mRotationOffset.x), glm::vec3(1, 0, 0)) *
+            glm::rotate(glm::mat4(1.0f), glm::radians(mRotationOffset.y), glm::vec3(0, 1, 0)) *
+            glm::rotate(glm::mat4(1.0f), glm::radians(mRotationOffset.z), glm::vec3(0, 0, 1));
+        glm::mat4 offsetMatrix{ 1.f };
+        offsetMatrix = offsetMatrix * rotationMatrix;
+
+        glm::mat4 model = baseMatrix * offsetMatrix;
+
+		mShader->uniform("model", model);
 
 		mShader->uniform("outlineWidth", 1.f);
 
@@ -72,8 +80,8 @@ namespace JamesEngine
             glm::vec3 aSize = GetSize() / 2.0f;
             glm::vec3 bSize = otherBox->GetSize() / 2.0f;
 
-            glm::vec3 aRotation = GetRotation() + mRotationOffset;
-            glm::vec3 bRotation = otherBox->GetRotation() + otherBox->GetRotationOffset();
+            glm::vec3 aRotation = GetWorldRotationEuler() + mRotationOffset;
+            glm::vec3 bRotation = otherBox->GetWorldRotationEuler() + otherBox->GetRotationOffset();
 
             glm::mat4 aRotationMatrix = glm::yawPitchRoll(glm::radians(aRotation.y), glm::radians(aRotation.x), glm::radians(aRotation.z));
             glm::mat4 bRotationMatrix = glm::yawPitchRoll(glm::radians(bRotation.y), glm::radians(bRotation.x), glm::radians(bRotation.z));
@@ -209,7 +217,7 @@ namespace JamesEngine
             glm::vec3 sphereCenter = otherSphere->GetPosition() + otherSphere->mPositionOffset;
             float sphereRadius = otherSphere->GetRadius();
 
-            glm::vec3 boxRotation = GetRotation() + mRotationOffset;
+            glm::vec3 boxRotation = GetWorldRotationEuler() + mRotationOffset;
             glm::mat4 boxRotationMatrix = glm::yawPitchRoll(glm::radians(boxRotation.y), glm::radians(boxRotation.x), glm::radians(boxRotation.z));
             glm::mat3 invBoxRotationMatrix = glm::transpose(glm::mat3(boxRotationMatrix));
 
@@ -266,7 +274,7 @@ namespace JamesEngine
         {
             // Get the box's world parameters.
             glm::vec3 boxPos = GetPosition() + GetPositionOffset();
-            glm::vec3 boxRotation = GetRotation() + GetRotationOffset();
+            glm::vec3 boxRotation = GetWorldRotationEuler() + GetRotationOffset();
             glm::vec3 boxSize = GetSize();
             glm::vec3 boxHalfSize = boxSize * 0.5f;
 
@@ -281,7 +289,7 @@ namespace JamesEngine
             // Build the model's world transformation matrix.
             glm::vec3 modelPos = otherModel->GetPosition() + otherModel->GetPositionOffset();
             glm::vec3 modelScale = otherModel->GetScale();
-            glm::vec3 modelRotation = otherModel->GetRotation() + otherModel->GetRotationOffset();
+            glm::vec3 modelRotation = otherModel->GetWorldRotationEuler() + otherModel->GetRotationOffset();
             glm::mat4 modelMatrix = glm::mat4(1.0f);
             modelMatrix = glm::translate(modelMatrix, modelPos);
             modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation.x), glm::vec3(1, 0, 0));

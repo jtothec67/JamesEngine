@@ -49,6 +49,7 @@ namespace JamesEngine
         }
 
         glm::quat GetWorldRotation();
+		glm::vec3 GetWorldRotationEuler();
 
     private:
         glm::vec3 mPosition{ 0.f };

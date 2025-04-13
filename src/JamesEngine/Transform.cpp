@@ -69,4 +69,12 @@ namespace JamesEngine
         return mRotation;
     }
 
+	glm::vec3 Transform::GetWorldRotationEuler()
+	{
+		glm::quat worldRot = GetWorldRotation();
+		glm::vec3 euler = glm::degrees(glm::eulerAngles(worldRot));
+		euler.x = -euler.x;
+		return euler;
+	}
+
 }

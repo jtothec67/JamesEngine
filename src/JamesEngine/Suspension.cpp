@@ -151,6 +151,9 @@ namespace JamesEngine
             mWheelRb->ApplyForce(suspensionForce, wheelPos);
             mCarRb->ApplyForce(-suspensionForce, anchorPos);
 
+            /*mWheelRb->AddForce(suspensionForce);
+            mCarRb->AddForce(-suspensionForce);*/
+
 			std::cout << "Suspension force applied: " << suspensionForce.x << ", " << suspensionForce.y << ", " << suspensionForce.z << std::endl;
         }
         else
@@ -191,21 +194,24 @@ namespace JamesEngine
         //// Apply the lateral forces: one to correct the wheel and an equal/opposite reaction on the car body.
         //mWheelRb->ApplyForce(lateralForce, wheelPos);
         //mCarRb->ApplyForce(-lateralForce, anchorPos);
-
-        
 	}
 
     void Suspension::OnTick()
     {
+		// Sets the position of the wheel to be the same as the anchor point
         glm::vec3 anchorPos = mAnchorPoint->GetComponent<Transform>()->GetPosition();
         glm::vec3 suspensionAxis = glm::normalize(mAnchorPoint->GetComponent<Transform>()->GetUp());
         glm::vec3 offset = mWheel->GetComponent<Transform>()->GetPosition() - anchorPos;
         float currentLength = glm::dot(offset, suspensionAxis);
         glm::vec3 projectedPos = anchorPos + suspensionAxis * currentLength;
 
-        float alpha = 1.f;
+        float alpha = 0.5f;
         glm::vec3 correctedPos = glm::mix(mWheel->GetComponent<Transform>()->GetPosition(), projectedPos, alpha);
         mWheel->GetComponent<Transform>()->SetPosition(correctedPos);
+
+
+        // Sets the rotation of the wheel to be the same as the anchor point
+		mWheel->GetComponent<Transform>()->SetRotation(mAnchorPoint->GetComponent<Transform>()->GetWorldRotationEuler());
     }
 
 }

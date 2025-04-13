@@ -32,9 +32,12 @@ namespace JamesEngine
 		std::shared_ptr<Transform> GetTransform();
 
 		glm::vec3 GetPosition();
+		glm::vec3 GetLocalPosition();
 		void SetPosition(glm::vec3 _position);
 		glm::vec3 GetRotation();
 		void SetRotation(glm::vec3 _rotation);
+		glm::quat GetWorldRotation();
+		glm::vec3 GetWorldRotationEuler();
 		glm::quat GetQuaternion();
 		void SetQuaternion(const glm::quat& _quat);
 		glm::vec3 GetScale();

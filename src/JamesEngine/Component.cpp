@@ -49,6 +49,11 @@ namespace JamesEngine
 		return GetTransform()->GetPosition();
 	}
 
+	glm::vec3 Component::GetLocalPosition()
+	{
+		return GetTransform()->GetLocalPosition();
+	}
+
 	void Component::SetPosition(glm::vec3 _position)
 	{
 		GetTransform()->SetPosition(_position);
@@ -62,6 +67,16 @@ namespace JamesEngine
 	void Component::SetRotation(glm::vec3 _rotation)
 	{
 		GetTransform()->SetRotation(_rotation);
+	}
+
+	glm::quat Component::GetWorldRotation()
+	{
+		return GetTransform()->GetWorldRotation();
+	}
+
+	glm::vec3 Component::GetWorldRotationEuler()
+	{
+		return GetTransform()->GetWorldRotationEuler();
 	}
 
 	glm::quat Component::GetQuaternion()

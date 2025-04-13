@@ -43,10 +43,10 @@ namespace JamesEngine
 		std::shared_ptr<Rigidbody> mWheelRb;
 		std::shared_ptr<Rigidbody> mCarRb;
 
-		float mStiffness = 100000;
-		float mDamping = 1;
+		float mStiffness = 500;
+		float mDamping = 0;
 
-		float mRestLength = 0.2f;
+		float mRestLength = 0.0f;
 
 		float mMinLength = 0.0f;
 		float mMaxLength = 0.4f;
