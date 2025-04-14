@@ -59,8 +59,8 @@ namespace JamesEngine
 
 			mFixedTimeAccumulator += mDeltaTime;
 
-			if (mFixedTimeAccumulator > 0.25f) // Allow max 12 fixed updates per frame
-				mFixedTimeAccumulator = 0.25f;
+			if (mFixedTimeAccumulator > 0.05f) // Allow max 2 fixed updates per frame
+				mFixedTimeAccumulator = 0.05f;
 
 			Timer debugTimer;
 			debugTimer.Start();
@@ -76,9 +76,8 @@ namespace JamesEngine
 
 				numFixedUpdates++;
 
-				//std::cout << "Fixed delta time: " << mFixedDeltaTime << std::endl;
-
 				mFixedTimeAccumulator -= mFixedDeltaTime;
+				std::cout << "Fixed time accumulator: " << mFixedTimeAccumulator << std::endl;
 			}
 
 			if (numFixedUpdates > 0)

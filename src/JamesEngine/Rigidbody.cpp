@@ -6,6 +6,7 @@
 #include "Transform.h"
 #include "Collider.h"
 #include "RayCollider.h"
+#include "BoxCollider.h"
 
 #include "Timer.h"
 
@@ -369,9 +370,6 @@ namespace JamesEngine
 		glm::vec3 acceleration = mForce / mMass;
 		mVelocity += acceleration * dt;
 		SetPosition(GetPosition() + mVelocity * dt);
-
-		// Optionally, reset the force accumulator if that's how your engine works
-		// mForce = glm::vec3(0.0f);
 
 		// ----- Angular Integration -----
 		mAngularMomentum += mTorque * dt;

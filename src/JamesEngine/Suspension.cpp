@@ -136,6 +136,7 @@ namespace JamesEngine
 
         // Compute relative velocity along the suspension axis
         glm::vec3 wheelVel = mWheelRb->GetVelocity();
+		std::cout << "Wheel velocity: " << wheelVel.x << ", " << wheelVel.y << ", " << wheelVel.z << std::endl;
         glm::vec3 carVel = mCarRb->GetVelocityAtPoint(anchorPos);
         float relativeVel = glm::dot(wheelVel - carVel, suspensionAxis);
 
@@ -147,12 +148,17 @@ namespace JamesEngine
         // Apply forces only if the wheel is in contact with the ground.
         if (mGroundContact)
         {
+			if (suspensionForce.y > 0.0f)
+			{
+                return;
+			}
+
             // When grounded, apply full suspension forces to both bodies.
-            mWheelRb->ApplyForce(suspensionForce, wheelPos);
+            //mWheelRb->ApplyForce(suspensionForce, wheelPos);
             mCarRb->ApplyForce(-suspensionForce, anchorPos);
 
-            /*mWheelRb->AddForce(suspensionForce);
-            mCarRb->AddForce(-suspensionForce);*/
+            mWheelRb->AddForce(suspensionForce);
+            //mCarRb->AddForce(-suspensionForce);
 
 			std::cout << "Suspension force applied: " << suspensionForce.x << ", " << suspensionForce.y << ", " << suspensionForce.z << std::endl;
         }
@@ -160,40 +166,14 @@ namespace JamesEngine
         {
             // Not in contact: apply a reduced "recovery" spring force to the wheel only.
             // Adjust 'recoveryFactor' as needed (e.g., 0.5 for half stiffness).
-            float recoveryFactor = 0.000f;
+            float recoveryFactor = 1.5f;
             float recoveryForceMag = mStiffness * recoveryFactor * compression;
             glm::vec3 recoveryForce = suspensionAxis * recoveryForceMag;
-            mWheelRb->ApplyForce(recoveryForce, wheelPos);
-			std::cout << "Compressions: " << compression << std::endl;
-            // Do not apply any force to the car body when the wheel is airborne.
+            //mWheelRb->ApplyForce(recoveryForce, wheelPos);
+			mWheelRb->AddForce(recoveryForce);
+
+			//std::cout << "Compression : " << compression << std::endl;
         }
-
-
-        //// Project the wheel position onto the suspension axis (vertical line from the anchor)
-        glm::vec3 projectedPos = anchorPos + suspensionAxis * currentLength;
-
-
-        //// Lateral offset: difference between the actual wheel position and its projection
-        //glm::vec3 lateralOffset = wheelPos - projectedPos;
-
-        //// Compute the relative lateral velocity:
-        //// Get full relative velocity between the wheel and the car at the anchor,
-        //// then remove the component along the suspension axis.
-        //glm::vec3 relativeVelVec = wheelVel - carVel;
-        //glm::vec3 lateralVelocity = relativeVelVec - suspensionAxis * glm::dot(relativeVelVec, suspensionAxis);
-
-        //// Choose appropriate tuning values for the lateral correction.
-        //float lateralStiffness = 100.0f; // adjust this value as needed
-        //float lateralDamping = 1.0f;  // adjust this value as needed
-
-        //// Calculate lateral spring and damper forces.
-        //glm::vec3 lateralSpringForce = -lateralStiffness * lateralOffset;
-        //glm::vec3 lateralDamperForce = -lateralDamping * lateralVelocity;
-        //glm::vec3 lateralForce = lateralSpringForce + lateralDamperForce;
-
-        //// Apply the lateral forces: one to correct the wheel and an equal/opposite reaction on the car body.
-        //mWheelRb->ApplyForce(lateralForce, wheelPos);
-        //mCarRb->ApplyForce(-lateralForce, anchorPos);
 	}
 
     void Suspension::OnTick()

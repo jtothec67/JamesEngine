@@ -320,8 +320,17 @@ namespace JamesEngine
                     glm::vec3 closestPoint = Maths::ClosestPointOnTriangle(boxPos, a, b, c);
                     _collisionPoint = closestPoint;
 
+                    // Compute the cross product
+                    glm::vec3 crossProd = glm::cross(b - a, c - a);
+                    // Check if the cross product is near zero (degenerate triangle)
+                    if (glm::length(crossProd) < 1e-6f)
+                    {
+						std::cout << "--------------------------------- SKIPPED TRIANGLE ---------------------------" << std::endl;
+                        continue;
+                    }
+
                     // Compute the triangle's normal in world space.
-                    glm::vec3 triNormal = glm::normalize(glm::cross(b - a, c - a));
+                    glm::vec3 triNormal = glm::normalize(crossProd);
                     // Ensure the normal points from the model (triangle) toward the box.
                     if (glm::dot(boxPos - closestPoint, triNormal) < 0.0f)
                         triNormal = -triNormal;
@@ -330,7 +339,7 @@ namespace JamesEngine
                     // To compute penetration depth, determine the box's support point
                     // in the direction opposite to the collision normal.
                     glm::vec3 localNormal = glm::vec3(invBoxRotMatrix * glm::vec4(_normal, 0.0f));
-                    glm::vec3 supportLocal;
+                    glm::vec3 supportLocal{};
                     supportLocal.x = (localNormal.x >= 0.0f) ? -boxHalfSize.x : boxHalfSize.x;
                     supportLocal.y = (localNormal.y >= 0.0f) ? -boxHalfSize.y : boxHalfSize.y;
                     supportLocal.z = (localNormal.z >= 0.0f) ? -boxHalfSize.z : boxHalfSize.z;

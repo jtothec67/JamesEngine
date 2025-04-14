@@ -202,8 +202,14 @@ namespace JamesEngine
                     glm::vec3 closestPoint = Maths::ClosestPointOnTriangle(boxPos, a, b, c);
                     _collisionPoint = closestPoint;
 
+                    // Compute the cross product
+                    glm::vec3 crossProd = glm::cross(b - a, c - a);
+                    // Check if the cross product is near zero (degenerate triangle)
+                    if (glm::length(crossProd) < 1e-6f)
+                        continue;
+
                     // Compute the triangle's normal in world space.
-                    glm::vec3 triNormal = glm::normalize(glm::cross(b - a, c - a));
+                    glm::vec3 triNormal = glm::normalize(crossProd);
                     // Ensure the normal points from the model (triangle) toward the box.
                     if (glm::dot(boxPos - closestPoint, triNormal) < 0.0f)
                         triNormal = -triNormal;

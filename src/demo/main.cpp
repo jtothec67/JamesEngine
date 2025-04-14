@@ -131,6 +131,11 @@ struct CarController : public Component
 			rb->ApplyImpulse(-GetEntity()->GetComponent<Transform>()->GetForward() * forwardSpeed * GetCore()->DeltaTime());
 		}
 	}
+
+	void OnFixedTick()
+	{
+		//std::cout << "Car position: " << GetPosition().x << ", " << GetPosition().y << ", " << GetPosition().z << std::endl;
+	}
 };
 
 struct PositionAdjustment : public Component
@@ -230,7 +235,7 @@ int main()
 		carBodyCollider->SetSize(vec3(1.97, 0.9, 4.52));
 		carBodyCollider->SetPositionOffset(vec3(0, 0.37, 0.22));
 		std::shared_ptr<Rigidbody> carBodyRB = carBody->AddComponent<Rigidbody>();
-		carBodyRB->SetMass(1);
+		carBodyRB->SetMass(4.92);
 		carBody->AddComponent<CarController>()->rb = carBodyRB;
 		//cameraEntity->GetComponent<Transform>()->SetParent(carBody);
 		
@@ -285,7 +290,7 @@ int main()
 		FLWheelCollider->SetDirection(vec3(0, -1, 0));
 		FLWheelCollider->SetLength(0.34);
 		std::shared_ptr<Rigidbody> FLWheelRB = FLWheel->AddComponent<Rigidbody>();
-		FLWheelRB->SetMass(5);
+		FLWheelRB->SetMass(0.1);
 		FLWheelRB->LockRotation(true);
 		std::shared_ptr<boxController> FLBC = FLWheel->AddComponent<boxController>();
 		FLBC->rb = FLWheelRB;
@@ -313,7 +318,7 @@ int main()
 		FRWheelCollider->SetDirection(vec3(0, -1, 0));
 		FRWheelCollider->SetLength(0.34);
 		std::shared_ptr<Rigidbody> FRWheelRB = FRWheel->AddComponent<Rigidbody>();
-		FRWheelRB->SetMass(5);
+		FRWheelRB->SetMass(0.1);
 		FRWheelRB->LockRotation(true);
 		std::shared_ptr<boxController> FRBC = FRWheel->AddComponent<boxController>();
 		FRBC->rb = FRWheelRB;
@@ -341,7 +346,7 @@ int main()
 		RLWheelCollider->SetDirection(vec3(0, -1, 0));
 		RLWheelCollider->SetLength(0.34);
 		std::shared_ptr<Rigidbody> RLWheelRB = RLWheel->AddComponent<Rigidbody>();
-		RLWheelRB->SetMass(5);
+		RLWheelRB->SetMass(0.1);
 		RLWheelRB->LockRotation(true);
 		std::shared_ptr<boxController> RLBC = RLWheel->AddComponent<boxController>();
 		RLBC->rb = RLWheelRB;
@@ -369,7 +374,7 @@ int main()
 		RRWheelCollider->SetDirection(vec3(0, -1, 0));
 		RRWheelCollider->SetLength(0.34);
 		std::shared_ptr<Rigidbody> RRWheelRB = RRWheel->AddComponent<Rigidbody>();
-		RRWheelRB->SetMass(5);
+		RRWheelRB->SetMass(0.1);
 		RRWheelRB->LockRotation(true);
 		std::shared_ptr<boxController> RRBC = RRWheel->AddComponent<boxController>();
 		RRBC->rb = RRWheelRB;
