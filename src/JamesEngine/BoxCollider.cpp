@@ -298,6 +298,11 @@ namespace JamesEngine
             modelMatrix = glm::scale(modelMatrix, modelScale);
 
             std::vector<Renderer::Model::Face> faces = otherModel->GetTriangles(boxPos, boxRotation, boxSize);
+
+            // Store all collision data
+            std::vector<glm::vec3> contactPoints;
+            std::vector<glm::vec3> contactNormals;
+
             for (const auto& face : faces)
             {
                 // Transform triangle vertices into world space.
@@ -314,43 +319,69 @@ namespace JamesEngine
                 // Use the SAT-based triangle-box test.
                 if (Maths::TriBoxOverlap(triVerts, boxHalfSize))
                 {
-                    // Compute an approximate collision point.
-                    // Here we take the closest point on the triangle (in world space)
-                    // to the box center.
-                    glm::vec3 closestPoint = Maths::ClosestPointOnTriangle(boxPos, a, b, c);
-                    _collisionPoint = closestPoint;
-
-                    // Compute the cross product
+                    // Compute the triangle's edge cross product (used for the normal).
                     glm::vec3 crossProd = glm::cross(b - a, c - a);
-                    // Check if the cross product is near zero (degenerate triangle)
                     if (glm::length(crossProd) < 1e-6f)
-                    {
-						std::cout << "--------------------------------- SKIPPED TRIANGLE ---------------------------" << std::endl;
                         continue;
-                    }
 
-                    // Compute the triangle's normal in world space.
-                    glm::vec3 triNormal = glm::normalize(crossProd);
-                    // Ensure the normal points from the model (triangle) toward the box.
-                    if (glm::dot(boxPos - closestPoint, triNormal) < 0.0f)
-                        triNormal = -triNormal;
-                    _normal = triNormal;
+                    // 1. Compute the collision contact point: the closest point on the triangle (in world space)
+                    //    to the center of the box.
+                    glm::vec3 contactPoint = Maths::ClosestPointOnTriangle(boxPos, a, b, c);
 
-                    // To compute penetration depth, determine the box's support point
-                    // in the direction opposite to the collision normal.
-                    glm::vec3 localNormal = glm::vec3(invBoxRotMatrix * glm::vec4(_normal, 0.0f));
-                    glm::vec3 supportLocal{};
-                    supportLocal.x = (localNormal.x >= 0.0f) ? -boxHalfSize.x : boxHalfSize.x;
-                    supportLocal.y = (localNormal.y >= 0.0f) ? -boxHalfSize.y : boxHalfSize.y;
-                    supportLocal.z = (localNormal.z >= 0.0f) ? -boxHalfSize.z : boxHalfSize.z;
-                    glm::vec3 supportWorld = boxPos + glm::vec3(boxRotMatrix * glm::vec4(supportLocal, 0.0f));
+                    // 2. Compute the triangle's normal in world space.
+                    glm::vec3 triangleNormal = glm::normalize(crossProd);
 
-                    // Penetration depth is approximated as the projection of the vector from the support point
-                    // to the collision point along the collision normal.
-                    _penetrationDepth = glm::dot(_normal, _collisionPoint - supportWorld);
+                    // Adjust the normal so that it points from the box toward the model.
+                    // We want the dot product between (contactPoint - boxPos) and the normal to be positive.
+                    if (glm::dot(contactPoint - boxPos, triangleNormal) < 0.0f)
+                        triangleNormal = -triangleNormal;
 
-                    return true;
+                    // 3. Compute the penetration depth.
+                    // First, determine the box's support point along the direction opposite to the collision normal.
+                    // Transform the (world-space) collision normal into the box's local space:
+                    glm::vec3 localNormal = glm::vec3(invBoxRotMatrix * glm::vec4(triangleNormal, 0.0f));
+
+                    // Store the computed collision values.
+                    contactPoints.push_back(contactPoint);
+                    contactNormals.push_back(triangleNormal);
                 }
+            }
+
+            // If we found at least one intersection, compute the final response.
+            if (!contactPoints.empty())
+            {
+                glm::vec3 totalPoints{ 0 };
+                for (size_t i = 0; i < contactPoints.size(); ++i)
+                {
+                    totalPoints += contactPoints[i];
+                }
+                glm::vec3 averagedContactPoint{ 0 };
+                averagedContactPoint.x = totalPoints.x / contactPoints.size();
+                averagedContactPoint.y = totalPoints.y / contactPoints.size();
+                averagedContactPoint.z = totalPoints.z / contactPoints.size();
+
+                // Compute a weighted average normal
+                glm::vec3 weightedNormal(0.0f);
+                for (size_t i = 0; i < contactNormals.size(); ++i)
+                {
+                    weightedNormal += contactNormals[i];// *penetrationDepths[i]; // Weight by depth
+                }
+                weightedNormal = glm::normalize(-weightedNormal);
+
+                glm::vec3 localNormal = glm::vec3(invBoxRotMatrix * glm::vec4(weightedNormal, 0.0f));
+                glm::vec3 supportLocal;
+                supportLocal.x = (localNormal.x >= 0.0f) ? -boxHalfSize.x : boxHalfSize.x;
+                supportLocal.y = (localNormal.y >= 0.0f) ? -boxHalfSize.y : boxHalfSize.y;
+                supportLocal.z = (localNormal.z >= 0.0f) ? -boxHalfSize.z : boxHalfSize.z;
+                glm::vec3 supportWorld = boxPos + glm::vec3(boxRotMatrix * glm::vec4(supportLocal, 0.0f));
+                float recalculatedPenetration = glm::dot(weightedNormal, averagedContactPoint - supportWorld);
+
+                // Assign final values
+                _collisionPoint = averagedContactPoint;
+                _penetrationDepth = recalculatedPenetration;
+                _normal = weightedNormal;
+
+                return true;
             }
         }
 

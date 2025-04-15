@@ -86,7 +86,8 @@ namespace JamesEngine
 									0.0f, 1.0f, 0.0f,
 									0.0f, 0.0f, 1.0f);
 
-		float globalDamping = 64;
+		float mLinearDamping = 0.98f;
+		float mAngularDamping = 0.98f;
 
 		bool mLockRotation = false;
 	};

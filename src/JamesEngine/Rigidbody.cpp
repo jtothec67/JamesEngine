@@ -369,6 +369,9 @@ namespace JamesEngine
 		// ----- Linear Integration -----
 		glm::vec3 acceleration = mForce / mMass;
 		mVelocity += acceleration * dt;
+
+		mVelocity *= mLinearDamping;
+
 		SetPosition(GetPosition() + mVelocity * dt);
 
 		// ----- Angular Integration -----
@@ -376,6 +379,8 @@ namespace JamesEngine
 		// Recompute the inverse inertia tensor (if it depends on orientation or other factors)
 		ComputeInverseInertiaTensor();
 		mAngularVelocity = mInertiaTensorInverse * mAngularMomentum;
+
+		mAngularVelocity *= mAngularDamping;
 
 		// Integrate orientation using quaternions:
 		// Get the current quaternion (representing orientation)

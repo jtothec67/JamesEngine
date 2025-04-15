@@ -235,7 +235,8 @@ int main()
 		carBodyCollider->SetSize(vec3(1.97, 0.9, 4.52));
 		carBodyCollider->SetPositionOffset(vec3(0, 0.37, 0.22));
 		std::shared_ptr<Rigidbody> carBodyRB = carBody->AddComponent<Rigidbody>();
-		carBodyRB->SetMass(4.92);
+		//carBodyRB->SetMass(4.92);
+		carBodyRB->SetMass(1230);
 		carBody->AddComponent<CarController>()->rb = carBodyRB;
 		//cameraEntity->GetComponent<Transform>()->SetParent(carBody);
 		
@@ -290,7 +291,8 @@ int main()
 		FLWheelCollider->SetDirection(vec3(0, -1, 0));
 		FLWheelCollider->SetLength(0.34);
 		std::shared_ptr<Rigidbody> FLWheelRB = FLWheel->AddComponent<Rigidbody>();
-		FLWheelRB->SetMass(0.1);
+		//FLWheelRB->SetMass(0.1);
+		FLWheelRB->SetMass(25);
 		FLWheelRB->LockRotation(true);
 		std::shared_ptr<boxController> FLBC = FLWheel->AddComponent<boxController>();
 		FLBC->rb = FLWheelRB;
@@ -318,7 +320,8 @@ int main()
 		FRWheelCollider->SetDirection(vec3(0, -1, 0));
 		FRWheelCollider->SetLength(0.34);
 		std::shared_ptr<Rigidbody> FRWheelRB = FRWheel->AddComponent<Rigidbody>();
-		FRWheelRB->SetMass(0.1);
+		//FRWheelRB->SetMass(0.1);
+		FRWheelRB->SetMass(25);
 		FRWheelRB->LockRotation(true);
 		std::shared_ptr<boxController> FRBC = FRWheel->AddComponent<boxController>();
 		FRBC->rb = FRWheelRB;
@@ -346,7 +349,8 @@ int main()
 		RLWheelCollider->SetDirection(vec3(0, -1, 0));
 		RLWheelCollider->SetLength(0.34);
 		std::shared_ptr<Rigidbody> RLWheelRB = RLWheel->AddComponent<Rigidbody>();
-		RLWheelRB->SetMass(0.1);
+		//RLWheelRB->SetMass(0.1);
+		RLWheelRB->SetMass(25);
 		RLWheelRB->LockRotation(true);
 		std::shared_ptr<boxController> RLBC = RLWheel->AddComponent<boxController>();
 		RLBC->rb = RLWheelRB;
@@ -374,7 +378,8 @@ int main()
 		RRWheelCollider->SetDirection(vec3(0, -1, 0));
 		RRWheelCollider->SetLength(0.34);
 		std::shared_ptr<Rigidbody> RRWheelRB = RRWheel->AddComponent<Rigidbody>();
-		RRWheelRB->SetMass(0.1);
+		//RRWheelRB->SetMass(0.1);
+		RRWheelRB->SetMass(25);
 		RRWheelRB->LockRotation(true);
 		std::shared_ptr<boxController> RRBC = RRWheel->AddComponent<boxController>();
 		RRBC->rb = RRWheelRB;
