@@ -287,13 +287,36 @@ namespace JamesEngine
   //      //mWheelRb->AddForce(force);
   //      std::cout << "Suspension force applied: " << force.x << ", " << force.y << ", " << force.z << std::endl;
 
-        if (mGroundContact)
-        {
-            std::shared_ptr<Transform> anchorTransform = mAnchorPoint->GetComponent<Transform>();
-            glm::vec3 springDir = anchorTransform->GetUp();
+        if (!mGroundContact)
+            return;
 
-			mCarRb->ApplyForce(mStiffness * springDir, anchorTransform->GetPosition());
-        }
+        std::shared_ptr<Transform> anchorTransform = mAnchorPoint->GetComponent<Transform>();
+        glm::vec3 suspensionDirection = glm::normalize(anchorTransform->GetUp());
+
+        float compression = 0.34f - mHitDistance; // smaller distance = more compression
+
+        if (compression <= 0.0f)
+        return; // don't apply force if spring is extended
+
+        // Get velocity of car at the anchor point
+        glm::vec3 pointVelocity = mCarRb->GetVelocityAtPoint(anchorTransform->GetPosition());
+        float relativeVelocity = glm::dot(pointVelocity, suspensionDirection);
+
+        // Spring and damping force
+        float springForce = mStiffness * compression;
+
+        float dampingForce = 0.0f;
+        if (relativeVelocity > 0.0f)
+            dampingForce = -mDamping * relativeVelocity;
+
+        // Total force
+        glm::vec3 totalForce = suspensionDirection * (springForce + dampingForce);
+
+        // Apply it to the car body at the anchor
+        mCarRb->ApplyForce(totalForce, anchorTransform->GetPosition());
+
+		std::cout << "Hit distance: " << mHitDistance << std::endl;
+		std::cout << "Suspension force applied to " << mWheel->GetTag() << ": " << totalForce.x << ", " << totalForce.y << ", " << totalForce.z << std::endl;
     }
 
     void Suspension::OnTick()

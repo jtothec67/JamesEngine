@@ -35,6 +35,8 @@ namespace JamesEngine
 
 		void SetDebugVisual(bool _value) { mDebugVisual = _value; }
 
+		void SetHitDistance(float _hitDistance) { mHitDistance = _hitDistance; }
+
 	private:
 		std::shared_ptr<Entity> mWheel;
 		std::shared_ptr<Entity> mCarBody;
@@ -43,15 +45,19 @@ namespace JamesEngine
 		std::shared_ptr<Rigidbody> mWheelRb;
 		std::shared_ptr<Rigidbody> mCarRb;
 
-		float mStiffness = 100;
-		float mDamping = 0;
+		float mStiffness = 500;
+		float mDamping = 50;
 
-		float mRestLength = 0.1f;
+		float mRestLength = 0.0f;
 
 		float mMinLength = 0.0f;
-		float mMaxLength = 0.2f;
+		float mMaxLength = 0.4f;
 
 		bool mGroundContact = false;
+		float mHitDistance = 0.0f;
+		float mPrevCompression = 0.0f;
+
+		bool mHasntHitGroundYet = true;
 
 		bool mDebugVisual = true;
 

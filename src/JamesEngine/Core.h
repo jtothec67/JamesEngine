@@ -154,7 +154,7 @@ namespace JamesEngine
 
 		float mDeltaTime = 0.0f;
 
-		float mFixedDeltaTime = 0.02f; // 50 fps
+		float mFixedDeltaTime = 0.01f; // 100 fps
 		float mFixedTimeAccumulator = 0.0f;
 
 		float mTimeScale = 1.f;

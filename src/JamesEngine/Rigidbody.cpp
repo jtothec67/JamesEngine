@@ -29,9 +29,12 @@ namespace JamesEngine
 
 	void Rigidbody::OnFixedTick()
 	{
-		// Step 1: Compute each of the forces acting on the object (only gravity by default)
-		glm::vec3 force = mMass * mAcceleration;// *GetCore()->FixedDeltaTime();
-		AddForce(force);
+		if (!mIsStatic)
+		{
+			// Step 1: Compute each of the forces acting on the object (only gravity by default)
+			glm::vec3 force = mMass * mAcceleration;// *GetCore()->FixedDeltaTime();
+			AddForce(force);
+		}
 
 		// Step 2: Compute collisions
 		// Get all colliders in the scene
@@ -114,11 +117,13 @@ namespace JamesEngine
 		}
 
 		
-
-		// Step 5: Integration
-		//Euler();
-		SemiImplicitEuler();
-		//Verlet();
+		if (!mIsStatic)
+		{
+			// Step 5: Integration
+			//Euler();
+			SemiImplicitEuler();
+			//Verlet();
+		}
 
 		// Step 7: Clear forces
 		ClearForces();
@@ -376,11 +381,14 @@ namespace JamesEngine
 
 		// ----- Angular Integration -----
 		mAngularMomentum += mTorque * dt;
-		// Recompute the inverse inertia tensor (if it depends on orientation or other factors)
+		// Recompute the inverse inertia tensor
 		ComputeInverseInertiaTensor();
 		mAngularVelocity = mInertiaTensorInverse * mAngularMomentum;
 
 		mAngularVelocity *= mAngularDamping;
+
+		// Already broken if spinning this fast
+		mAngularVelocity = glm::clamp(mAngularVelocity, glm::vec3(-90.0f), glm::vec3(90.0f));
 
 		// Integrate orientation using quaternions:
 		// Get the current quaternion (representing orientation)
@@ -395,7 +403,7 @@ namespace JamesEngine
 		// Set the updated orientation
 		SetQuaternion(q);
 
-		// Update the rotation matrix for convenience (if needed)
+		// Update the rotation matrix
 		mR = glm::mat3_cast(q);
 	}
 

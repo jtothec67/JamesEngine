@@ -54,10 +54,14 @@ namespace JamesEngine
 		void LockRotation(bool _lock) { mLockRotation = _lock; }
 		bool GetLockRotation() { return mLockRotation; }
 
+		void ApplyImpulseResponseStatic(glm::vec3 _normal, glm::vec3 _collisionPoint);
+
+		void IsStatic(bool _isStatic) { mIsStatic = _isStatic; }
+		bool IsStatic() { return mIsStatic; }
 	private:
 
 		void ApplyImpulseResponse(std::shared_ptr<Rigidbody> _other, glm::vec3 _normal, glm::vec3 _collisionPoint);
-		void ApplyImpulseResponseStatic(glm::vec3 _normal, glm::vec3 _collisionPoint);
+		
 		glm::vec3 FrictionForce(glm::vec3 _relativeVelocity, glm::vec3 _contactNormal, glm::vec3 _forceNormal, float mu);
 		glm::vec3 ComputeTorque(glm::vec3 torque_arm, glm::vec3 contact_force);
 
@@ -86,10 +90,12 @@ namespace JamesEngine
 									0.0f, 1.0f, 0.0f,
 									0.0f, 0.0f, 1.0f);
 
-		float mLinearDamping = 0.98f;
-		float mAngularDamping = 0.98f;
+		float mLinearDamping = 1.f;
+		float mAngularDamping = 1.f;
 
 		bool mLockRotation = false;
+
+		bool mIsStatic = false;
 	};
 
 }

@@ -184,8 +184,11 @@ namespace JamesEngine
                 _collisionPoint = hitPoint;
 
 				std::shared_ptr<Suspension> sus = GetEntity()->GetComponent<Suspension>();
-				if (sus)
-					sus->SetCollision(true);
+                if (sus)
+                {
+                    sus->SetCollision(true);
+                    sus->SetHitDistance(glm::dot(hitPoint - rayOrigin, rayDirection));
+                }
 
                 return true;
             }

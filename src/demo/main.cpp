@@ -179,6 +179,17 @@ int main()
 
 	// Scope to ensure the entities aren't being held in main if they're destroyed
 	{
+		/*float FStiffness = 2400;
+		float FDamping = 500;
+
+		float RStiffness = 3200;
+		float RDamping = 0;*/
+
+		float FStiffness = 2600;
+		float FDamping = 100;
+
+		float RStiffness = 4100;
+		float RDamping = 100;
 
 		core->GetSkybox()->SetTexture(core->GetResources()->Load<SkyboxTexture>("skyboxes/sky"));
 
@@ -235,8 +246,8 @@ int main()
 		carBodyCollider->SetSize(vec3(1.97, 0.9, 4.52));
 		carBodyCollider->SetPositionOffset(vec3(0, 0.37, 0.22));
 		std::shared_ptr<Rigidbody> carBodyRB = carBody->AddComponent<Rigidbody>();
-		//carBodyRB->SetMass(4.92);
-		carBodyRB->SetMass(1230);
+		carBodyRB->SetMass(615);
+		//carBodyRB->SetMass(1230);
 		carBody->AddComponent<CarController>()->rb = carBodyRB;
 		//cameraEntity->GetComponent<Transform>()->SetParent(carBody);
 		
@@ -276,7 +287,7 @@ int main()
 
 		// Front Left Wheel
 		std::shared_ptr<Entity> FLWheel = core->AddEntity();
-		FLWheel->SetTag("wheel");
+		FLWheel->SetTag("FLwheel");
 		FLWheel->GetComponent<Transform>()->SetPosition(vec3(0.8767, 0.793- 0.45, -14.3998));
 		FLWheel->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		FLWheel->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
@@ -294,6 +305,7 @@ int main()
 		//FLWheelRB->SetMass(0.1);
 		FLWheelRB->SetMass(25);
 		FLWheelRB->LockRotation(true);
+		FLWheelRB->IsStatic(true);
 		std::shared_ptr<boxController> FLBC = FLWheel->AddComponent<boxController>();
 		FLBC->rb = FLWheelRB;
 		FLBC->carBody = carBody;
@@ -301,11 +313,12 @@ int main()
 		FLWheelSuspension->SetWheel(FLWheel);
 		FLWheelSuspension->SetCarBody(carBody);
 		FLWheelSuspension->SetAnchorPoint(FLWheelAnchor);
-		
+		FLWheelSuspension->SetStiffness(FStiffness);
+		FLWheelSuspension->SetDamping(FDamping);
 
 		// Front Right Wheel
 		std::shared_ptr<Entity> FRWheel = core->AddEntity();
-		FRWheel->SetTag("wheel");
+		FRWheel->SetTag("FRwheel");
 		FRWheel->GetComponent<Transform>()->SetPosition(vec3(-0.8767, 0.793- 0.45, -14.3998));
 		FRWheel->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		FRWheel->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
@@ -323,6 +336,7 @@ int main()
 		//FRWheelRB->SetMass(0.1);
 		FRWheelRB->SetMass(25);
 		FRWheelRB->LockRotation(true);
+		FRWheelRB->IsStatic(true);
 		std::shared_ptr<boxController> FRBC = FRWheel->AddComponent<boxController>();
 		FRBC->rb = FRWheelRB;
 		FRBC->carBody = carBody;
@@ -330,11 +344,12 @@ int main()
 		FRWheelSuspension->SetWheel(FRWheel);
 		FRWheelSuspension->SetCarBody(carBody);
 		FRWheelSuspension->SetAnchorPoint(FRWheelAnchor);
-		
+		FRWheelSuspension->SetStiffness(FStiffness);
+		FRWheelSuspension->SetDamping(FDamping);
 
 		// Rear Left Wheel
 		std::shared_ptr<Entity> RLWheel = core->AddEntity();
-		RLWheel->SetTag("wheel");
+		RLWheel->SetTag("RLwheel");
 		RLWheel->GetComponent<Transform>()->SetPosition(vec3(0.8767, 0.8003- 0.45, -17.025));
 		RLWheel->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		RLWheel->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
@@ -352,6 +367,7 @@ int main()
 		//RLWheelRB->SetMass(0.1);
 		RLWheelRB->SetMass(25);
 		RLWheelRB->LockRotation(true);
+		RLWheelRB->IsStatic(true);
 		std::shared_ptr<boxController> RLBC = RLWheel->AddComponent<boxController>();
 		RLBC->rb = RLWheelRB;
 		RLBC->carBody = carBody;
@@ -359,11 +375,12 @@ int main()
 		RLWheelSuspension->SetWheel(RLWheel);
 		RLWheelSuspension->SetCarBody(carBody);
 		RLWheelSuspension->SetAnchorPoint(RLWheelAnchor);
-		
+		RLWheelSuspension->SetStiffness(RStiffness);
+		RLWheelSuspension->SetDamping(RDamping);
 
 		// Rear Right Wheel
 		std::shared_ptr<Entity> RRWheel = core->AddEntity();
-		RRWheel->SetTag("wheel");
+		RRWheel->SetTag("RRwheel");
 		RRWheel->GetComponent<Transform>()->SetPosition(vec3(-0.8767, 0.8003- 0.45, -17.025));
 		RRWheel->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		RRWheel->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
@@ -381,6 +398,7 @@ int main()
 		//RRWheelRB->SetMass(0.1);
 		RRWheelRB->SetMass(25);
 		RRWheelRB->LockRotation(true);
+		RRWheelRB->IsStatic(true);
 		std::shared_ptr<boxController> RRBC = RRWheel->AddComponent<boxController>();
 		RRBC->rb = RRWheelRB;
 		RRBC->carBody = carBody;
@@ -388,12 +406,14 @@ int main()
 		RRWheelSuspension->SetWheel(RRWheel);
 		RRWheelSuspension->SetCarBody(carBody);
 		RRWheelSuspension->SetAnchorPoint(RRWheelAnchor);
+		RRWheelSuspension->SetStiffness(RStiffness);
+		RRWheelSuspension->SetDamping(RDamping);
 		
 
 		// Track
 		std::shared_ptr<Entity> track = core->AddEntity();
 		track->SetTag("track");
-		track->GetComponent<Transform>()->SetPosition(vec3(0, 0, 10));
+		track->GetComponent<Transform>()->SetPosition(vec3(0, 0.1, 10));
 		track->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		std::shared_ptr<ModelRenderer> trackMR = track->AddComponent<ModelRenderer>();
 		trackMR->SetModel(core->GetResources()->Load<Model>("models/track/cartoon_track_trimmed no-mtl"));
