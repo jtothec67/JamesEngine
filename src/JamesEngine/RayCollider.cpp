@@ -194,10 +194,6 @@ namespace JamesEngine
             }
         }
 
-        std::shared_ptr<Suspension> sus = GetEntity()->GetComponent<Suspension>();
-        if (sus)
-            sus->SetCollision(false);
-
         return false;
     }
 

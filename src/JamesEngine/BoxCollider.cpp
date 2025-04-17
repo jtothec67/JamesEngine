@@ -381,7 +381,7 @@ namespace JamesEngine
                 _penetrationDepth = recalculatedPenetration;
                 _normal = weightedNormal;
 
-                //return true;
+                return true;
             }
         }
 
@@ -390,11 +390,20 @@ namespace JamesEngine
 
     glm::mat3 BoxCollider::UpdateInertiaTensor(float _mass)
     {
-        return glm::mat3(
+        glm::mat3 inertia = glm::mat3(
             (1.0f / 12.0f) * _mass * (mSize.y * mSize.y + mSize.z * mSize.z), 0, 0,
             0, (1.0f / 12.0f) * _mass * (mSize.x * mSize.x + mSize.z * mSize.z), 0,
             0, 0, (1.0f / 12.0f) * _mass * (mSize.x * mSize.x + mSize.y * mSize.y)
         );
+
+        glm::vec3 d = mPositionOffset;
+        float d2 = glm::dot(d, d);
+        glm::mat3 identity(1.0f);
+        glm::mat3 outer = glm::outerProduct(d, d);
+        glm::mat3 correction = _mass * (d2 * identity - outer);
+
+        inertia += correction;
+        return inertia;
     }
 
 }

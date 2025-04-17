@@ -388,6 +388,10 @@ namespace JamesEngine
 		mAngularVelocity *= mAngularDamping;
 
 		// Already broken if spinning this fast
+		const glm::vec3 maxAngularVelocity(90.0f);
+		const glm::vec3 maxAngularMomentum = glm::inverse(mInertiaTensorInverse) * maxAngularVelocity;
+		mAngularMomentum = glm::clamp(mAngularMomentum, -maxAngularMomentum, maxAngularMomentum);
+
 		mAngularVelocity = glm::clamp(mAngularVelocity, glm::vec3(-90.0f), glm::vec3(90.0f));
 
 		// Integrate orientation using quaternions:

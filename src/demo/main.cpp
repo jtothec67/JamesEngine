@@ -41,45 +41,6 @@ struct freelookCamController : public Component
 			GetTransform()->Rotate(vec3(0, sensitivity, 0));// * GetCore()->DeltaTime(), 0));
 		if (GetKeyboard()->IsKey(SDLK_RIGHT))
 			GetTransform()->Rotate(vec3(0, -sensitivity, 0));// * GetCore()->DeltaTime(), 0));
-		
-	}
-};
-
-struct boxController : public Component
-{
-	std::shared_ptr<Rigidbody> rb;
-	std::shared_ptr<Entity> carBody;
-
-	float speed = 100.f;
-
-	void OnTick()
-	{
-		/*if (GetKeyboard()->IsKey(SDLK_u))
-		{
-			rb->ApplyImpulse(carBody->GetComponent<Transform>()->GetRight() * speed * GetCore()->DeltaTime());
-			std::cout << "u" << std::endl;
-		}
-
-		if (GetKeyboard()->IsKey(SDLK_j))
-		{
-			rb->ApplyImpulse(-carBody->GetComponent<Transform>()->GetRight() * speed * GetCore()->DeltaTime());
-			std::cout << "j" << std::endl;
-		}*/
-
-		/*if (GetKeyboard()->IsKey(SDLK_h))
-		{
-			rb->ApplyImpulse(-carBody->GetComponent<Transform>()->GetForward() * speed * GetCore()->DeltaTime());
-		}
-
-		if (GetKeyboard()->IsKey(SDLK_k))
-		{
-			rb->ApplyImpulse(carBody->GetComponent<Transform>()->GetForward() * speed * GetCore()->DeltaTime());
-		}*/
-	}
-
-	void OnCollision(std::shared_ptr<Entity> _otherEntity)
-	{
-		//std::cout << "Collided!" << std::endl;
 	}
 };
 
@@ -106,8 +67,8 @@ struct CarController : public Component
 {
 	std::shared_ptr<Rigidbody> rb;
 
-	float forwardSpeed = 100.f;
-	float turnSpeed = 100.f;
+	float forwardSpeed = 1000.f;
+	float turnSpeed = 1000.f;
 
 	void OnTick()
 	{
@@ -130,11 +91,16 @@ struct CarController : public Component
 		{
 			rb->ApplyImpulse(-GetEntity()->GetComponent<Transform>()->GetForward() * forwardSpeed * GetCore()->DeltaTime());
 		}
-	}
 
-	void OnFixedTick()
-	{
-		//std::cout << "Car position: " << GetPosition().x << ", " << GetPosition().y << ", " << GetPosition().z << std::endl;
+
+		if (GetKeyboard()->IsKey(SDLK_SPACE))
+		{
+			SetPosition(vec3(0, 0.8 - 0.45, -16));
+			SetRotation(vec3(0, 0, 0));
+			rb->SetVelocity(vec3(0, 0, 0));
+			rb->SetAngularVelocity(vec3(0, 0, 0));
+			rb->SetAngularMomentum(vec3(0, 0, 0));
+		}
 	}
 };
 
@@ -171,6 +137,30 @@ struct PositionAdjustment : public Component
 	}
 };
 
+struct CameraController : Component
+{
+	std::vector<std::shared_ptr<Camera>> mCameras;
+	int mCurrentCamera = 0;
+
+	void OnAlive()
+	{
+		GetCore()->FindComponents(mCameras);
+		std::cout << "Found " << mCameras.size() << " cameras" << std::endl;
+	}
+
+	void OnTick()
+	{
+		if (GetKeyboard()->IsKeyDown(SDLK_TAB))
+		{
+			mCurrentCamera++;
+			if (mCurrentCamera >= mCameras.size())
+				mCurrentCamera = 0;
+			GetCore()->GetCamera()->SetPriority(1);
+			mCameras[mCurrentCamera]->SetPriority(10);
+		}
+	}
+};
+
 #undef main
 int main()
 {
@@ -179,16 +169,11 @@ int main()
 
 	// Scope to ensure the entities aren't being held in main if they're destroyed
 	{
-		/*float FStiffness = 2400;
-		float FDamping = 500;
 
-		float RStiffness = 3200;
-		float RDamping = 0;*/
-
-		float FStiffness = 2600;
+		float FStiffness = 5000;
 		float FDamping = 100;
 
-		float RStiffness = 4100;
+		float RStiffness = 6000;
 		float RDamping = 100;
 
 		core->GetSkybox()->SetTexture(core->GetResources()->Load<SkyboxTexture>("skyboxes/sky"));
@@ -196,12 +181,46 @@ int main()
 		core->GetLightManager()->AddLight("light1", vec3(0, 20, 0), vec3(1, 1, 1), 1.f);
 		core->GetLightManager()->SetAmbient(vec3(1.f));
 
-		// Camera
-		std::shared_ptr<Entity> cameraEntity = core->AddEntity();
-		std::shared_ptr<Camera> camera = cameraEntity->AddComponent<Camera>();
-		cameraEntity->GetComponent<Transform>()->SetPosition(vec3(-5, 1, -16));
-		cameraEntity->GetComponent<Transform>()->SetRotation(vec3(0, -90, 0));
-		cameraEntity->AddComponent<freelookCamController>();
+		// Cameras
+		std::shared_ptr<Entity> freeCamEntity = core->AddEntity();
+		std::shared_ptr<Camera> freeCam = freeCamEntity->AddComponent<Camera>();
+		freeCam->SetPriority(10);
+		freeCamEntity->GetComponent<Transform>()->SetPosition(vec3(-5, 1, -16));
+		freeCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, -90, 0));
+		freeCamEntity->AddComponent<CameraController>();
+		freeCamEntity->AddComponent<freelookCamController>();
+
+		std::shared_ptr<Entity> cockpitCamEntity = core->AddEntity();
+		std::shared_ptr<Camera> cockpitCam = cockpitCamEntity->AddComponent<Camera>();
+		cockpitCam->SetPriority(1);
+		cockpitCam->SetFov(90.f);
+		cockpitCamEntity->GetComponent<Transform>()->SetPosition(vec3(0.371884, 0.62567, -0.148032));
+		cockpitCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
+
+		std::shared_ptr<Entity> bonnetCamEntity = core->AddEntity();
+		std::shared_ptr<Camera> bonnetCam = bonnetCamEntity->AddComponent<Camera>();
+		bonnetCam->SetPriority(1);
+		bonnetCam->SetFov(60.f);
+		bonnetCamEntity->GetComponent<Transform>()->SetPosition(vec3(0, 0.767, 0.39));
+		bonnetCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
+
+		std::shared_ptr<Entity> chaseCamEntity = core->AddEntity();
+		std::shared_ptr<Camera> chaseCam = chaseCamEntity->AddComponent<Camera>();
+		chaseCam->SetPriority(1);
+		chaseCamEntity->GetComponent<Transform>()->SetPosition(vec3(0, 1.66, -5.98));
+		chaseCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
+
+		// Track
+		std::shared_ptr<Entity> track = core->AddEntity();
+		track->SetTag("track");
+		track->GetComponent<Transform>()->SetPosition(vec3(0, 0, 10));
+		track->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
+		std::shared_ptr<ModelRenderer> trackMR = track->AddComponent<ModelRenderer>();
+		trackMR->SetModel(core->GetResources()->Load<Model>("models/track/cartoon_track_trimmed no-mtl"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/track/rock"));
+		std::shared_ptr<ModelCollider> trackCollider = track->AddComponent<ModelCollider>();
+		trackCollider->SetModel(core->GetResources()->Load<Model>("models/track/cartoon_track_trimmed no-mtl"));
+		trackCollider->SetDebugVisual(false);
 
 		// Car Body
 		std::shared_ptr<Entity> carBody = core->AddEntity();
@@ -246,9 +265,12 @@ int main()
 		carBodyCollider->SetSize(vec3(1.97, 0.9, 4.52));
 		carBodyCollider->SetPositionOffset(vec3(0, 0.37, 0.22));
 		std::shared_ptr<Rigidbody> carBodyRB = carBody->AddComponent<Rigidbody>();
-		carBodyRB->SetMass(615);
+		carBodyRB->SetMass(123);
 		//carBodyRB->SetMass(1230);
 		carBody->AddComponent<CarController>()->rb = carBodyRB;
+		cockpitCamEntity->GetComponent<Transform>()->SetParent(carBody);
+		bonnetCamEntity->GetComponent<Transform>()->SetParent(carBody);
+		chaseCamEntity->GetComponent<Transform>()->SetParent(carBody);
 		//cameraEntity->GetComponent<Transform>()->SetParent(carBody);
 		
 		// Wheel Anchors
@@ -300,15 +322,12 @@ int main()
 		FLWheelMR->SetRotationOffset(vec3(0, 90, 0));
 		std::shared_ptr<RayCollider> FLWheelCollider = FLWheel->AddComponent<RayCollider>();
 		FLWheelCollider->SetDirection(vec3(0, -1, 0));
-		FLWheelCollider->SetLength(0.34);
+		FLWheelCollider->SetLength(0.4);
 		std::shared_ptr<Rigidbody> FLWheelRB = FLWheel->AddComponent<Rigidbody>();
 		//FLWheelRB->SetMass(0.1);
 		FLWheelRB->SetMass(25);
 		FLWheelRB->LockRotation(true);
 		FLWheelRB->IsStatic(true);
-		std::shared_ptr<boxController> FLBC = FLWheel->AddComponent<boxController>();
-		FLBC->rb = FLWheelRB;
-		FLBC->carBody = carBody;
 		std::shared_ptr<Suspension> FLWheelSuspension = FLWheel->AddComponent<Suspension>();
 		FLWheelSuspension->SetWheel(FLWheel);
 		FLWheelSuspension->SetCarBody(carBody);
@@ -331,15 +350,12 @@ int main()
 		FRWheelMR->SetRotationOffset(vec3(0, -90, 0));
 		std::shared_ptr<RayCollider> FRWheelCollider = FRWheel->AddComponent<RayCollider>();
 		FRWheelCollider->SetDirection(vec3(0, -1, 0));
-		FRWheelCollider->SetLength(0.34);
+		FRWheelCollider->SetLength(0.4);
 		std::shared_ptr<Rigidbody> FRWheelRB = FRWheel->AddComponent<Rigidbody>();
 		//FRWheelRB->SetMass(0.1);
 		FRWheelRB->SetMass(25);
 		FRWheelRB->LockRotation(true);
 		FRWheelRB->IsStatic(true);
-		std::shared_ptr<boxController> FRBC = FRWheel->AddComponent<boxController>();
-		FRBC->rb = FRWheelRB;
-		FRBC->carBody = carBody;
 		std::shared_ptr<Suspension> FRWheelSuspension = FRWheel->AddComponent<Suspension>();
 		FRWheelSuspension->SetWheel(FRWheel);
 		FRWheelSuspension->SetCarBody(carBody);
@@ -362,15 +378,12 @@ int main()
 		RLWheelMR->SetRotationOffset(vec3(0, 90, 0));
 		std::shared_ptr<RayCollider> RLWheelCollider = RLWheel->AddComponent<RayCollider>();
 		RLWheelCollider->SetDirection(vec3(0, -1, 0));
-		RLWheelCollider->SetLength(0.34);
+		RLWheelCollider->SetLength(0.4);
 		std::shared_ptr<Rigidbody> RLWheelRB = RLWheel->AddComponent<Rigidbody>();
 		//RLWheelRB->SetMass(0.1);
 		RLWheelRB->SetMass(25);
 		RLWheelRB->LockRotation(true);
 		RLWheelRB->IsStatic(true);
-		std::shared_ptr<boxController> RLBC = RLWheel->AddComponent<boxController>();
-		RLBC->rb = RLWheelRB;
-		RLBC->carBody = carBody;
 		std::shared_ptr<Suspension> RLWheelSuspension = RLWheel->AddComponent<Suspension>();
 		RLWheelSuspension->SetWheel(RLWheel);
 		RLWheelSuspension->SetCarBody(carBody);
@@ -393,36 +406,18 @@ int main()
 		RRWheelMR->SetRotationOffset(vec3(0, -90, 0));
 		std::shared_ptr<RayCollider> RRWheelCollider = RRWheel->AddComponent<RayCollider>();
 		RRWheelCollider->SetDirection(vec3(0, -1, 0));
-		RRWheelCollider->SetLength(0.34);
+		RRWheelCollider->SetLength(0.4);
 		std::shared_ptr<Rigidbody> RRWheelRB = RRWheel->AddComponent<Rigidbody>();
 		//RRWheelRB->SetMass(0.1);
 		RRWheelRB->SetMass(25);
 		RRWheelRB->LockRotation(true);
 		RRWheelRB->IsStatic(true);
-		std::shared_ptr<boxController> RRBC = RRWheel->AddComponent<boxController>();
-		RRBC->rb = RRWheelRB;
-		RRBC->carBody = carBody;
 		std::shared_ptr<Suspension> RRWheelSuspension = RRWheel->AddComponent<Suspension>();
 		RRWheelSuspension->SetWheel(RRWheel);
 		RRWheelSuspension->SetCarBody(carBody);
 		RRWheelSuspension->SetAnchorPoint(RRWheelAnchor);
 		RRWheelSuspension->SetStiffness(RStiffness);
 		RRWheelSuspension->SetDamping(RDamping);
-		
-
-		// Track
-		std::shared_ptr<Entity> track = core->AddEntity();
-		track->SetTag("track");
-		track->GetComponent<Transform>()->SetPosition(vec3(0, 0.1, 10));
-		track->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
-		std::shared_ptr<ModelRenderer> trackMR = track->AddComponent<ModelRenderer>();
-		trackMR->SetModel(core->GetResources()->Load<Model>("models/track/cartoon_track_trimmed no-mtl"));
-		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/track/rock"));
-		std::shared_ptr<ModelCollider> trackCollider = track->AddComponent<ModelCollider>();
-		trackCollider->SetModel(core->GetResources()->Load<Model>("models/track/cartoon_track_trimmed no-mtl"));
-		trackCollider->SetRotationOffset(vec3(0, 0, 0));
-		trackCollider->SetDebugVisual(false);
-
 
 		std::shared_ptr<Entity> testEntity = core->AddEntity();
 		testEntity->GetComponent<Transform>()->SetPosition(vec3(4.80949, 9.48961, 6.23224));
