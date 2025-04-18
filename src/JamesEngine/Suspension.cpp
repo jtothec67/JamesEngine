@@ -4,6 +4,7 @@
 #include "Entity.h"
 #include "Transform.h"
 #include "Rigidbody.h"
+#include "ModelRenderer.h"
 
 #ifdef _DEBUG
 #include "Camera.h"
@@ -99,25 +100,29 @@ namespace JamesEngine
 	}
 #endif
 
-    void Suspension::OnFixedTick()
+    void Suspension::OnAlive()
     {
-        if (!mWheel || !mCarBody || !mAnchorPoint)
+        if (!mCarBody || !mWheel || !mAnchorPoint)
         {
-            std::cout << "Suspension component is missing a wheel, car body, or anchor point" << std::endl;
+            std::cout << "Suspension component is missing a car body, wheel, or anchor point" << std::endl;
             return;
         }
+        mCarRb = mCarBody->GetComponent<Rigidbody>();
+        mWheelRb = mWheel->GetComponent<Rigidbody>();
 
-        if (!mWheelRb || !mCarRb)
+        if (!mCarRb || !mWheelRb)
         {
-            mWheelRb = mWheel->GetComponent<Rigidbody>();
-            mCarRb = mCarBody->GetComponent<Rigidbody>();
-
-            if (!mWheelRb || !mCarRb)
-            {
-                std::cout << "Suspension component is missing a rigidbody on the wheel or car body" << std::endl;
-                return;
-            }
+            std::cout << "Suspension component is missing a rigidbody on the car body or wheel" << std::endl;
+            return;
         }
+    }
+
+    void Suspension::OnFixedTick()
+    {
+        float offsetDistance = mWheelRadius - (mGroundContact ? mHitDistance : mSuspensionTravel);
+
+        glm::vec3 modelOffsetLocal(0.0f, offsetDistance, 0.0f);
+        mWheel->GetComponent<ModelRenderer>()->SetPositionOffset(modelOffsetLocal);
 
         if (!mGroundContact)
             return;
@@ -125,7 +130,7 @@ namespace JamesEngine
         std::shared_ptr<Transform> anchorTransform = mAnchorPoint->GetComponent<Transform>();
         glm::vec3 suspensionDirection = glm::normalize(anchorTransform->GetUp());
 
-        float compression = 0.4f - mHitDistance;
+        float compression = mSuspensionTravel - mHitDistance;
 
         // Get point velocity
         glm::vec3 pointVelocity = mCarRb->GetVelocityAtPoint(anchorTransform->GetPosition());
@@ -140,7 +145,6 @@ namespace JamesEngine
         glm::vec3 totalForce = suspensionDirection * (springForce + dampingForce);
         mCarRb->ApplyForce(totalForce, anchorTransform->GetPosition());
 
-		std::cout << "Suspension Force: " << totalForce.x << ", " << totalForce.y << ", " << totalForce.z << std::endl;
         mGroundContact = false;
     }
 
@@ -148,18 +152,15 @@ namespace JamesEngine
     {
 		// Sets the position of the wheel to be the same as the anchor point
         glm::vec3 anchorPos = mAnchorPoint->GetComponent<Transform>()->GetPosition();
-        glm::vec3 suspensionAxis = glm::normalize(mAnchorPoint->GetComponent<Transform>()->GetUp());
-        glm::vec3 offset = mWheel->GetComponent<Transform>()->GetPosition() - anchorPos;
-        float currentLength = glm::dot(offset, suspensionAxis);
-        glm::vec3 projectedPos = anchorPos + suspensionAxis * currentLength;
-
-        float alpha = 0.5f;
-        glm::vec3 correctedPos = glm::mix(mWheel->GetComponent<Transform>()->GetPosition(), projectedPos, alpha);
         mWheel->GetComponent<Transform>()->SetPosition(anchorPos);
 
+		// Sets the wheel rotation based on the steering angle
+        glm::quat anchorRotationQuat = mAnchorPoint->GetComponent<Transform>()->GetWorldRotation();
+        glm::quat steeringQuat = glm::angleAxis(glm::radians(mSteeringAngle), glm::vec3(0.0f, 1.0f, 0.0f));
+        glm::quat finalRotation = anchorRotationQuat * steeringQuat;
+        mWheel->GetComponent<Transform>()->SetQuaternion(finalRotation);
 
-        // Sets the rotation of the wheel to be the same as the anchor point
-		mWheel->GetComponent<Transform>()->SetRotation(mAnchorPoint->GetComponent<Transform>()->GetWorldRotationEuler());
+        
     }
 
 }

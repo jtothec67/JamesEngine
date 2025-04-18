@@ -59,14 +59,14 @@ namespace JamesEngine
 
 			mFixedTimeAccumulator += mDeltaTime;
 
-			if (mFixedTimeAccumulator > 0.008f) // Allow max 2 fixed updates per frame
-				mFixedTimeAccumulator = 0.008f;
+			if (mFixedTimeAccumulator > mFixedDeltaTime * 2) // Allow max 2 fixed updates per frame
+				mFixedTimeAccumulator = mFixedDeltaTime * 2;
 
 			Timer debugTimer;
 			debugTimer.Start();
 
 			int numFixedUpdates = 0;
-
+			 
 			while (mFixedTimeAccumulator >= mFixedDeltaTime)
 			{
 				for (size_t ei = 0; ei < mEntities.size(); ++ei)
@@ -83,7 +83,7 @@ namespace JamesEngine
 			if (numFixedUpdates > 0)
 			{
 				//std::cout << "Fixed time step took: " << debugTimer.Stop() << std::endl;
-				std::cout << "Fixed updates this frame: " << numFixedUpdates << std::endl;
+				//std::cout << "Fixed updates this frame: " << numFixedUpdates << std::endl;
 			}
 			
 

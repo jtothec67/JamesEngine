@@ -18,6 +18,7 @@ namespace JamesEngine
 		void OnGUI();
 #endif
 
+		void OnAlive();
 		void OnFixedTick();
 		void OnTick();
 
@@ -25,13 +26,19 @@ namespace JamesEngine
 		void SetCarBody(std::shared_ptr<Entity> _carBody) { mCarBody = _carBody; }
 		void SetAnchorPoint(std::shared_ptr<Entity> _anchorPoint) { mAnchorPoint = _anchorPoint; }
 
-		void SetRestLength(float _restLength) { mRestLength = _restLength; }
 		void SetStiffness(float _stiffness) { mStiffness = _stiffness; }
 		void SetDamping(float _damping) { mDamping = _damping; }
-		void SetMinLength(float _minLength) { mMinLength = _minLength; }
-		void SetMaxLength(float _maxLength) { mMaxLength = _maxLength; }
 
 		void SetCollision(bool _groundContact) { mGroundContact = _groundContact; }
+
+		void SetSteeringAngle(float _steeringAngle) { mSteeringAngle = _steeringAngle; }
+		float GetSteeringAngle() { return mSteeringAngle; }
+
+		void SetSuspensionTravel(float _suspensionTravel) { mSuspensionTravel = _suspensionTravel; }
+		float GetSuspensionTravel() { return mSuspensionTravel; }
+
+		void SetWheelRadius(float _wheelRadius) { mWheelRadius = _wheelRadius; }
+		float GetWheelRadius() { return mWheelRadius; }
 
 		void SetDebugVisual(bool _value) { mDebugVisual = _value; }
 
@@ -48,16 +55,13 @@ namespace JamesEngine
 		float mStiffness = 500;
 		float mDamping = 50;
 
-		float mRestLength = 0.0f;
-
-		float mMinLength = 0.0f;
-		float mMaxLength = 0.4f;
-
 		bool mGroundContact = false;
 		float mHitDistance = 0.0f;
-		float mPrevCompression = 0.0f;
 
-		bool mHasntHitGroundYet = true;
+		float mSteeringAngle = 0.0f;
+
+		float mSuspensionTravel = 0.4f;
+		float mWheelRadius = 0.34f;
 
 		bool mDebugVisual = true;
 

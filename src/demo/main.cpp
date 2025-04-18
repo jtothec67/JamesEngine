@@ -67,6 +67,12 @@ struct CarController : public Component
 {
 	std::shared_ptr<Rigidbody> rb;
 
+	std::shared_ptr<Suspension> FLWheelSuspension;
+	std::shared_ptr<Suspension> FRWheelSuspension;
+
+	float maxSteeringAngle = 30.f;
+	float wheelTurnRate = 30.f;
+
 	float forwardSpeed = 1000.f;
 	float turnSpeed = 1000.f;
 
@@ -75,11 +81,31 @@ struct CarController : public Component
 		if (GetKeyboard()->IsKey(SDLK_h))
 		{
 			rb->AddTorque(GetEntity()->GetComponent<Transform>()->GetUp() * turnSpeed * GetCore()->DeltaTime());
+
+			float steeringAngle = FLWheelSuspension->GetSteeringAngle();
+			steeringAngle += wheelTurnRate * GetCore()->DeltaTime();
+			if (steeringAngle > maxSteeringAngle)
+				steeringAngle = maxSteeringAngle;
+			else if (steeringAngle < -maxSteeringAngle)
+				steeringAngle = -maxSteeringAngle;
+
+			FLWheelSuspension->SetSteeringAngle(steeringAngle);
+			FRWheelSuspension->SetSteeringAngle(steeringAngle);
 		}
 
 		if (GetKeyboard()->IsKey(SDLK_k))
 		{
 			rb->AddTorque(-GetEntity()->GetComponent<Transform>()->GetUp() * turnSpeed * GetCore()->DeltaTime());
+
+			float steeringAngle = FLWheelSuspension->GetSteeringAngle();
+			steeringAngle -= wheelTurnRate * GetCore()->DeltaTime();
+			if (steeringAngle > maxSteeringAngle)
+				steeringAngle = maxSteeringAngle;
+			else if (steeringAngle < -maxSteeringAngle)
+				steeringAngle = -maxSteeringAngle;
+
+			FLWheelSuspension->SetSteeringAngle(steeringAngle);
+			FRWheelSuspension->SetSteeringAngle(steeringAngle);
 		}
 
 		if (GetKeyboard()->IsKey(SDLK_u))
@@ -104,39 +130,6 @@ struct CarController : public Component
 	}
 };
 
-struct PositionAdjustment : public Component
-{
-	void OnTick()
-	{
-		if (GetKeyboard()->IsKey(SDLK_u))
-		{
-			SetPosition(GetLocalPosition() + vec3(0.f, 0.f, 0.0001f));
-		}
-		if (GetKeyboard()->IsKey(SDLK_j))
-		{
-			SetPosition(GetLocalPosition() + vec3(0.f, 0.f, -0.0001f));
-		}
-		if (GetKeyboard()->IsKey(SDLK_h))
-		{
-			SetPosition(GetLocalPosition() + vec3(-0.0001f, 0.f, 0.f));
-		}
-		if (GetKeyboard()->IsKey(SDLK_k))
-		{
-			SetPosition(GetLocalPosition() + vec3(0.0001f, 0.f, 0.f));
-		}
-		if (GetKeyboard()->IsKey(SDLK_i))
-		{
-			SetPosition(GetLocalPosition() + vec3(0.f, 0.0001f, 0.f));
-		}
-		if (GetKeyboard()->IsKey(SDLK_y))
-		{
-			SetPosition(GetLocalPosition() + vec3(0.f, -0.0001f, 0.f));
-		}
-
-		std::cout << "Position Offset: " << GetLocalPosition().x << ", " << GetLocalPosition().y << ", " << GetLocalPosition().z << std::endl;
-	}
-};
-
 struct CameraController : Component
 {
 	std::vector<std::shared_ptr<Camera>> mCameras;
@@ -158,6 +151,25 @@ struct CameraController : Component
 			GetCore()->GetCamera()->SetPriority(1);
 			mCameras[mCurrentCamera]->SetPriority(10);
 		}
+	}
+
+	float mfpsTimer = 0.f;
+	int currentFPS = 0;
+
+	void OnGUI()
+	{
+		mfpsTimer += GetCore()->DeltaTime();
+
+		if (mfpsTimer > 1.f)
+		{
+			mfpsTimer = 0.f;
+			currentFPS = (int)(1.0f / GetCore()->DeltaTime());
+		}
+
+		int width, height;
+		GetCore()->GetWindow()->GetWindowSize(width, height);
+
+		GetGUI()->Text(vec2(60, height - 20), 40, vec3(0, 1, 0), std::to_string(currentFPS), GetCore()->GetResources()->Load<Font>("fonts/munro"));
 	}
 };
 
@@ -210,10 +222,16 @@ int main()
 		chaseCamEntity->GetComponent<Transform>()->SetPosition(vec3(0, 1.66, -5.98));
 		chaseCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
 
+		std::shared_ptr<Entity> wheelCamEntity = core->AddEntity();
+		std::shared_ptr<Camera> wheelCam = wheelCamEntity->AddComponent<Camera>();
+		wheelCam->SetPriority(1);
+		wheelCamEntity->GetComponent<Transform>()->SetPosition(vec3(-1.36, 0.246, -1.63));
+		wheelCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 183.735, 0));
+
 		// Track
 		std::shared_ptr<Entity> track = core->AddEntity();
 		track->SetTag("track");
-		track->GetComponent<Transform>()->SetPosition(vec3(0, 0, 10));
+		track->GetComponent<Transform>()->SetPosition(vec3(0, -0.1, 10));
 		track->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		std::shared_ptr<ModelRenderer> trackMR = track->AddComponent<ModelRenderer>();
 		trackMR->SetModel(core->GetResources()->Load<Model>("models/track/cartoon_track_trimmed no-mtl"));
@@ -266,12 +284,10 @@ int main()
 		carBodyCollider->SetPositionOffset(vec3(0, 0.37, 0.22));
 		std::shared_ptr<Rigidbody> carBodyRB = carBody->AddComponent<Rigidbody>();
 		carBodyRB->SetMass(123);
-		//carBodyRB->SetMass(1230);
-		carBody->AddComponent<CarController>()->rb = carBodyRB;
 		cockpitCamEntity->GetComponent<Transform>()->SetParent(carBody);
 		bonnetCamEntity->GetComponent<Transform>()->SetParent(carBody);
 		chaseCamEntity->GetComponent<Transform>()->SetParent(carBody);
-		//cameraEntity->GetComponent<Transform>()->SetParent(carBody);
+		wheelCamEntity->GetComponent<Transform>()->SetParent(carBody);
 		
 		// Wheel Anchors
 		std::shared_ptr<Entity> FLWheelAnchor = core->AddEntity();
@@ -362,6 +378,11 @@ int main()
 		FRWheelSuspension->SetAnchorPoint(FRWheelAnchor);
 		FRWheelSuspension->SetStiffness(FStiffness);
 		FRWheelSuspension->SetDamping(FDamping);
+
+		std::shared_ptr<CarController> carController = carBody->AddComponent<CarController>();
+		carController->rb = carBodyRB;
+		carController->FLWheelSuspension = FLWheelSuspension;
+		carController->FRWheelSuspension = FRWheelSuspension;
 
 		// Rear Left Wheel
 		std::shared_ptr<Entity> RLWheel = core->AddEntity();
