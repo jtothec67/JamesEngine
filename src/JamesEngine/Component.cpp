@@ -119,6 +119,11 @@ namespace JamesEngine
 		OnFixedTick();
 	}
 
+	void Component::LateFixedTick()
+	{
+		OnLateFixedTick();
+	}
+
 	void Component::Render()
 	{
 		OnRender();

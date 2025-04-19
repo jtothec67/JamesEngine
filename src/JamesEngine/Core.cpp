@@ -74,6 +74,11 @@ namespace JamesEngine
 					mEntities[ei]->OnFixedTick();
 				}
 
+				for (size_t ei = 0; ei < mEntities.size(); ++ei)
+				{
+					mEntities[ei]->OnLateFixedTick();
+				}
+
 				numFixedUpdates++;
 
 				mFixedTimeAccumulator -= mFixedDeltaTime;

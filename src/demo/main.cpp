@@ -70,8 +70,16 @@ struct CarController : public Component
 	std::shared_ptr<Suspension> FLWheelSuspension;
 	std::shared_ptr<Suspension> FRWheelSuspension;
 
+	std::shared_ptr<Tire> FLWheelTire;
+	std::shared_ptr<Tire> FRWheelTire;
+	std::shared_ptr<Tire> RLWheelTire;
+	std::shared_ptr<Tire> RRWheelTire;
+
 	float maxSteeringAngle = 30.f;
 	float wheelTurnRate = 30.f;
+
+	float driveTorque = 8000.f;
+	float brakeTorque = 4000.f;
 
 	float forwardSpeed = 1000.f;
 	float turnSpeed = 1000.f;
@@ -110,12 +118,21 @@ struct CarController : public Component
 
 		if (GetKeyboard()->IsKey(SDLK_u))
 		{
-			rb->ApplyImpulse(GetEntity()->GetComponent<Transform>()->GetForward() * forwardSpeed * GetCore()->DeltaTime());
+			//rb->ApplyImpulse(GetEntity()->GetComponent<Transform>()->GetForward() * forwardSpeed * GetCore()->DeltaTime());
+
+			//FLWheelTire->AddDriveTorque(driveTorque * GetCore()->DeltaTime());
+			//FRWheelTire->AddDriveTorque(driveTorque * GetCore()->DeltaTime());
+			RLWheelTire->AddDriveTorque(driveTorque * GetCore()->DeltaTime());
+			RRWheelTire->AddDriveTorque(driveTorque * GetCore()->DeltaTime());
 		}
 
 		if (GetKeyboard()->IsKey(SDLK_j))
 		{
-			rb->ApplyImpulse(-GetEntity()->GetComponent<Transform>()->GetForward() * forwardSpeed * GetCore()->DeltaTime());
+			//rb->ApplyImpulse(-GetEntity()->GetComponent<Transform>()->GetForward() * forwardSpeed * GetCore()->DeltaTime());
+			FLWheelTire->AddBrakeTorque(brakeTorque * GetCore()->DeltaTime());
+			FRWheelTire->AddBrakeTorque(brakeTorque * GetCore()->DeltaTime());
+			RLWheelTire->AddBrakeTorque(brakeTorque * GetCore()->DeltaTime());
+			RRWheelTire->AddBrakeTorque(brakeTorque * GetCore()->DeltaTime());
 		}
 
 
@@ -182,6 +199,13 @@ int main()
 	// Scope to ensure the entities aren't being held in main if they're destroyed
 	{
 
+		TireParams tyreParams;
+		tyreParams.longitudinalStiffness = 1500.f;
+		tyreParams.lateralStiffness = 1000.f;
+		tyreParams.peakFrictionCoefficient = 1.f;
+		tyreParams.tireRadius = 0.34f;
+		tyreParams.wheelMass = 25.f;
+
 		float FStiffness = 5000;
 		float FDamping = 100;
 
@@ -231,7 +255,7 @@ int main()
 		// Track
 		std::shared_ptr<Entity> track = core->AddEntity();
 		track->SetTag("track");
-		track->GetComponent<Transform>()->SetPosition(vec3(0, -0.1, 10));
+		track->GetComponent<Transform>()->SetPosition(vec3(0, 0, 10));
 		track->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		std::shared_ptr<ModelRenderer> trackMR = track->AddComponent<ModelRenderer>();
 		trackMR->SetModel(core->GetResources()->Load<Model>("models/track/cartoon_track_trimmed no-mtl"));
@@ -350,6 +374,11 @@ int main()
 		FLWheelSuspension->SetAnchorPoint(FLWheelAnchor);
 		FLWheelSuspension->SetStiffness(FStiffness);
 		FLWheelSuspension->SetDamping(FDamping);
+		std::shared_ptr<Tire> FLWheelTire = FLWheel->AddComponent<Tire>();
+		FLWheelTire->SetCarBody(carBody);
+		FLWheelTire->SetAnchorPoint(FLWheelAnchor);
+		FLWheelTire->SetTireParams(tyreParams);
+		FLWheelTire->setInitialRotationOffset(vec3(0, 90, 0));
 
 		// Front Right Wheel
 		std::shared_ptr<Entity> FRWheel = core->AddEntity();
@@ -378,11 +407,11 @@ int main()
 		FRWheelSuspension->SetAnchorPoint(FRWheelAnchor);
 		FRWheelSuspension->SetStiffness(FStiffness);
 		FRWheelSuspension->SetDamping(FDamping);
-
-		std::shared_ptr<CarController> carController = carBody->AddComponent<CarController>();
-		carController->rb = carBodyRB;
-		carController->FLWheelSuspension = FLWheelSuspension;
-		carController->FRWheelSuspension = FRWheelSuspension;
+		std::shared_ptr<Tire> FRWheelTire = FRWheel->AddComponent<Tire>();
+		FRWheelTire->SetCarBody(carBody);
+		FRWheelTire->SetAnchorPoint(FRWheelAnchor);
+		FRWheelTire->SetTireParams(tyreParams);
+		FRWheelTire->setInitialRotationOffset(vec3(0, -90, 0));
 
 		// Rear Left Wheel
 		std::shared_ptr<Entity> RLWheel = core->AddEntity();
@@ -411,6 +440,11 @@ int main()
 		RLWheelSuspension->SetAnchorPoint(RLWheelAnchor);
 		RLWheelSuspension->SetStiffness(RStiffness);
 		RLWheelSuspension->SetDamping(RDamping);
+		std::shared_ptr<Tire> RLWheelTire = RLWheel->AddComponent<Tire>();
+		RLWheelTire->SetCarBody(carBody);
+		RLWheelTire->SetAnchorPoint(RLWheelAnchor);
+		RLWheelTire->SetTireParams(tyreParams);
+		RLWheelTire->setInitialRotationOffset(vec3(0, 90, 0));
 
 		// Rear Right Wheel
 		std::shared_ptr<Entity> RRWheel = core->AddEntity();
@@ -439,6 +473,20 @@ int main()
 		RRWheelSuspension->SetAnchorPoint(RRWheelAnchor);
 		RRWheelSuspension->SetStiffness(RStiffness);
 		RRWheelSuspension->SetDamping(RDamping);
+		std::shared_ptr<Tire> RRWheelTire = RRWheel->AddComponent<Tire>();
+		RRWheelTire->SetCarBody(carBody);
+		RRWheelTire->SetAnchorPoint(RRWheelAnchor);
+		RRWheelTire->SetTireParams(tyreParams);
+		RRWheelTire->setInitialRotationOffset(vec3(0, -90, 0));
+
+		std::shared_ptr<CarController> carController = carBody->AddComponent<CarController>();
+		carController->rb = carBodyRB;
+		carController->FLWheelSuspension = FLWheelSuspension;
+		carController->FRWheelSuspension = FRWheelSuspension;
+		carController->FLWheelTire = FLWheelTire;
+		carController->FRWheelTire = FRWheelTire;
+		carController->RLWheelTire = RLWheelTire;
+		carController->RRWheelTire = RRWheelTire;
 
 		std::shared_ptr<Entity> testEntity = core->AddEntity();
 		testEntity->GetComponent<Transform>()->SetPosition(vec3(4.80949, 9.48961, 6.23224));

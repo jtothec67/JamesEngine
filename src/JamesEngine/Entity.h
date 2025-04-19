@@ -89,6 +89,7 @@ namespace JamesEngine
 
 		void OnTick();
 		void OnFixedTick();
+		void OnLateFixedTick();
 		void OnRender();
 		void OnGUI();
 	};

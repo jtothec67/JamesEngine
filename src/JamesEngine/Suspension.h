@@ -20,6 +20,7 @@ namespace JamesEngine
 
 		void OnAlive();
 		void OnFixedTick();
+		void OnLateFixedTick();
 		void OnTick();
 
 		void SetWheel(std::shared_ptr<Entity> _wheel) { mWheel = _wheel; }
@@ -30,6 +31,7 @@ namespace JamesEngine
 		void SetDamping(float _damping) { mDamping = _damping; }
 
 		void SetCollision(bool _groundContact) { mGroundContact = _groundContact; }
+		bool GetCollision() { return mGroundContact; }
 
 		void SetSteeringAngle(float _steeringAngle) { mSteeringAngle = _steeringAngle; }
 		float GetSteeringAngle() { return mSteeringAngle; }

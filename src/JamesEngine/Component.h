@@ -54,9 +54,13 @@ namespace JamesEngine
 		 */
 		virtual void OnTick() { }
 		/**
-		 * @brief Called 50 times a second.
+		 * @brief Called 200 times a second.
 		 */
 		virtual void OnFixedTick() {}
+		/**
+		 * @brief Called after OnFixedTick().
+		 */
+		virtual void OnLateFixedTick() {}
 		/**
 		 * @brief Called after OnTick().
 		 */
@@ -86,6 +90,7 @@ namespace JamesEngine
 
 		void Tick();
 		void FixedTick();
+		void LateFixedTick();
 		void Render();
 		void GUI();
 		void Destroy();

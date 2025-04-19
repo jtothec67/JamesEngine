@@ -4,127 +4,119 @@
 #include "Core.h"
 #include "Entity.h"
 #include "Rigidbody.h"
+#include "Suspension.h"
+#include "ModelRenderer.h"
 
 namespace JamesEngine
 {
 
-	void Tire::OnTick()
-	{
+    void Tire::OnAlive()
+    {
 		if (!mCarBody || !mAnchorPoint)
 		{
-			std::cout << "Tire component is missing a car body, or anchor point" << std::endl;
+			std::cout << "Tire component is missing a car body or anchor point" << std::endl;
 			return;
 		}
 
-		if (!mWheelRb || !mCarRb)
+		mCarRb = mCarBody->GetComponent<Rigidbody>();
+		if (!mCarRb)
 		{
-			mWheelRb = GetEntity()->GetComponent<Rigidbody>();
-			mCarRb = mCarBody->GetComponent<Rigidbody>();
-
-			if (!mWheelRb || !mCarRb)
-			{
-				std::cout << "Tire component is missing a rigidbody on the car body" << std::endl;
-				return;
-			}
+			std::cout << "Tire component is missing a rigidbody on the car body" << std::endl;
+			return;
 		}
 
-        // Get delta time.
-        float dt = GetCore()->DeltaTime();
+        mSuspension = GetEntity()->GetComponent<Suspension>();
+		if (!mSuspension)
+		{
+			std::cout << "Tire is missing a suspension component" << std::endl;
+			return;
+		}
+    }
 
-        // Get transforms.
+	void Tire::OnFixedTick()
+	{
+		if (!mSuspension->GetCollision())
+			return;
+
+        float dt = GetCore()->FixedDeltaTime();
+
         auto wheelTransform = GetEntity()->GetComponent<Transform>();
         auto anchorTransform = mAnchorPoint->GetComponent<Transform>();
 
-        glm::vec3 wheelPos = wheelTransform->GetPosition();
         glm::vec3 anchorPos = anchorTransform->GetPosition();
 
-        // ------------ CHANGE TO ACTUALLY BE THE SURFACE NORMAL ------------
+        // Surface normal assumed upward
         glm::vec3 surfaceNormal = glm::vec3(0.0f, 1.0f, 0.0f);
 
-        // Get velocities.
-        glm::vec3 wheelVel = mWheelRb->GetVelocity();
+        // Use velocity of car at anchor point instead of wheel rigidbody
         glm::vec3 carVel = mCarRb->GetVelocityAtPoint(anchorPos);
+		//std::cout << GetEntity()->GetTag() << " car velocity : " << carVel.x << ", " << carVel.y << ", " << carVel.z << std::endl;
 
-        // Get the tire's "rolling direction" (i.e. the direction it is pointed for rolling).
-        // This should be set by the steering input. We assume here that GetForward() returns that.
         glm::vec3 tireForward = wheelTransform->GetForward();
-
-        // Compute the tire's lateral (side) direction as the cross product of surface normal and forward.
         glm::vec3 tireSide = glm::normalize(glm::cross(surfaceNormal, tireForward));
 
-        // Helper: project any vector onto the ground plane.
         auto ProjectOntoPlane = [&](const glm::vec3& vec, const glm::vec3& n) -> glm::vec3 {
             return vec - n * glm::dot(vec, n);
             };
 
-        // Project the forward vector and wheel velocity onto the ground.
         glm::vec3 projForward = glm::normalize(ProjectOntoPlane(tireForward, surfaceNormal));
-        glm::vec3 projVelocity = ProjectOntoPlane(wheelVel, surfaceNormal);
+        glm::vec3 projVelocity = ProjectOntoPlane(carVel, surfaceNormal);
 
-        // Calculate the longitudinal component of the velocity.
         float Vx = glm::dot(projVelocity, projForward);
-
-        // Obtain the wheel's angular velocity along its axle.
-        // Here we assume that the wheel rotates about its local right axis.
-        glm::vec3 wheelAxle = wheelTransform->GetRight(); // Adjust if your axle is different.
-        glm::vec3 wheelAngular = mWheelRb->GetAngularVelocity();
-        float omega = glm::dot(wheelAngular, wheelAxle);
-        float wheelCircumferentialSpeed = omega * mTireParams.tireRadius;
-
-        // Compute slip ratio: (wheel speed - longitudinal velocity) / |longitudinal velocity|
-        float denominator = (std::fabs(Vx) > 0.1f) ? std::fabs(Vx) : 0.1f;
-        float slipRatio = (wheelCircumferentialSpeed - Vx) / denominator;
-
-        // Compute lateral slip angle.
-        // Lateral velocity component: projection of projVelocity onto tireSide.
         float Vy = glm::dot(projVelocity, tireSide);
-        float slipAngle = std::atan2(Vy, std::fabs(Vx)); // in radians
 
-        // Estimate vertical load (Fz) on the tire.
-        // For now we approximate using the wheel's mass and gravity.
-        float mass = mWheelRb->GetMass();
-        float Fz = mass * 9.81f;
+        // Use stored angular velocity instead of rigidbody angular velocity
+        float wheelCircumferentialSpeed = mWheelAngularVelocity * mTireParams.tireRadius;
 
-        // --- Brush Tire Model Calculation ---
-        // Simple linear model for demonstration:
+        float epsilon = 0.5f;
+        float denominator = std::max(std::fabs(Vx), epsilon);
+        float slipRatio = (wheelCircumferentialSpeed - Vx) / denominator;
+        float slipAngle = std::atan2(Vy, std::fabs(Vx));
+
+        // Estimate load (Fz) from suspension or set manually
+        float Fz = mTireParams.wheelMass * 9.81f;
+
         float Fx = -mTireParams.longitudinalStiffness * slipRatio;
         float Fy = -mTireParams.lateralStiffness * slipAngle;
 
-        // Clamp forces to a friction limit based on peak friction coefficient.
         float frictionLimit = mTireParams.peakFrictionCoefficient * Fz;
         Fx = glm::clamp(Fx, -frictionLimit, frictionLimit);
         Fy = glm::clamp(Fy, -frictionLimit, frictionLimit);
 
-        // Convert tire-local forces to world space.
         glm::vec3 forceWorld = projForward * Fx + tireSide * Fy;
 
-        // --- Apply Forces ---
-        // Apply the tire force to the car body at the anchor point.
-        mCarRb->ApplyForce(forceWorld * dt, anchorPos);
-        // Apply the opposite force to the wheel (action-reaction).
-        mWheelRb->ApplyForce(-forceWorld * dt, wheelPos);
+        // Apply force to car at the anchor point
+        mCarRb->ApplyForce(forceWorld / 10.f, anchorPos);
+		//std::cout << GetEntity()->GetTag() << " tire force: " << forceWorld.x << ", " << forceWorld.y << ", " << forceWorld.z << std::endl;
 
-        // --- Update Wheel Angular Velocity ---
-        // The force at the tire-road interface produces a torque on the wheel.
-        float roadTorque = Fx * mTireParams.tireRadius;
-        float netTorque = mDriveTorque - mBrakeTorque - roadTorque;
+        // Update Simulated Wheel Angular Velocity
+        float roadTorque = -Fx * mTireParams.tireRadius;
+        float netTorque = mBrakeTorque - mDriveTorque - roadTorque;
 
-        // Get the wheel's moment of inertia.
         float r = mTireParams.tireRadius;
-        float inertia = 0.5f * mass * r * r;
+        float inertia = 0.5f * mTireParams.wheelMass * r * r;
         float angularAcceleration = netTorque / inertia;
-        float newOmega = omega + angularAcceleration * dt;
+        mWheelAngularVelocity += angularAcceleration * dt;
 
-        // Update the wheel's angular velocity.
-        glm::vec3 newAngularVelocity = wheelAxle * newOmega;
-        mWheelRb->SetAngularVelocity(newAngularVelocity);
+		//std::cout << GetEntity()->GetTag() << " wheel angular velocity: " << mWheelAngularVelocity << std::endl;
 
-        // Optionally: update any visual wheel spin here by rotating a child transform.
-
-
-        // Reset drive and brake torques for the next tick.
         mDriveTorque = 0.0f;
         mBrakeTorque = 0.0f;
+	}
+
+	void Tire::OnTick()
+	{
+        mWheelRotation += mWheelAngularVelocity * GetCore()->DeltaTime();
+
+        if (mWheelRotation > 360) {
+            mWheelRotation -= 360;
+        }
+        else if (mWheelRotation < 0.0f) {
+            mWheelRotation += 360;
+        }
+
+        glm::vec3 modelRotationOffset = glm::vec3(mWheelRotation, 0.0f, 0.0f) + mInitialRotationOffset;
+        GetEntity()->GetComponent<ModelRenderer>()->SetRotationOffset(modelRotationOffset);
 	}
 
 }

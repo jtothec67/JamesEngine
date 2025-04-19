@@ -144,9 +144,12 @@ namespace JamesEngine
 
         glm::vec3 totalForce = suspensionDirection * (springForce + dampingForce);
         mCarRb->ApplyForce(totalForce, anchorTransform->GetPosition());
-
-        mGroundContact = false;
     }
+
+	void Suspension::OnLateFixedTick()
+	{
+        mGroundContact = false;
+	}
 
     void Suspension::OnTick()
     {
@@ -159,8 +162,6 @@ namespace JamesEngine
         glm::quat steeringQuat = glm::angleAxis(glm::radians(mSteeringAngle), glm::vec3(0.0f, 1.0f, 0.0f));
         glm::quat finalRotation = anchorRotationQuat * steeringQuat;
         mWheel->GetComponent<Transform>()->SetQuaternion(finalRotation);
-
-        
     }
 
 }
