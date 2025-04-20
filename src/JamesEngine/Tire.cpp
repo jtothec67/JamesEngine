@@ -46,11 +46,10 @@ namespace JamesEngine
         glm::vec3 anchorPos = anchorTransform->GetPosition();
 
         // Surface normal assumed upward
-        glm::vec3 surfaceNormal = glm::vec3(0.0f, 1.0f, 0.0f);
+        glm::vec3 surfaceNormal = glm::vec3(0.0f, 1.0f, 0.0f); // Change to get from the RayCollider
 
         // Use velocity of car at anchor point instead of wheel rigidbody
         glm::vec3 carVel = mCarRb->GetVelocityAtPoint(anchorPos);
-		//std::cout << GetEntity()->GetTag() << " car velocity : " << carVel.x << ", " << carVel.y << ", " << carVel.z << std::endl;
 
         glm::vec3 tireForward = wheelTransform->GetForward();
         glm::vec3 tireSide = glm::normalize(glm::cross(surfaceNormal, tireForward));
@@ -70,11 +69,10 @@ namespace JamesEngine
 
         float epsilon = 0.5f;
         float denominator = std::max(std::fabs(Vx), epsilon);
-        float slipRatio = (wheelCircumferentialSpeed - Vx) / denominator;
+        float slipRatio = (Vx - wheelCircumferentialSpeed) / denominator;
         float slipAngle = std::atan2(Vy, std::fabs(Vx));
 
-        // Estimate load (Fz) from suspension or set manually
-        float Fz = mTireParams.wheelMass * 9.81f;
+        float Fz = mTireParams.wheelMass * 9.81f; // Change to work out load from suspension
 
         float Fx = -mTireParams.longitudinalStiffness * slipRatio;
         float Fy = -mTireParams.lateralStiffness * slipAngle;
@@ -87,26 +85,35 @@ namespace JamesEngine
 
         // Apply force to car at the anchor point
         mCarRb->ApplyForce(forceWorld / 10.f, anchorPos);
-		//std::cout << GetEntity()->GetTag() << " tire force: " << forceWorld.x << ", " << forceWorld.y << ", " << forceWorld.z << std::endl;
 
         // Update Simulated Wheel Angular Velocity
         float roadTorque = -Fx * mTireParams.tireRadius;
-        float netTorque = mBrakeTorque - mDriveTorque - roadTorque;
+        float netTorque = mDriveTorque - mBrakeTorque + roadTorque;
 
         float r = mTireParams.tireRadius;
         float inertia = 0.5f * mTireParams.wheelMass * r * r;
         float angularAcceleration = netTorque / inertia;
         mWheelAngularVelocity += angularAcceleration * dt;
 
-		//std::cout << GetEntity()->GetTag() << " wheel angular velocity: " << mWheelAngularVelocity << std::endl;
-
         mDriveTorque = 0.0f;
         mBrakeTorque = 0.0f;
+
+        /*std::cout << GetEntity()->GetTag() << " Tire debug:\n";
+        std::cout << "  Vx (proj velocity along forward): " << Vx << "\n";
+        std::cout << "  Angular velocity: " << mWheelAngularVelocity << "\n";
+        std::cout << "  Ideal Omega: " << Vx / mTireParams.tireRadius << "\n";
+        std::cout << "  Rw (wheel speed): " << wheelCircumferentialSpeed << "\n";
+        std::cout << "  Slip ratio: " << slipRatio << "\n";
+        std::cout << "  Fx (tire force): " << Fx << "\n";
+        std::cout << "  Drive torque: " << mDriveTorque << ", Brake torque: " << mBrakeTorque << "\n";
+        std::cout << "  Road torque: " << roadTorque << "\n";
+        std::cout << "  Net torque: " << netTorque << "\n";
+        std::cout << "  Angular acceleration: " << angularAcceleration << "\n";*/
 	}
 
 	void Tire::OnTick()
 	{
-        mWheelRotation += mWheelAngularVelocity * GetCore()->DeltaTime();
+        mWheelRotation += glm::degrees(mWheelAngularVelocity * GetCore()->DeltaTime());
 
         if (mWheelRotation > 360) {
             mWheelRotation -= 360;

@@ -78,8 +78,9 @@ struct CarController : public Component
 	float maxSteeringAngle = 30.f;
 	float wheelTurnRate = 30.f;
 
-	float driveTorque = 8000.f;
-	float brakeTorque = 4000.f;
+	float driveTorque = 650.f;
+	float frontBrakeTorque = 2000.f;
+	float rearBrakeTorque = 1350.f; // Values at a 60-40 brake bias, seem high but don't shoot the messenger.
 
 	float forwardSpeed = 1000.f;
 	float turnSpeed = 1000.f;
@@ -88,8 +89,6 @@ struct CarController : public Component
 	{
 		if (GetKeyboard()->IsKey(SDLK_h))
 		{
-			rb->AddTorque(GetEntity()->GetComponent<Transform>()->GetUp() * turnSpeed * GetCore()->DeltaTime());
-
 			float steeringAngle = FLWheelSuspension->GetSteeringAngle();
 			steeringAngle += wheelTurnRate * GetCore()->DeltaTime();
 			if (steeringAngle > maxSteeringAngle)
@@ -103,8 +102,6 @@ struct CarController : public Component
 
 		if (GetKeyboard()->IsKey(SDLK_k))
 		{
-			rb->AddTorque(-GetEntity()->GetComponent<Transform>()->GetUp() * turnSpeed * GetCore()->DeltaTime());
-
 			float steeringAngle = FLWheelSuspension->GetSteeringAngle();
 			steeringAngle -= wheelTurnRate * GetCore()->DeltaTime();
 			if (steeringAngle > maxSteeringAngle)
@@ -118,21 +115,16 @@ struct CarController : public Component
 
 		if (GetKeyboard()->IsKey(SDLK_u))
 		{
-			//rb->ApplyImpulse(GetEntity()->GetComponent<Transform>()->GetForward() * forwardSpeed * GetCore()->DeltaTime());
-
-			//FLWheelTire->AddDriveTorque(driveTorque * GetCore()->DeltaTime());
-			//FRWheelTire->AddDriveTorque(driveTorque * GetCore()->DeltaTime());
-			RLWheelTire->AddDriveTorque(driveTorque * GetCore()->DeltaTime());
-			RRWheelTire->AddDriveTorque(driveTorque * GetCore()->DeltaTime());
+			RLWheelTire->AddDriveTorque(driveTorque);
+			RRWheelTire->AddDriveTorque(driveTorque);
 		}
 
 		if (GetKeyboard()->IsKey(SDLK_j))
 		{
-			//rb->ApplyImpulse(-GetEntity()->GetComponent<Transform>()->GetForward() * forwardSpeed * GetCore()->DeltaTime());
-			FLWheelTire->AddBrakeTorque(brakeTorque * GetCore()->DeltaTime());
-			FRWheelTire->AddBrakeTorque(brakeTorque * GetCore()->DeltaTime());
-			RLWheelTire->AddBrakeTorque(brakeTorque * GetCore()->DeltaTime());
-			RRWheelTire->AddBrakeTorque(brakeTorque * GetCore()->DeltaTime());
+			FLWheelTire->AddBrakeTorque(frontBrakeTorque);
+			FRWheelTire->AddBrakeTorque(frontBrakeTorque);
+			RLWheelTire->AddBrakeTorque(rearBrakeTorque);
+			RRWheelTire->AddBrakeTorque(rearBrakeTorque);
 		}
 
 
