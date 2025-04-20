@@ -32,7 +32,9 @@ namespace JamesEngine
 
 		void SetTireParams(const TireParams& _tireParams) { mTireParams = _tireParams; }
 
-		void setInitialRotationOffset(const glm::vec3& _offset) { mInitialRotationOffset = _offset; }
+		void SetInitialRotationOffset(const glm::vec3& _offset) { mInitialRotationOffset = _offset; }
+
+		void SetWheelAngularVelocity(float _angularVelocity) { mWheelAngularVelocity = _angularVelocity; }
 
 	private:
 		std::shared_ptr<Entity> mCarBody;

@@ -38,6 +38,8 @@ namespace JamesEngine
 		if (!mSuspension->GetCollision())
 			return;
 
+		std::cout << GetEntity()->GetTag() << " tire fixed tick" << std::endl;
+
         float dt = GetCore()->FixedDeltaTime();
 
         auto wheelTransform = GetEntity()->GetComponent<Transform>();
@@ -71,15 +73,39 @@ namespace JamesEngine
         float denominator = std::max(std::fabs(Vx), epsilon);
         float slipRatio = (Vx - wheelCircumferentialSpeed) / denominator;
         float slipAngle = std::atan2(Vy, std::fabs(Vx));
+		std::cout << "Slip ratio: " << slipRatio << std::endl;
+		std::cout << "Slip angle: " << slipAngle << std::endl;
 
-        float Fz = mTireParams.wheelMass * 9.81f; // Change to work out load from suspension
+        float Fz = (mTireParams.wheelMass + (1230 / 4)) * 9.81f; // Change to work out load from suspension
 
         float Fx = -mTireParams.longitudinalStiffness * slipRatio;
+        Fx = Fx / (1.0f + std::abs(Fx) / (mTireParams.peakFrictionCoefficient * Fz));
+		std::cout << "Longitudinal force: " << Fx << std::endl;
+        
         float Fy = -mTireParams.lateralStiffness * slipAngle;
+        Fy = Fy / (1.0f + std::abs(Fy) / (mTireParams.peakFrictionCoefficient * Fz));
+		std::cout << "Lateral force: " << Fy << std::endl;
 
         float frictionLimit = mTireParams.peakFrictionCoefficient * Fz;
+
         Fx = glm::clamp(Fx, -frictionLimit, frictionLimit);
         Fy = glm::clamp(Fy, -frictionLimit, frictionLimit);
+        
+        const float lowSpeedThreshold = 0.5f; // m/s
+        const float lowOmegaThreshold = 1.0f; // rad/s
+
+        bool carStopped = std::abs(Vx) < lowSpeedThreshold;
+        bool wheelStopped = std::abs(mWheelAngularVelocity) < lowOmegaThreshold;
+
+		// To stop the car from sliding when stopped (it still does but only a little now)
+        if (carStopped && wheelStopped)
+        {
+            slipRatio = 0.0f;
+            Fx = 0.0f;
+			Fy = 0.0f;
+
+            std::cout << "Car is stopped, no tire forces applied" << std::endl;
+        }
 
         glm::vec3 forceWorld = projForward * Fx + tireSide * Fy;
 
@@ -88,27 +114,64 @@ namespace JamesEngine
 
         // Update Simulated Wheel Angular Velocity
         float roadTorque = -Fx * mTireParams.tireRadius;
-        float netTorque = mDriveTorque - mBrakeTorque + roadTorque;
+        float netTorque = mDriveTorque + roadTorque;
+
+        // Add brake torque only if it's resisting current spin
+        if (mBrakeTorque > 0.0f)
+        {
+            float brakeDirection = -glm::sign(mWheelAngularVelocity); // Opposes spin
+            float resistingTorque = brakeDirection * mBrakeTorque;
+
+            // Only apply brake torque if it's resisting the current spin
+            if (glm::sign(resistingTorque) == -glm::sign(mWheelAngularVelocity))
+            {
+                netTorque += resistingTorque;
+            }
+
+            // If the wheel is nearly stopped and brake is active, hold it at 0
+            const float angularStopThreshold = 1.0f; // rad/s
+            if (std::abs(mWheelAngularVelocity) < angularStopThreshold)
+            {
+                mWheelAngularVelocity = 0.0f;
+                netTorque = 0.0f; // Don't apply any torque when clamped
+            }
+        }
 
         float r = mTireParams.tireRadius;
         float inertia = 0.5f * mTireParams.wheelMass * r * r;
         float angularAcceleration = netTorque / inertia;
         mWheelAngularVelocity += angularAcceleration * dt;
+		//std::cout << "Wheel angular velocity: " << mWheelAngularVelocity << "\n";
 
         mDriveTorque = 0.0f;
         mBrakeTorque = 0.0f;
 
-        /*std::cout << GetEntity()->GetTag() << " Tire debug:\n";
-        std::cout << "  Vx (proj velocity along forward): " << Vx << "\n";
-        std::cout << "  Angular velocity: " << mWheelAngularVelocity << "\n";
-        std::cout << "  Ideal Omega: " << Vx / mTireParams.tireRadius << "\n";
-        std::cout << "  Rw (wheel speed): " << wheelCircumferentialSpeed << "\n";
-        std::cout << "  Slip ratio: " << slipRatio << "\n";
-        std::cout << "  Fx (tire force): " << Fx << "\n";
-        std::cout << "  Drive torque: " << mDriveTorque << ", Brake torque: " << mBrakeTorque << "\n";
-        std::cout << "  Road torque: " << roadTorque << "\n";
-        std::cout << "  Net torque: " << netTorque << "\n";
-        std::cout << "  Angular acceleration: " << angularAcceleration << "\n";*/
+  //      float stiffness = 100000.0f;
+  //      Fz = 3000.0f;
+  //      float mu = 1.0f;
+  //      frictionLimit = mu * Fz;
+
+  //      // Longitudinal
+		//std::cout << "Longitudinal slip vs force:\n";
+  //      for (float slip = -1.0f; slip <= 1.0f; slip += 0.01f)
+  //      {
+  //          float Fx_linear = -stiffness * slip;
+  //          float Fx_clamped = glm::clamp(Fx_linear, -frictionLimit, frictionLimit);
+  //          float Fx_soft = Fx_linear / (1.0f + std::abs(Fx_linear) / frictionLimit);
+
+  //          std::cout << slip << "," << Fx_linear << "," << Fx_clamped << "," << Fx_soft << "\n";
+  //      }
+
+  //      // Lateral
+		//std::cout << "Lateral slip vs force:\n";
+  //      for (float angle = -0.5f; angle <= 0.5f; angle += 0.01f)
+  //      {
+  //          float Fy_linear = -stiffness * angle;
+  //          float Fy_clamped = glm::clamp(Fy_linear, -frictionLimit, frictionLimit);
+  //          float Fy_soft = Fy_linear / (1.0f + std::abs(Fy_linear) / frictionLimit);
+
+  //          std::cout << angle << "," << Fy_linear << "," << Fy_clamped << "," << Fy_soft << "\n";
+  //      }
 	}
 
 	void Tire::OnTick()
