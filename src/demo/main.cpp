@@ -78,9 +78,9 @@ struct CarController : public Component
 	float maxSteeringAngle = 30.f;
 	float wheelTurnRate = 30.f;
 
-	float driveTorque = 300.f;
-	float frontBrakeTorque = 2000.f;
-	float rearBrakeTorque = 1350.f; // Values at a 60-40 brake bias, seem high but don't shoot the messenger.
+	float driveTorque = 65.f;
+	float frontBrakeTorque = 200.f;
+	float rearBrakeTorque = 135.f; // Values at a 60-40 brake bias, seem high but don't shoot the messenger.
 
 	float forwardSpeed = 1000.f;
 	float turnSpeed = 1000.f;
@@ -131,7 +131,7 @@ struct CarController : public Component
 		if (GetKeyboard()->IsKey(SDLK_SPACE))
 		{
 			SetPosition(vec3(0, 0.8 - 0.45, -16));
-			SetRotation(vec3(0, 0, 0));
+			SetRotation(vec3(0, 90, 0));
 			rb->SetVelocity(vec3(0, 0, 0));
 			rb->SetAngularVelocity(vec3(0, 0, 0));
 			rb->SetAngularMomentum(vec3(0, 0, 0));
@@ -196,8 +196,8 @@ int main()
 	{
 
 		TireParams tyreParams;
-		tyreParams.longitudinalStiffness = 50000.f;
-		tyreParams.lateralStiffness = 40000.f;
+		tyreParams.longitudinalStiffness = 8000.f;
+		tyreParams.lateralStiffness = 6000.f;
 		tyreParams.peakFrictionCoefficient = 1.f;
 		tyreParams.tireRadius = 0.34f;
 		tyreParams.wheelMass = 25.f;
@@ -375,6 +375,7 @@ int main()
 		FLWheelTire->SetAnchorPoint(FLWheelAnchor);
 		FLWheelTire->SetTireParams(tyreParams);
 		FLWheelTire->SetInitialRotationOffset(vec3(0, 90, 0));
+		FLWheelTire->SetIsRightTire(false);
 
 		// Front Right Wheel
 		std::shared_ptr<Entity> FRWheel = core->AddEntity();
@@ -408,6 +409,7 @@ int main()
 		FRWheelTire->SetAnchorPoint(FRWheelAnchor);
 		FRWheelTire->SetTireParams(tyreParams);
 		FRWheelTire->SetInitialRotationOffset(vec3(0, -90, 0));
+		FRWheelTire->SetIsRightTire(true);
 
 		// Rear Left Wheel
 		std::shared_ptr<Entity> RLWheel = core->AddEntity();
@@ -441,6 +443,7 @@ int main()
 		RLWheelTire->SetAnchorPoint(RLWheelAnchor);
 		RLWheelTire->SetTireParams(tyreParams);
 		RLWheelTire->SetInitialRotationOffset(vec3(0, 90, 0));
+		RLWheelTire->SetIsRightTire(false);
 
 		// Rear Right Wheel
 		std::shared_ptr<Entity> RRWheel = core->AddEntity();
@@ -474,6 +477,7 @@ int main()
 		RRWheelTire->SetAnchorPoint(RRWheelAnchor);
 		RRWheelTire->SetTireParams(tyreParams);
 		RRWheelTire->SetInitialRotationOffset(vec3(0, -90, 0));
+		RRWheelTire->SetIsRightTire(true);
 
 		std::shared_ptr<CarController> carController = carBody->AddComponent<CarController>();
 		carController->rb = carBodyRB;
@@ -493,6 +497,13 @@ int main()
 		testTR->AddTexture(core->GetResources()->Load<Texture>("images/cat"));
 		testEntity->AddComponent<CollisionTest>()->rb = FLWheelRB;
 
+
+		std::shared_ptr<Entity> testBall1 = core->AddEntity();
+		testBall1->GetComponent<Transform>()->SetPosition(vec3(0, 0.8 - 0.45, -16));
+		testBall1->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
+		std::shared_ptr<ModelRenderer> testBall1MR = testBall1->AddComponent<ModelRenderer>();
+		testBall1MR->SetModel(core->GetResources()->Load<Model>("shapes/sphere"));
+		testBall1MR->AddTexture(core->GetResources()->Load<Texture>("images/cat"));
 
 	}
 

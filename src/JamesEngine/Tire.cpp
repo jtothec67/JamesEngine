@@ -38,7 +38,7 @@ namespace JamesEngine
 		if (!mSuspension->GetCollision())
 			return;
 
-		std::cout << GetEntity()->GetTag() << " tire fixed tick" << std::endl;
+		//std::cout << GetEntity()->GetTag() << " tire fixed tick" << std::endl;
 
         float dt = GetCore()->FixedDeltaTime();
 
@@ -54,7 +54,13 @@ namespace JamesEngine
         glm::vec3 carVel = mCarRb->GetVelocityAtPoint(anchorPos);
 
         glm::vec3 tireForward = wheelTransform->GetForward();
-        glm::vec3 tireSide = glm::normalize(glm::cross(surfaceNormal, tireForward));
+		glm::vec3 tireSide;
+        if (mIsRightTire)
+            tireSide = wheelTransform->GetRight(); // flip to get true world left
+        else
+            tireSide = -wheelTransform->GetRight();
+		//std::cout << "Tire forward: " << tireForward.x << ", " << tireForward.y << ", " << tireForward.z << std::endl;
+		//std::cout << "Tire side: " << tireSide.x << ", " << tireSide.y << ", " << tireSide.z << std::endl;
 
         auto ProjectOntoPlane = [&](const glm::vec3& vec, const glm::vec3& n) -> glm::vec3 {
             return vec - n * glm::dot(vec, n);
@@ -62,9 +68,12 @@ namespace JamesEngine
 
         glm::vec3 projForward = glm::normalize(ProjectOntoPlane(tireForward, surfaceNormal));
         glm::vec3 projVelocity = ProjectOntoPlane(carVel, surfaceNormal);
+		//std::cout << "Projected forward: " << projForward.x << ", " << projForward.y << ", " << projForward.z << std::endl;
+		//std::cout << "Projected velocity: " << projVelocity.x << ", " << projVelocity.y << ", " << projVelocity.z << std::endl;
 
         float Vx = glm::dot(projVelocity, projForward);
         float Vy = glm::dot(projVelocity, tireSide);
+		//std::cout << "Vx: " << Vx << std::endl;
 
         // Use stored angular velocity instead of rigidbody angular velocity
         float wheelCircumferentialSpeed = mWheelAngularVelocity * mTireParams.tireRadius;
@@ -73,26 +82,34 @@ namespace JamesEngine
         float denominator = std::max(std::fabs(Vx), epsilon);
         float slipRatio = (Vx - wheelCircumferentialSpeed) / denominator;
         float slipAngle = std::atan2(Vy, std::fabs(Vx));
-		std::cout << "Slip ratio: " << slipRatio << std::endl;
-		std::cout << "Slip angle: " << slipAngle << std::endl;
+		//std::cout << "Slip ratio: " << slipRatio << std::endl;
+		//std::cout << "Slip angle: " << slipAngle << std::endl;
 
-        float Fz = (mTireParams.wheelMass + (1230 / 4)) * 9.81f; // Change to work out load from suspension
-
-        float Fx = -mTireParams.longitudinalStiffness * slipRatio;
-        Fx = Fx / (1.0f + std::abs(Fx) / (mTireParams.peakFrictionCoefficient * Fz));
-		std::cout << "Longitudinal force: " << Fx << std::endl;
-        
-        float Fy = -mTireParams.lateralStiffness * slipAngle;
-        Fy = Fy / (1.0f + std::abs(Fy) / (mTireParams.peakFrictionCoefficient * Fz));
-		std::cout << "Lateral force: " << Fy << std::endl;
+        float Fz = (123 / 4) * 9.81f; // Change to work out load from suspension
 
         float frictionLimit = mTireParams.peakFrictionCoefficient * Fz;
 
-        Fx = glm::clamp(Fx, -frictionLimit, frictionLimit);
-        Fy = glm::clamp(Fy, -frictionLimit, frictionLimit);
+        float projSpeed = std::abs(Vx);
+        float speedScale = glm::clamp(projSpeed / 10.0f, 0.0f, 1.0f);
+
+		//std::cout << "Projected speed: " << projSpeed << std::endl;
+		//std::cout << "Speed scale: " << speedScale << std::endl;
+
+        float Fx = -mTireParams.longitudinalStiffness * slipRatio;
+        Fx = Fx / (1.0f + std::abs(Fx) / frictionLimit);
+		//std::cout << "Longitudinal force: " << Fx << std::endl;
         
-        const float lowSpeedThreshold = 0.5f; // m/s
-        const float lowOmegaThreshold = 1.0f; // rad/s
+        float Fy = -mTireParams.lateralStiffness * slipAngle * speedScale;
+        Fy = Fy / (1.0f + std::abs(Fy) / frictionLimit);
+		//std::cout << "Lateral force: " << Fy << std::endl;
+
+		float dampingLat = 10.0f;
+		float dampingLong = 10.0f;
+
+		//Fy += dampingLat * Vy;
+        
+        const float lowSpeedThreshold = 5.f; // m/s
+        const float lowOmegaThreshold = 1.5f; // rad/s
 
         bool carStopped = std::abs(Vx) < lowSpeedThreshold;
         bool wheelStopped = std::abs(mWheelAngularVelocity) < lowOmegaThreshold;
@@ -100,17 +117,16 @@ namespace JamesEngine
 		// To stop the car from sliding when stopped (it still does but only a little now)
         if (carStopped && wheelStopped)
         {
-            slipRatio = 0.0f;
-            Fx = 0.0f;
-			Fy = 0.0f;
+            //Fx = 0.0f;
+			//Fy = 0.0f;
 
-            std::cout << "Car is stopped, no tire forces applied" << std::endl;
-        }
+            //std::cout << "Car is stopped, no tire forces applied" << std::endl;
+		}
 
         glm::vec3 forceWorld = projForward * Fx + tireSide * Fy;
 
         // Apply force to car at the anchor point
-        mCarRb->ApplyForce(forceWorld / 10.f, anchorPos);
+        mCarRb->ApplyForce(forceWorld, anchorPos);
 
         // Update Simulated Wheel Angular Velocity
         float roadTorque = -Fx * mTireParams.tireRadius;
@@ -143,8 +159,20 @@ namespace JamesEngine
         mWheelAngularVelocity += angularAcceleration * dt;
 		//std::cout << "Wheel angular velocity: " << mWheelAngularVelocity << "\n";
 
+		if (GetEntity()->GetTag() == "RRwheel")
+		{
+			std::cout << "RRWheel angular velocity: " << mWheelAngularVelocity << "\n";
+		}
+
         mDriveTorque = 0.0f;
         mBrakeTorque = 0.0f;
+
+        /*std::cout << GetEntity()->GetTag()
+            << " SlipAngle: " << glm::degrees(slipAngle)
+            << " Vy: " << Vy
+            << " Fy: " << Fy
+            << " tireSide: " << tireSide.x << ", " << tireSide.y << ", " << tireSide.z
+            << "\n";*/
 
   //      float stiffness = 100000.0f;
   //      Fz = 3000.0f;

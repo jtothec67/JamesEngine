@@ -36,6 +36,8 @@ namespace JamesEngine
 
 		void SetWheelAngularVelocity(float _angularVelocity) { mWheelAngularVelocity = _angularVelocity; }
 
+		void SetIsRightTire(bool _isRightTire) { mIsRightTire = _isRightTire; }
+
 	private:
 		std::shared_ptr<Entity> mCarBody;
 		std::shared_ptr<Entity> mAnchorPoint;
@@ -53,6 +55,8 @@ namespace JamesEngine
 		float mWheelAngularVelocity = 0.f;
 
 		float mWheelRotation = 0.f;
+
+		bool mIsRightTire = false;
 
 		glm::vec3 mInitialRotationOffset = glm::vec3(0.f, 0.f, 0.f);
 	};
