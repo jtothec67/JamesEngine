@@ -58,6 +58,9 @@ namespace JamesEngine
 
 		bool mIsRightTire = false;
 
+		int mLastVx = 0;
+		int mLastVy = 0;
+
 		glm::vec3 mInitialRotationOffset = glm::vec3(0.f, 0.f, 0.f);
 	};
 

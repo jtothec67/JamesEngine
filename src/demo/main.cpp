@@ -361,7 +361,7 @@ int main()
 		FLWheelCollider->SetLength(0.4);
 		std::shared_ptr<Rigidbody> FLWheelRB = FLWheel->AddComponent<Rigidbody>();
 		//FLWheelRB->SetMass(0.1);
-		FLWheelRB->SetMass(25);
+		FLWheelRB->SetMass(2.5);
 		FLWheelRB->LockRotation(true);
 		FLWheelRB->IsStatic(true);
 		std::shared_ptr<Suspension> FLWheelSuspension = FLWheel->AddComponent<Suspension>();
@@ -395,7 +395,7 @@ int main()
 		FRWheelCollider->SetLength(0.4);
 		std::shared_ptr<Rigidbody> FRWheelRB = FRWheel->AddComponent<Rigidbody>();
 		//FRWheelRB->SetMass(0.1);
-		FRWheelRB->SetMass(25);
+		FRWheelRB->SetMass(2.5);
 		FRWheelRB->LockRotation(true);
 		FRWheelRB->IsStatic(true);
 		std::shared_ptr<Suspension> FRWheelSuspension = FRWheel->AddComponent<Suspension>();
@@ -429,7 +429,7 @@ int main()
 		RLWheelCollider->SetLength(0.4);
 		std::shared_ptr<Rigidbody> RLWheelRB = RLWheel->AddComponent<Rigidbody>();
 		//RLWheelRB->SetMass(0.1);
-		RLWheelRB->SetMass(25);
+		RLWheelRB->SetMass(2.5);
 		RLWheelRB->LockRotation(true);
 		RLWheelRB->IsStatic(true);
 		std::shared_ptr<Suspension> RLWheelSuspension = RLWheel->AddComponent<Suspension>();
@@ -463,7 +463,7 @@ int main()
 		RRWheelCollider->SetLength(0.4);
 		std::shared_ptr<Rigidbody> RRWheelRB = RRWheel->AddComponent<Rigidbody>();
 		//RRWheelRB->SetMass(0.1);
-		RRWheelRB->SetMass(25);
+		RRWheelRB->SetMass(2.5);
 		RRWheelRB->LockRotation(true);
 		RRWheelRB->IsStatic(true);
 		std::shared_ptr<Suspension> RRWheelSuspension = RRWheel->AddComponent<Suspension>();
