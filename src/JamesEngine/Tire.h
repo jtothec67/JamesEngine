@@ -7,8 +7,17 @@ namespace JamesEngine
 
 	struct TireParams
 	{
-		float longitudinalStiffness;
-		float lateralStiffness;
+		float brushLongitudinalStiffness;
+		float brushLateralStiffness;
+		float paceLongStiff;
+		float paceLongShape;
+		float paceLongPeakFriction;
+		float paceLongCurve;
+		float paceLatStiff;
+		float paceLatShape;
+		float paceLatPeakFriction;
+		float paceLatCurve;
+
 		float peakFrictionCoefficient;
 		float tireRadius;
 		float wheelMass;
@@ -39,6 +48,9 @@ namespace JamesEngine
 		void SetIsRightTire(bool _isRightTire) { mIsRightTire = _isRightTire; }
 
 	private:
+		void BrushTireModel();
+		void PacejkaTireModel();
+
 		std::shared_ptr<Entity> mCarBody;
 		std::shared_ptr<Entity> mAnchorPoint;
 

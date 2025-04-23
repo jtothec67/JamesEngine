@@ -385,7 +385,7 @@ namespace JamesEngine
 		ComputeInverseInertiaTensor();
 		mAngularVelocity = mInertiaTensorInverse * mAngularMomentum;
 
-		mAngularVelocity *= mAngularDamping;
+		mAngularMomentum *= mAngularDamping;
 
 		// Already broken if spinning this fast
 		const glm::vec3 maxAngularVelocity(90.0f);

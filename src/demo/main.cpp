@@ -196,11 +196,20 @@ int main()
 	{
 
 		TireParams tyreParams;
-		tyreParams.longitudinalStiffness = 8000.f;
-		tyreParams.lateralStiffness = 6000.f;
-		tyreParams.peakFrictionCoefficient = 1.f;
+		tyreParams.brushLongitudinalStiffness = 6000.f;
+		tyreParams.brushLateralStiffness = 6000.f;
+		tyreParams.peakFrictionCoefficient = 2.f;
 		tyreParams.tireRadius = 0.34f;
 		tyreParams.wheelMass = 25.f;
+
+		tyreParams.paceLongStiff = 10.f;
+		tyreParams.paceLongShape = 1.9f;
+		tyreParams.paceLongPeakFriction = 1.f;
+		tyreParams.paceLongCurve = 0.97f;
+		tyreParams.paceLatStiff = 7.5f;
+		tyreParams.paceLatShape = 1.3f;
+		tyreParams.paceLatPeakFriction = 1.f;
+		tyreParams.paceLatCurve = 0.97f;
 
 		float FStiffness = 5000;
 		float FDamping = 100;
@@ -263,7 +272,7 @@ int main()
 		// Car Body
 		std::shared_ptr<Entity> carBody = core->AddEntity();
 		carBody->SetTag("carBody");
-		carBody->GetComponent<Transform>()->SetPosition(vec3(0, 0.8-0.45, -16));
+		carBody->GetComponent<Transform>()->SetPosition(vec3(0, 0.35, -16));
 		carBody->GetComponent<Transform>()->SetRotation(vec3(0, 90, 0));
 		carBody->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
 		std::shared_ptr<ModelRenderer> mercedesMR = carBody->AddComponent<ModelRenderer>();
