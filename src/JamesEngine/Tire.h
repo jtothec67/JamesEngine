@@ -7,8 +7,8 @@ namespace JamesEngine
 
 	struct TireParams
 	{
-		float brushLongitudinalStiffness;
-		float brushLateralStiffness;
+		float brushLongStiff;
+		float brushLatStiff;
 		float paceLongStiff;
 		float paceLongShape;
 		float paceLongPeakFriction;
@@ -50,6 +50,7 @@ namespace JamesEngine
 	private:
 		void BrushTireModel();
 		void PacejkaTireModel();
+		void Testing();
 
 		std::shared_ptr<Entity> mCarBody;
 		std::shared_ptr<Entity> mAnchorPoint;

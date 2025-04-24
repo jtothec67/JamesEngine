@@ -26,9 +26,9 @@ struct freelookCamController : public Component
 		if (GetKeyboard()->IsKey(SDLK_s))
 			GetTransform()->Move(GetTransform()->GetForward() * speed);// * GetCore()->DeltaTime());
 		if (GetKeyboard()->IsKey(SDLK_a))
-			GetTransform()->Move(-GetTransform()->GetRight() * speed);// * GetCore()->DeltaTime());
-		if (GetKeyboard()->IsKey(SDLK_d))
 			GetTransform()->Move(GetTransform()->GetRight() * speed);// * GetCore()->DeltaTime());
+		if (GetKeyboard()->IsKey(SDLK_d))
+			GetTransform()->Move(-GetTransform()->GetRight() * speed);// * GetCore()->DeltaTime());
 		if (GetKeyboard()->IsKey(SDLK_q))
 			GetTransform()->Move(-GetTransform()->GetUp() * speed);// * GetCore()->DeltaTime());
 		if (GetKeyboard()->IsKey(SDLK_e))
@@ -78,45 +78,61 @@ struct CarController : public Component
 	float maxSteeringAngle = 30.f;
 	float wheelTurnRate = 30.f;
 
-	float driveTorque = 65.f;
-	float frontBrakeTorque = 200.f;
-	float rearBrakeTorque = 135.f; // Values at a 60-40 brake bias, seem high but don't shoot the messenger.
+	float driveTorque = 650.f;
+	float frontBrakeTorque = 2000.f;
+	float rearBrakeTorque = 1350.f; // Values at a 60-40 brake bias, seem high but don't shoot the messenger.
 
-	float forwardSpeed = 1000.f;
+	float forwardSpeed = 100000.f;
 	float turnSpeed = 1000.f;
 
 	void OnTick()
 	{
 		if (GetKeyboard()->IsKey(SDLK_h))
 		{
-			float steeringAngle = FLWheelSuspension->GetSteeringAngle();
+			/*float steeringAngle = FLWheelSuspension->GetSteeringAngle();
 			steeringAngle += wheelTurnRate * GetCore()->DeltaTime();
 			if (steeringAngle > maxSteeringAngle)
 				steeringAngle = maxSteeringAngle;
 			else if (steeringAngle < -maxSteeringAngle)
-				steeringAngle = -maxSteeringAngle;
+				steeringAngle = -maxSteeringAngle;*/
+
+			float steeringAngle = maxSteeringAngle;
 
 			FLWheelSuspension->SetSteeringAngle(steeringAngle);
 			FRWheelSuspension->SetSteeringAngle(steeringAngle);
+
+			//rb->AddForce(-GetTransform()->GetRight() * forwardSpeed * GetCore()->DeltaTime());
 		}
 
 		if (GetKeyboard()->IsKey(SDLK_k))
 		{
-			float steeringAngle = FLWheelSuspension->GetSteeringAngle();
+			/*float steeringAngle = FLWheelSuspension->GetSteeringAngle();
 			steeringAngle -= wheelTurnRate * GetCore()->DeltaTime();
 			if (steeringAngle > maxSteeringAngle)
 				steeringAngle = maxSteeringAngle;
 			else if (steeringAngle < -maxSteeringAngle)
-				steeringAngle = -maxSteeringAngle;
+				steeringAngle = -maxSteeringAngle;*/
+
+			float steeringAngle = -maxSteeringAngle;
 
 			FLWheelSuspension->SetSteeringAngle(steeringAngle);
 			FRWheelSuspension->SetSteeringAngle(steeringAngle);
+
+			//rb->AddForce(GetTransform()->GetRight() * forwardSpeed * GetCore()->DeltaTime());
+		}
+
+		if (!GetKeyboard()->IsKey(SDLK_k) && !GetKeyboard()->IsKey(SDLK_h))
+		{
+			FLWheelSuspension->SetSteeringAngle(0);
+			FRWheelSuspension->SetSteeringAngle(0);
 		}
 
 		if (GetKeyboard()->IsKey(SDLK_u))
 		{
 			RLWheelTire->AddDriveTorque(driveTorque);
 			RRWheelTire->AddDriveTorque(driveTorque);
+
+			//rb->AddForce(GetTransform()->GetForward() * forwardSpeed * GetCore()->DeltaTime());
 		}
 
 		if (GetKeyboard()->IsKey(SDLK_j))
@@ -125,6 +141,8 @@ struct CarController : public Component
 			FRWheelTire->AddBrakeTorque(frontBrakeTorque);
 			RLWheelTire->AddBrakeTorque(rearBrakeTorque);
 			RRWheelTire->AddBrakeTorque(rearBrakeTorque);
+
+			//rb->AddForce(-GetTransform()->GetForward() * forwardSpeed * GetCore()->DeltaTime());
 		}
 
 
@@ -196,9 +214,9 @@ int main()
 	{
 
 		TireParams tyreParams;
-		tyreParams.brushLongitudinalStiffness = 6000.f;
-		tyreParams.brushLateralStiffness = 6000.f;
-		tyreParams.peakFrictionCoefficient = 2.f;
+		tyreParams.brushLongStiff = 200000.f;
+		tyreParams.brushLatStiff = 180000.f;
+		tyreParams.peakFrictionCoefficient = 1.f;
 		tyreParams.tireRadius = 0.34f;
 		tyreParams.wheelMass = 25.f;
 
@@ -211,11 +229,11 @@ int main()
 		tyreParams.paceLatPeakFriction = 1.f;
 		tyreParams.paceLatCurve = 0.97f;
 
-		float FStiffness = 5000;
-		float FDamping = 100;
+		float FStiffness = 50000;
+		float FDamping = 1000;
 
-		float RStiffness = 6000;
-		float RDamping = 100;
+		float RStiffness = 60000;
+		float RDamping = 1000;
 
 		core->GetSkybox()->SetTexture(core->GetResources()->Load<SkyboxTexture>("skyboxes/sky"));
 
@@ -273,7 +291,7 @@ int main()
 		std::shared_ptr<Entity> carBody = core->AddEntity();
 		carBody->SetTag("carBody");
 		carBody->GetComponent<Transform>()->SetPosition(vec3(0, 0.35, -16));
-		carBody->GetComponent<Transform>()->SetRotation(vec3(0, 90, 0));
+		carBody->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		carBody->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
 		std::shared_ptr<ModelRenderer> mercedesMR = carBody->AddComponent<ModelRenderer>();
 		mercedesMR->SetRotationOffset(vec3(0, 180, 0));
@@ -312,7 +330,8 @@ int main()
 		carBodyCollider->SetSize(vec3(1.97, 0.9, 4.52));
 		carBodyCollider->SetPositionOffset(vec3(0, 0.37, 0.22));
 		std::shared_ptr<Rigidbody> carBodyRB = carBody->AddComponent<Rigidbody>();
-		carBodyRB->SetMass(123);
+		carBodyRB->SetMass(1230);
+		//carBodyRB->AddForce(vec3(123000, 0, 0));
 		cockpitCamEntity->GetComponent<Transform>()->SetParent(carBody);
 		bonnetCamEntity->GetComponent<Transform>()->SetParent(carBody);
 		chaseCamEntity->GetComponent<Transform>()->SetParent(carBody);

@@ -20,7 +20,7 @@
 namespace JamesEngine
 {
 
-	void Rigidbody::OnInitialize()
+	void Rigidbody::OnAlive()
 	{
 		UpdateInertiaTensor();
 
@@ -447,7 +447,12 @@ namespace JamesEngine
 
 	void Rigidbody::UpdateInertiaTensor()
 	{
-		glm::mat3 bodyInertia = GetEntity()->GetComponent<Collider>()->UpdateInertiaTensor(mMass);
+		glm::mat3 bodyInertia = glm::mat3(0.0f);
+
+		if (mUsingCustomInertia)
+			bodyInertia = GetEntity()->GetComponent<Collider>()->UpdateInertiaTensor(mCustomInertiaMass);
+		else
+			bodyInertia = GetEntity()->GetComponent<Collider>()->UpdateInertiaTensor(mMass);
 
 		mBodyInertiaTensorInverse = glm::inverse(bodyInertia);
 

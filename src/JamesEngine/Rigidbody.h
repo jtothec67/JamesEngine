@@ -8,7 +8,7 @@ namespace JamesEngine
 	class Rigidbody : public Component
 	{
 	public:
-		void OnInitialize();
+		void OnAlive();
 		void OnFixedTick();
 
 		void AddForce(glm::vec3 _force) { mForce += _force; }
@@ -58,6 +58,9 @@ namespace JamesEngine
 
 		void IsStatic(bool _isStatic) { mIsStatic = _isStatic; }
 		bool IsStatic() { return mIsStatic; }
+
+		void SetCustomInertiaMass(float _mass) { mCustomInertiaMass = _mass; mUsingCustomInertia = true; }
+		float GetCustomInertiaMass() { return mCustomInertiaMass; }
 	private:
 
 		void ApplyImpulseResponse(std::shared_ptr<Rigidbody> _other, glm::vec3 _normal, glm::vec3 _collisionPoint);
@@ -77,7 +80,7 @@ namespace JamesEngine
 		glm::vec3 mAcceleration = glm::vec3(0, -9.81, 0);
 		glm::vec3 mPreviousPosition = glm::vec3(0);
 
-		float mMass = 1;
+		float mMass = 1.f;
 		float mFriction = 0.9f;
 		float mRestitution = 0.1f;
 
@@ -96,6 +99,9 @@ namespace JamesEngine
 		bool mLockRotation = false;
 
 		bool mIsStatic = false;
+
+		bool mUsingCustomInertia = false;
+		float mCustomInertiaMass = 1.f;
 	};
 
 }

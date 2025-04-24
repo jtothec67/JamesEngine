@@ -140,7 +140,7 @@ namespace JamesEngine
         float springForce = mStiffness * compression;
         float velocityMagnitude = std::abs(relativeVelocity);
         float velocityFactor = 1.0f / (1.0f + velocityMagnitude * 0.9f);
-        float dampingForce = -mDamping * relativeVelocity * velocityFactor;
+        float dampingForce = -mDamping * relativeVelocity;// *velocityFactor;
 
         glm::vec3 totalForce = suspensionDirection * (springForce + dampingForce);
         mCarRb->ApplyForce(totalForce, anchorTransform->GetPosition());
