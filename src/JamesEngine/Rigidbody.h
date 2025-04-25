@@ -20,7 +20,7 @@ namespace JamesEngine
 
 		void ApplyForce(glm::vec3 _force, glm::vec3 _point) { mForce += _force; mTorque += glm::cross(_point - GetPosition(), _force); }
 
-		void SetMass(float _mass) { mMass = _mass; }
+		void SetMass(float _mass) { mMass = _mass; UpdateInertiaTensor(); }
 		float GetMass() { return mMass; }
 
 		void SetFriction(float _friction) { mFriction = glm::clamp(_friction, 0.f, 1.f); }

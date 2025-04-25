@@ -57,6 +57,26 @@ namespace JamesEngine
 					mDeltaTimeZero = false;
 			}
 
+			mInput->Update();
+			
+			SDL_Event event = {};
+			while (SDL_PollEvent(&event))
+			{
+				if (event.type == SDL_QUIT)
+				{
+					mIsRunning = false;
+				}
+				else
+				{
+					mInput->HandleInput(event);
+				}
+			}
+
+			for (size_t ei = 0; ei < mEntities.size(); ++ei)
+			{
+				mEntities[ei]->OnTick();
+			}
+
 			mFixedTimeAccumulator += mDeltaTime;
 
 			if (mFixedTimeAccumulator > mFixedDeltaTime * 2) // Allow max 2 fixed updates per frame
@@ -66,7 +86,7 @@ namespace JamesEngine
 			debugTimer.Start();
 
 			int numFixedUpdates = 0;
-			 
+
 			while (mFixedTimeAccumulator >= mFixedDeltaTime)
 			{
 				for (size_t ei = 0; ei < mEntities.size(); ++ei)
@@ -89,27 +109,6 @@ namespace JamesEngine
 			{
 				//std::cout << "Fixed time step took: " << debugTimer.Stop() << std::endl;
 				//std::cout << "Fixed updates this frame: " << numFixedUpdates << std::endl;
-			}
-			
-
-			mInput->Update();
-			
-			SDL_Event event = {};
-			while (SDL_PollEvent(&event))
-			{
-				if (event.type == SDL_QUIT)
-				{
-					mIsRunning = false;
-				}
-				else
-				{
-					mInput->HandleInput(event);
-				}
-			}
-
-			for (size_t ei = 0; ei < mEntities.size(); ++ei)
-			{
-				mEntities[ei]->OnTick();
 			}
 
 			for (size_t ei = 0; ei < mEntities.size(); ei++)

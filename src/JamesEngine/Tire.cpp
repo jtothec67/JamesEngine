@@ -35,18 +35,14 @@ namespace JamesEngine
 
 	void Tire::OnFixedTick()
 	{
-		if (!mSuspension->GetCollision())
-			return;
-
-		//std::cout << GetEntity()->GetTag() << " tire fixed tick" << std::endl;
-
         BrushTireModel();
-		//PacejkaTireModel();
-        //Testing();
 	}
 
 	void Tire::BrushTireModel()
 	{
+        if (!mSuspension->GetCollision())
+            return;
+
         float dt = GetCore()->FixedDeltaTime();
 
         auto wheelTransform = GetEntity()->GetComponent<Transform>();
@@ -61,7 +57,6 @@ namespace JamesEngine
         glm::vec3 carVel = mCarRb->GetVelocityAtPoint(anchorPos);
 
         glm::vec3 tireForward = glm::normalize(wheelTransform->GetForward());
-        glm::vec3 tireSide = glm::normalize(-wheelTransform->GetRight());
 
         auto ProjectOntoPlane = [&](const glm::vec3& vec, const glm::vec3& n) -> glm::vec3 {
             return vec - n * glm::dot(vec, n);
@@ -77,19 +72,22 @@ namespace JamesEngine
         // Use stored angular velocity instead of rigidbody angular velocity
         float wheelCircumferentialSpeed = mWheelAngularVelocity * mTireParams.tireRadius;
 
-        float epsilon = 0.5f;
+        float epsilon = 0.01f;
         float denominator = std::max(std::fabs(wheelCircumferentialSpeed), std::fabs(Vx));
         denominator = std::max(denominator, epsilon);
         float slipRatio = (Vx - wheelCircumferentialSpeed) / denominator;
         float slipAngle = std::atan2(Vy, std::fabs(Vx));
 
-        // Compute gamma (combined slip deformation in tire's contact patch)
-        float slipRatioSquared = (mTireParams.brushLongStiff * slipRatio) * (mTireParams.brushLongStiff * slipRatio);
-        float slipAngleSquared = (mTireParams.brushLatStiff * glm::tan(slipAngle)) * (mTireParams.brushLatStiff * glm::tan(slipAngle));
-        float gamma = glm::sqrt(slipAngleSquared + slipRatioSquared);
-
         // Vertical load
         float Fz = (mCarRb->GetMass() / 4) * 9.81f; // Change to work out load from suspension
+
+        float longStiff = mTireParams.brushLongStiffCoeff * Fz;
+        float latStiff = mTireParams.brushLatStiffCoeff * Fz;
+
+        // Compute gamma (combined slip deformation in tire's contact patch)
+        float slipRatioSquared = (longStiff * slipRatio) * (longStiff * slipRatio);
+        float slipAngleSquared = (latStiff * glm::tan(slipAngle)) * (latStiff * glm::tan(slipAngle));
+        float gamma = glm::sqrt(slipAngleSquared + slipRatioSquared);
 
         // Maximum friction force
         float Fmax = mTireParams.peakFrictionCoefficient * Fz;
@@ -99,25 +97,24 @@ namespace JamesEngine
         if (gamma < Fmax)
         {
             // Elastic region (we have grip)
-            Fx = -mTireParams.brushLongStiff * slipRatio;
-            Fy = -mTireParams.brushLatStiff * glm::tan(slipAngle);
+            Fx = -longStiff * slipRatio;
+            Fy = -latStiff * glm::tan(slipAngle);
         }
         else
         {
             // Sliding region
-            float forceRatioX = -mTireParams.brushLongStiff * slipRatio;
-            float forceRatioY = -mTireParams.brushLatStiff * glm::tan(slipAngle);
+            float forceRatioX = -longStiff * slipRatio;
+            float forceRatioY = -latStiff * glm::tan(slipAngle);
 
             Fx = Fmax * (forceRatioX / gamma);
             Fy = Fmax * (forceRatioY / gamma);
 
-			std::cout << GetEntity()->GetTag() << " is sliding" << std::endl;
+			std::cout << GetEntity()->GetTag() << " is sliding. Fmax: " << Fmax << " gamma: " << gamma << std::endl;
+			std::cout << "Vx: " << Vx << " Vy: " << Vy << std::endl;
+			std::cout << "slipRatio: " << slipRatio << " slipAngle: " << slipAngle << std::endl;
+			std::cout << "C_x: " << longStiff << " C_y: " << latStiff << std::endl;
+            std::cout << "Car velocity: " << mCarRb->GetVelocity().x << " " << mCarRb->GetVelocity().y << " " << mCarRb->GetVelocity().z << std::endl;
         }
-
-		if (std::fabs(Vx) < 1.f)
-		{
-			//Fy = 0.0f; // No longitudinal force when stationary
-		}
 
         glm::vec3 forceWorld = projForward * Fx + projSide * Fy;
 
@@ -157,90 +154,6 @@ namespace JamesEngine
         mDriveTorque = 0.0f;
         mBrakeTorque = 0.0f;
 	}
-
-    void Tire::Testing()
-    {
-        float dt = GetCore()->FixedDeltaTime();
-
-        // Transforms and anchor point
-        auto wheelTransform = GetEntity()->GetComponent<Transform>();
-        auto anchorTransform = mAnchorPoint->GetComponent<Transform>();
-        glm::vec3 anchorPos = anchorTransform->GetPosition();
-
-        // Ground normal (replace with sampled normal from your ray collider if available)
-        glm::vec3 surfaceNormal = glm::vec3(0.0f, 1.0f, 0.0f);
-
-        // Velocity of the car at the tire contact point
-        glm::vec3 carVel = mCarRb->GetVelocityAtPoint(anchorPos);
-
-        // Tire local axes
-        glm::vec3 tireForward = wheelTransform->GetForward();
-        glm::vec3 tireSide = -wheelTransform->GetRight();
-
-        // Project a vector onto the ground plane
-        auto ProjectOntoPlane = [&](const glm::vec3& v, const glm::vec3& n) {
-            return v - n * glm::dot(v, n);
-            };
-
-        // Flatten forward axis and velocity onto ground plane
-        glm::vec3 projForward = glm::normalize(ProjectOntoPlane(tireForward, surfaceNormal));
-        glm::vec3 projVelocity = ProjectOntoPlane(carVel, surfaceNormal);
-
-        glm::vec3 projSide = glm::normalize(glm::cross(surfaceNormal, projForward));
-
-        // Compute longitudinal (Vx) and lateral (Vy) speeds
-        float Vx = glm::dot(projVelocity, projForward);
-        float Vy = glm::dot(projVelocity, projSide);
-
-        // Slip angle in radians
-        float slipAngle = std::atan2(Vy, std::fabs(Vx));
-
-		// Slip ratio (-1 to 1)
-        float wheelCircumferentialSpeed = mWheelAngularVelocity * mTireParams.tireRadius;
-        float denominator = (std::fabs(Vx) > 0.1f) ? std::fabs(Vx) : 0.1f;
-        float slipRatio = (wheelCircumferentialSpeed - Vx) / denominator;
-
-		// Compute gamma (combined slip deformation in tire's contact patch)
-        float slipRatioSquared = (mTireParams.brushLongStiff * slipRatio) * (mTireParams.brushLongStiff * slipRatio);
-		float slipAngleSquared = (mTireParams.brushLatStiff * glm::tan(slipAngle)) * (mTireParams.brushLatStiff * glm::tan(slipAngle));
-		float gamma = glm::sqrt(slipAngleSquared + slipRatioSquared);
-
-        // Vertical load
-        float Fz = (mCarRb->GetMass() / 4) * 9.81f; // Change to work out load from suspension
-
-		// Maximum friction force
-		float Fmax = mTireParams.peakFrictionCoefficient * Fz;
-
-		float Fx, Fy;
-
-        if (gamma < Fmax)
-        {
-			// Elastic region (we have grip)
-			Fx = -mTireParams.brushLongStiff * slipRatio;
-			Fy = -mTireParams.brushLatStiff * glm::tan(slipAngle);
-        }
-        else
-        {
-            // Sliding region
-            float forceRatioX = -mTireParams.brushLongStiff * slipRatio;
-			float forceRatioY = -mTireParams.brushLatStiff * glm::tan(slipAngle);
-
-			Fx = Fmax * (forceRatioX / gamma);
-			Fy = Fmax * (forceRatioY / gamma);
-        }
-
-        glm::vec3 forceWorld = projForward * Fx + projSide * Fy;
-		mCarRb->ApplyForce(forceWorld, anchorPos);
-
-		std::cout << GetEntity()->GetTag() << " tireForward: " << tireForward.x << ", " << tireForward.y << ", " << tireForward.z << std::endl;
-		std::cout << GetEntity()->GetTag() << " Vx: " << Vx << ", Vy: " << Vy << std::endl;
-		std::cout << GetEntity()->GetTag() << " Slip Angle: " << slipAngle << std::endl;
-		std::cout << GetEntity()->GetTag() << " Slip Ratio: " << slipRatio << std::endl;
-		std::cout << GetEntity()->GetTag() << " gamma: " << gamma << std::endl;
-		std::cout << GetEntity()->GetTag() << " Fz: " << Fz << std::endl;
-        std::cout << GetEntity()->GetTag() << " forceWorld: " << forceWorld.x << ", " << forceWorld.y << ", " << forceWorld.z << std::endl;
-		std::cout << GetEntity()->GetTag() << " forec world length: " << glm::length(forceWorld) << std::endl;
-    }
 
 	void Tire::OnTick()
 	{

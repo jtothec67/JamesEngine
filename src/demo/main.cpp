@@ -127,6 +127,24 @@ struct CarController : public Component
 			FRWheelSuspension->SetSteeringAngle(0);
 		}
 
+		if (GetKeyboard()->IsKey(SDLK_SPACE))
+		{
+			SetPosition(vec3(0, 0.8 - 0.45, -16));
+			SetRotation(vec3(0, 90, 0));
+			rb->SetVelocity(vec3(0, 0, 0));
+			rb->SetAngularVelocity(vec3(0, 0, 0));
+			rb->SetAngularMomentum(vec3(0, 0, 0));
+			FLWheelTire->SetWheelAngularVelocity(0);
+			FRWheelTire->SetWheelAngularVelocity(0);
+			RLWheelTire->SetWheelAngularVelocity(0);
+			RRWheelTire->SetWheelAngularVelocity(0);
+		}
+
+		//std::cout << "Car forward speed: " << glm::dot(rb->GetVelocity(), GetTransform()->GetForward()) << std::endl;
+	}
+
+	void OnFixedTick()
+	{
 		if (GetKeyboard()->IsKey(SDLK_u))
 		{
 			RLWheelTire->AddDriveTorque(driveTorque);
@@ -143,20 +161,6 @@ struct CarController : public Component
 			RRWheelTire->AddBrakeTorque(rearBrakeTorque);
 
 			//rb->AddForce(-GetTransform()->GetForward() * forwardSpeed * GetCore()->DeltaTime());
-		}
-
-
-		if (GetKeyboard()->IsKey(SDLK_SPACE))
-		{
-			SetPosition(vec3(0, 0.8 - 0.45, -16));
-			SetRotation(vec3(0, 90, 0));
-			rb->SetVelocity(vec3(0, 0, 0));
-			rb->SetAngularVelocity(vec3(0, 0, 0));
-			rb->SetAngularMomentum(vec3(0, 0, 0));
-			FLWheelTire->SetWheelAngularVelocity(0);
-			FRWheelTire->SetWheelAngularVelocity(0);
-			RLWheelTire->SetWheelAngularVelocity(0);
-			RRWheelTire->SetWheelAngularVelocity(0);
 		}
 	}
 };
@@ -216,18 +220,13 @@ int main()
 		TireParams tyreParams;
 		tyreParams.brushLongStiff = 200000.f;
 		tyreParams.brushLatStiff = 180000.f;
-		tyreParams.peakFrictionCoefficient = 1.f;
+
+		tyreParams.brushLongStiffCoeff = 80.f;
+		tyreParams.brushLatStiffCoeff = 60.f;
+
+		tyreParams.peakFrictionCoefficient = 1.2f;
 		tyreParams.tireRadius = 0.34f;
 		tyreParams.wheelMass = 25.f;
-
-		tyreParams.paceLongStiff = 10.f;
-		tyreParams.paceLongShape = 1.9f;
-		tyreParams.paceLongPeakFriction = 1.f;
-		tyreParams.paceLongCurve = 0.97f;
-		tyreParams.paceLatStiff = 7.5f;
-		tyreParams.paceLatShape = 1.3f;
-		tyreParams.paceLatPeakFriction = 1.f;
-		tyreParams.paceLatCurve = 0.97f;
 
 		float FStiffness = 50000;
 		float FDamping = 1000;
@@ -291,7 +290,7 @@ int main()
 		std::shared_ptr<Entity> carBody = core->AddEntity();
 		carBody->SetTag("carBody");
 		carBody->GetComponent<Transform>()->SetPosition(vec3(0, 0.35, -16));
-		carBody->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
+		carBody->GetComponent<Transform>()->SetRotation(vec3(0, 90, 0));
 		carBody->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
 		std::shared_ptr<ModelRenderer> mercedesMR = carBody->AddComponent<ModelRenderer>();
 		mercedesMR->SetRotationOffset(vec3(0, 180, 0));

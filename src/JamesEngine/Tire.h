@@ -9,14 +9,9 @@ namespace JamesEngine
 	{
 		float brushLongStiff;
 		float brushLatStiff;
-		float paceLongStiff;
-		float paceLongShape;
-		float paceLongPeakFriction;
-		float paceLongCurve;
-		float paceLatStiff;
-		float paceLatShape;
-		float paceLatPeakFriction;
-		float paceLatCurve;
+
+		float brushLongStiffCoeff;
+		float brushLatStiffCoeff;
 
 		float peakFrictionCoefficient;
 		float tireRadius;
@@ -49,8 +44,6 @@ namespace JamesEngine
 
 	private:
 		void BrushTireModel();
-		void PacejkaTireModel();
-		void Testing();
 
 		std::shared_ptr<Entity> mCarBody;
 		std::shared_ptr<Entity> mAnchorPoint;
