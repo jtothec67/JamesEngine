@@ -40,7 +40,7 @@ namespace JamesEngine
 
 		void SetWheelAngularVelocity(float _angularVelocity) { mWheelAngularVelocity = _angularVelocity; }
 
-		void SetIsRightTire(bool _isRightTire) { mIsRightTire = _isRightTire; }
+		void SetSurfaceNormal(const glm::vec3& _normal) { mSurfaceNormal = _normal; }
 
 	private:
 		void BrushTireModel();
@@ -62,7 +62,7 @@ namespace JamesEngine
 
 		float mWheelRotation = 0.f;
 
-		bool mIsRightTire = false;
+		glm::vec3 mSurfaceNormal = glm::vec3(0.f, 1.f, 0.f);
 
 		int mLastVx = 0;
 		int mLastVy = 0;

@@ -129,7 +129,7 @@ struct CarController : public Component
 
 		if (GetKeyboard()->IsKey(SDLK_SPACE))
 		{
-			SetPosition(vec3(0, 0.8 - 0.45, -16));
+			//SetPosition(vec3(0, 0.8 - 0.45, -16));
 			SetRotation(vec3(0, 90, 0));
 			rb->SetVelocity(vec3(0, 0, 0));
 			rb->SetAngularVelocity(vec3(0, 0, 0));
@@ -402,7 +402,6 @@ int main()
 		FLWheelTire->SetAnchorPoint(FLWheelAnchor);
 		FLWheelTire->SetTireParams(tyreParams);
 		FLWheelTire->SetInitialRotationOffset(vec3(0, 90, 0));
-		FLWheelTire->SetIsRightTire(false);
 
 		// Front Right Wheel
 		std::shared_ptr<Entity> FRWheel = core->AddEntity();
@@ -436,7 +435,6 @@ int main()
 		FRWheelTire->SetAnchorPoint(FRWheelAnchor);
 		FRWheelTire->SetTireParams(tyreParams);
 		FRWheelTire->SetInitialRotationOffset(vec3(0, -90, 0));
-		FRWheelTire->SetIsRightTire(true);
 
 		// Rear Left Wheel
 		std::shared_ptr<Entity> RLWheel = core->AddEntity();
@@ -470,7 +468,6 @@ int main()
 		RLWheelTire->SetAnchorPoint(RLWheelAnchor);
 		RLWheelTire->SetTireParams(tyreParams);
 		RLWheelTire->SetInitialRotationOffset(vec3(0, 90, 0));
-		RLWheelTire->SetIsRightTire(false);
 
 		// Rear Right Wheel
 		std::shared_ptr<Entity> RRWheel = core->AddEntity();
@@ -504,7 +501,6 @@ int main()
 		RRWheelTire->SetAnchorPoint(RRWheelAnchor);
 		RRWheelTire->SetTireParams(tyreParams);
 		RRWheelTire->SetInitialRotationOffset(vec3(0, -90, 0));
-		RRWheelTire->SetIsRightTire(true);
 
 		std::shared_ptr<CarController> carController = carBody->AddComponent<CarController>();
 		carController->rb = carBodyRB;

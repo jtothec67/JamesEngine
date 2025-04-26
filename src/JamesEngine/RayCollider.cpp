@@ -5,6 +5,7 @@
 #include "MathsHelper.h"
 #include "Entity.h"
 #include "Suspension.h"
+#include "Tire.h"
 
 #include <iostream>
 
@@ -189,6 +190,12 @@ namespace JamesEngine
                     sus->SetCollision(true);
                     sus->SetHitDistance(glm::dot(hitPoint - rayOrigin, rayDirection));
                 }
+
+				std::shared_ptr<Tire> tire = GetEntity()->GetComponent<Tire>();
+				if (tire)
+				{
+					tire->SetSurfaceNormal(hitNormal);
+				}
 
                 return true;
             }

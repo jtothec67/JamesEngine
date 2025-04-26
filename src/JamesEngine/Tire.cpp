@@ -50,9 +50,6 @@ namespace JamesEngine
 
         glm::vec3 anchorPos = anchorTransform->GetPosition();
 
-        // Surface normal assumed upward
-        glm::vec3 surfaceNormal = glm::vec3(0.0f, 1.0f, 0.0f); // Change to get from the RayCollider
-
         // Use velocity of car at anchor point instead of wheel rigidbody
         glm::vec3 carVel = mCarRb->GetVelocityAtPoint(anchorPos);
 
@@ -62,9 +59,9 @@ namespace JamesEngine
             return vec - n * glm::dot(vec, n);
             };
 
-        glm::vec3 projForward = glm::normalize(ProjectOntoPlane(tireForward, surfaceNormal));
-        glm::vec3 projSide = glm::normalize(glm::cross(surfaceNormal, projForward));
-        glm::vec3 projVelocity = ProjectOntoPlane(carVel, surfaceNormal);
+        glm::vec3 projForward = glm::normalize(ProjectOntoPlane(tireForward, mSurfaceNormal));
+        glm::vec3 projSide = glm::normalize(glm::cross(mSurfaceNormal, projForward));
+        glm::vec3 projVelocity = ProjectOntoPlane(carVel, mSurfaceNormal);
 
         float Vx = glm::dot(projVelocity, projForward);
         float Vy = glm::dot(projVelocity, projSide);
@@ -109,11 +106,11 @@ namespace JamesEngine
             Fx = Fmax * (forceRatioX / gamma);
             Fy = Fmax * (forceRatioY / gamma);
 
-			std::cout << GetEntity()->GetTag() << " is sliding. Fmax: " << Fmax << " gamma: " << gamma << std::endl;
+			/*std::cout << GetEntity()->GetTag() << " is sliding. Fmax: " << Fmax << " gamma: " << gamma << std::endl;
 			std::cout << "Vx: " << Vx << " Vy: " << Vy << std::endl;
 			std::cout << "slipRatio: " << slipRatio << " slipAngle: " << slipAngle << std::endl;
 			std::cout << "C_x: " << longStiff << " C_y: " << latStiff << std::endl;
-            std::cout << "Car velocity: " << mCarRb->GetVelocity().x << " " << mCarRb->GetVelocity().y << " " << mCarRb->GetVelocity().z << std::endl;
+            std::cout << "Car velocity: " << mCarRb->GetVelocity().x << " " << mCarRb->GetVelocity().y << " " << mCarRb->GetVelocity().z << std::endl;*/
         }
 
         glm::vec3 forceWorld = projForward * Fx + projSide * Fy;
