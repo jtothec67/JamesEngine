@@ -13,7 +13,6 @@ namespace JamesEngine
 	{
 		for (int i = 0; i < mKeys.size(); ++i)
 		{
-			
 			if (mKeys[i] == _key)
 			{
 				return true;

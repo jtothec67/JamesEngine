@@ -2,6 +2,7 @@
 
 #include "Keyboard.h"
 #include "Mouse.h"
+#include "Controller.h"
 
 #include <SDL2/sdl.h>
 #include <memory>
@@ -19,6 +20,7 @@ namespace JamesEngine
 
 		std::shared_ptr<Keyboard> GetKeyboard() { return mKeyboard; }
 		std::shared_ptr<Mouse> GetMouse() { return mMouse; }
+		std::shared_ptr<Controller> GetController() { return mController; }
 
 	private:
 		friend class Core;
@@ -27,6 +29,7 @@ namespace JamesEngine
 
 		std::shared_ptr<Keyboard> mKeyboard;
 		std::shared_ptr<Mouse> mMouse;
+		std::shared_ptr<Controller> mController;
 	};
 
 }

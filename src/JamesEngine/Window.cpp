@@ -11,6 +11,8 @@ namespace JamesEngine
 		mWidth = _width;
 		mHeight = _height;
 
+		SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER);
+
 		mRaw = SDL_CreateWindow("My Engine",
 			SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 			mWidth, mHeight,

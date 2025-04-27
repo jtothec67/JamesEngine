@@ -75,7 +75,7 @@ struct CarController : public Component
 	std::shared_ptr<Tire> RLWheelTire;
 	std::shared_ptr<Tire> RRWheelTire;
 
-	float maxSteeringAngle = 30.f;
+	float maxSteeringAngle = 25.f;
 	float wheelTurnRate = 30.f;
 
 	float driveTorque = 650.f;
@@ -85,46 +85,68 @@ struct CarController : public Component
 	float forwardSpeed = 100000.f;
 	float turnSpeed = 1000.f;
 
+	bool lastInputController = false;
+
+	float mSteerDeadzone = 0.1f;
+
+	float mThrottleMaxInput = 0.65f;
+	float mThrottleDeadZone = 0.05f;
+
+	float mBrakeMaxInput = 0.79f;
+	float mBrakeDeadZone = 0.05f;
+
+	float mThrottleInput = 0.f;
+	float mBrakeInput = 0.f;
+	float mSteerInput = 0.f;
+
 	void OnTick()
 	{
+		// SDL_CONTROLLER_AXIS_LEFTX is the left stick X axis, -1 left to 1 right
+		// SDL_CONTROLLER_AXIS_LEFTY is the left stick Y axis, -1 up to 1 down
+		// Same for RIGHT
+		//
+		// SDL_CONTROLLER_AXIS_TRIGGERLEFT is the left trigger, 0 to 1
+		// Same for RIGHT
+
 		if (GetKeyboard()->IsKey(SDLK_h))
 		{
-			/*float steeringAngle = FLWheelSuspension->GetSteeringAngle();
-			steeringAngle += wheelTurnRate * GetCore()->DeltaTime();
-			if (steeringAngle > maxSteeringAngle)
-				steeringAngle = maxSteeringAngle;
-			else if (steeringAngle < -maxSteeringAngle)
-				steeringAngle = -maxSteeringAngle;*/
-
-			float steeringAngle = maxSteeringAngle;
-
-			FLWheelSuspension->SetSteeringAngle(steeringAngle);
-			FRWheelSuspension->SetSteeringAngle(steeringAngle);
-
-			//rb->AddForce(-GetTransform()->GetRight() * forwardSpeed * GetCore()->DeltaTime());
+			FLWheelSuspension->SetSteeringAngle(maxSteeringAngle);
+			FRWheelSuspension->SetSteeringAngle(maxSteeringAngle);
+			mSteerInput = maxSteeringAngle;
+			lastInputController = false;
 		}
 
 		if (GetKeyboard()->IsKey(SDLK_k))
 		{
-			/*float steeringAngle = FLWheelSuspension->GetSteeringAngle();
-			steeringAngle -= wheelTurnRate * GetCore()->DeltaTime();
-			if (steeringAngle > maxSteeringAngle)
-				steeringAngle = maxSteeringAngle;
-			else if (steeringAngle < -maxSteeringAngle)
-				steeringAngle = -maxSteeringAngle;*/
-
-			float steeringAngle = -maxSteeringAngle;
-
-			FLWheelSuspension->SetSteeringAngle(steeringAngle);
-			FRWheelSuspension->SetSteeringAngle(steeringAngle);
-
-			//rb->AddForce(GetTransform()->GetRight() * forwardSpeed * GetCore()->DeltaTime());
+			FLWheelSuspension->SetSteeringAngle(-maxSteeringAngle);
+			FRWheelSuspension->SetSteeringAngle(-maxSteeringAngle);
+			mSteerInput = -maxSteeringAngle;
+			lastInputController = false;
 		}
 
-		if (!GetKeyboard()->IsKey(SDLK_k) && !GetKeyboard()->IsKey(SDLK_h))
+		if (!lastInputController && !GetKeyboard()->IsKey(SDLK_k) && !GetKeyboard()->IsKey(SDLK_h))
 		{
 			FLWheelSuspension->SetSteeringAngle(0);
 			FRWheelSuspension->SetSteeringAngle(0);
+			mSteerInput = 0;
+		}
+
+		float leftStickX = GetInput()->GetController()->GetAxis(SDL_CONTROLLER_AXIS_LEFTX);
+		
+		// Remap from [deadzone, 1] to [0, 1]
+		float sign = (leftStickX > 0) ? 1.0f : -1.0f;
+		float adjusted = (fabs(leftStickX) - mSteerDeadzone) / (1.0f - mSteerDeadzone);
+		float deadzonedX = adjusted * sign;
+		if (std::fabs(leftStickX) < mSteerDeadzone)
+			deadzonedX = 0.f;
+
+		float steerAngle = -maxSteeringAngle * deadzonedX;
+		if (!GetKeyboard()->IsKey(SDLK_h) && !GetKeyboard()->IsKey(SDLK_k))
+		{
+			FLWheelSuspension->SetSteeringAngle(steerAngle);
+			FRWheelSuspension->SetSteeringAngle(steerAngle);
+			mSteerInput = steerAngle;
+			lastInputController = true;
 		}
 
 		if (GetKeyboard()->IsKey(SDLK_SPACE))
@@ -149,9 +171,10 @@ struct CarController : public Component
 		{
 			RLWheelTire->AddDriveTorque(driveTorque);
 			RRWheelTire->AddDriveTorque(driveTorque);
-
-			//rb->AddForce(GetTransform()->GetForward() * forwardSpeed * GetCore()->DeltaTime());
+			mThrottleInput = 1;
 		}
+		else
+			mThrottleInput = 0;
 
 		if (GetKeyboard()->IsKey(SDLK_j))
 		{
@@ -159,9 +182,67 @@ struct CarController : public Component
 			FRWheelTire->AddBrakeTorque(frontBrakeTorque);
 			RLWheelTire->AddBrakeTorque(rearBrakeTorque);
 			RRWheelTire->AddBrakeTorque(rearBrakeTorque);
-
-			//rb->AddForce(-GetTransform()->GetForward() * forwardSpeed * GetCore()->DeltaTime());
+			mBrakeInput = 1;
 		}
+		else
+			mBrakeInput = 0;
+
+		float throttleTrigger = GetInput()->GetController()->GetAxis(SDL_CONTROLLER_AXIS_TRIGGERRIGHT);
+		if (throttleTrigger < mThrottleDeadZone)
+			throttleTrigger = 0.f;
+		else
+		{
+			if (throttleTrigger > mThrottleMaxInput)
+				throttleTrigger = 1.0f;
+			else
+				throttleTrigger = (throttleTrigger - mThrottleDeadZone) / (mThrottleMaxInput - mThrottleDeadZone);
+		}
+
+		float brakeTrigger = GetInput()->GetController()->GetAxis(SDL_CONTROLLER_AXIS_TRIGGERLEFT);
+		if (brakeTrigger < mBrakeDeadZone)
+			brakeTrigger = 0.0f;
+		else
+		{
+			if (brakeTrigger > mBrakeMaxInput)
+				brakeTrigger = 1.0f;
+			else
+				brakeTrigger = (brakeTrigger - mBrakeDeadZone) / (mBrakeMaxInput - mBrakeDeadZone);
+		}
+
+		if (!GetKeyboard()->IsKey(SDLK_u) && !GetKeyboard()->IsKey(SDLK_j))
+		{
+			RLWheelTire->AddDriveTorque(throttleTrigger * driveTorque);
+			RRWheelTire->AddDriveTorque(throttleTrigger * driveTorque);
+			mThrottleInput = throttleTrigger;
+
+			FLWheelTire->AddBrakeTorque(brakeTrigger * frontBrakeTorque);
+			FRWheelTire->AddBrakeTorque(brakeTrigger * frontBrakeTorque);
+			RLWheelTire->AddBrakeTorque(brakeTrigger * rearBrakeTorque);
+			RRWheelTire->AddBrakeTorque(brakeTrigger * rearBrakeTorque);
+			mBrakeInput = brakeTrigger;
+		}
+	}
+
+	void OnGUI()
+	{
+		int width, height;
+		GetCore()->GetWindow()->GetWindowSize(width, height);
+
+		GetGUI()->Image(vec2(300, 300), vec2(220, 120), GetCore()->GetResources()->Load<Texture>("images/white"));
+		GetGUI()->Image(vec2(300, 100), vec2(220, 120), GetCore()->GetResources()->Load<Texture>("images/white"));
+
+		GetGUI()->Image(vec2(width/2, 200), vec2(770, 120), GetCore()->GetResources()->Load<Texture>("images/white"));
+
+		if (mSteerInput > 0)
+			GetGUI()->BlendImage(vec2((width / 2) - 750/4, 200), vec2(750/2, 100), GetCore()->GetResources()->Load<Texture>("images/black"), GetCore()->GetResources()->Load<Texture>("images/transparent"), 1 - (mSteerInput / maxSteeringAngle));
+		else if (mSteerInput < 0)
+			GetGUI()->BlendImage(vec2((width / 2) + 750 / 4, 200), vec2(750 / 2, 100), GetCore()->GetResources()->Load<Texture>("images/transparent"), GetCore()->GetResources()->Load<Texture>("images/black"), (mSteerInput / -maxSteeringAngle));
+
+		GetGUI()->BlendImage(vec2(300, 300), vec2(200, 100), GetCore()->GetResources()->Load<Texture>("images/transparent"), GetCore()->GetResources()->Load<Texture>("images/green"), mThrottleInput);
+		GetGUI()->BlendImage(vec2(300, 100), vec2(200, 100), GetCore()->GetResources()->Load<Texture>("images/transparent"), GetCore()->GetResources()->Load<Texture>("images/red"), mBrakeInput);
+	
+		//GetGUI()->Text(vec2(300, 300), 40, vec3(0, 0, 0), std::to_string(mThrottleInput), GetCore()->GetResources()->Load<Font>("fonts/munro"));
+		//GetGUI()->Text(vec2(300, 100), 40, vec3(0, 0, 0), std::to_string(mBrakeInput), GetCore()->GetResources()->Load<Font>("fonts/munro"));
 	}
 };
 
@@ -229,10 +310,10 @@ int main()
 		tyreParams.wheelMass = 25.f;
 
 		float FStiffness = 50000;
-		float FDamping = 1000;
+		float FDamping = 10000;
 
 		float RStiffness = 60000;
-		float RDamping = 1000;
+		float RDamping = 10000;
 
 		core->GetSkybox()->SetTexture(core->GetResources()->Load<SkyboxTexture>("skyboxes/sky"));
 
@@ -289,7 +370,7 @@ int main()
 		// Car Body
 		std::shared_ptr<Entity> carBody = core->AddEntity();
 		carBody->SetTag("carBody");
-		carBody->GetComponent<Transform>()->SetPosition(vec3(0, 0.35, -16));
+		carBody->GetComponent<Transform>()->SetPosition(vec3(0, 0.45, -16));
 		carBody->GetComponent<Transform>()->SetRotation(vec3(0, 90, 0));
 		carBody->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
 		std::shared_ptr<ModelRenderer> mercedesMR = carBody->AddComponent<ModelRenderer>();

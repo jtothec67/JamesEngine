@@ -115,6 +115,16 @@ namespace Renderer
 		glUseProgram(0);
 	}
 
+	void Shader::uniform(const std::string& _name, int value)
+	{
+		// Find uniform locations
+		GLint loc = glGetUniformLocation(id(), _name.c_str());
+
+		glUseProgram(id());
+		glUniform1i(loc, value);
+		glUseProgram(0);
+	}
+
 	void Shader::uniform(const std::string& _name, float value)
 	{
 		// Find uniform locations
@@ -226,6 +236,15 @@ namespace Renderer
 		glDrawArrays(GL_TRIANGLES, 0, _model->vertex_count());
 		glBindVertexArray(0);
 		glBindTexture(GL_TEXTURE_2D, 0);
+		glUseProgram(0);
+	}
+
+	void Shader::draw(Mesh* _mesh)
+	{
+		glUseProgram(id());
+		glBindVertexArray(_mesh->id());
+		glDrawArrays(GL_TRIANGLES, 0, _mesh->vertex_count());
+		glBindVertexArray(0);
 		glUseProgram(0);
 	}
 

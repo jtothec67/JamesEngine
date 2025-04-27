@@ -59,6 +59,9 @@ add_library(JamesEngine
 	src/JamesEngine/Mouse.h
 	src/JamesEngine/Mouse.cpp
 
+	src/JamesEngine/Controller.h
+	src/JamesEngine/Controller.cpp
+
 	src/JamesEngine/Audio.h
 	src/JamesEngine/Audio.cpp
 

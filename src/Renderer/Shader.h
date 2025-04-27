@@ -19,6 +19,7 @@ namespace Renderer
 		GLuint id();
 
 		void uniform(const std::string& _name, bool _value);
+		void uniform(const std::string& _name, int _value);
 		void uniform(const std::string& _name, float _value);
 		void uniform(const std::string& _name, const glm::mat4& _value);
 		void uniform(const std::string& _name, const glm::vec3& _value);
@@ -28,6 +29,7 @@ namespace Renderer
 		void uniform(const std::string& _name, std::vector<glm::vec3> _value);
 
 		void draw(Model* _model, std::vector<Texture*>& _textures);
+		void draw(Mesh* _mesh);
 		void draw(Model* _model, Texture* _tex);
 		void draw(Mesh* _mesh, Texture* _tex);
 		void draw(Mesh& _mesh, Texture& _tex);

@@ -182,8 +182,39 @@ namespace JamesEngine
 
         mFontShader->uniform("u_TextColour", _colour);
 
-        mFontShader->drawText(*mTextRect, *_font->mFont.get(), _text, XPos, YPos, adjustedSize);
-
+		mFontShader->drawText(*mTextRect, *_font->mFont.get(), _text, XPos, YPos, adjustedSize);
 	}
+
+	void GUI::BlendImage(glm::vec2 _position, glm::vec2 _size, std::shared_ptr<Texture> _texture1, std::shared_ptr<Texture> _texture2, float _blendFactor)
+	{
+		// Adjust the position to be the center
+		glm::vec2 adjustedPosition = _position - (_size * 0.5f);
+
+		glm::mat4 model(1.0f);
+		model = glm::translate(model, glm::vec3(adjustedPosition.x, adjustedPosition.y, 0));
+		model = glm::scale(model, glm::vec3(_size.x, _size.y, 1));
+		mBlendShader->uniform("u_Model", model);
+
+		int width, height;
+		mCore.lock()->GetWindow()->GetWindowSize(width, height);
+
+		glm::mat4 uiProjection = glm::ortho(0.0f, (float)width, 0.0f, (float)height, 0.0f, 1.0f);
+		mBlendShader->uniform("u_Projection", uiProjection);
+
+		mBlendShader->uniform("u_View", glm::mat4(1.0f));
+		mBlendShader->uniform("u_BlendFactor", _blendFactor);
+
+		// Bind both textures to different texture units
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, _texture1->mTexture.get()->id());
+		mBlendShader->uniform("u_Texture1", 0);
+
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, _texture2->mTexture.get()->id());
+		mBlendShader->uniform("u_Texture2", 1);
+
+		mBlendShader->draw(mRect.get());
+	}
+
 
 }
