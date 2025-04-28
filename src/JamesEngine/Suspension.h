@@ -46,6 +46,8 @@ namespace JamesEngine
 
 		void SetHitDistance(float _hitDistance) { mHitDistance = _hitDistance; }
 
+		float GetCompression() { return mSuspensionTravel - mHitDistance; }
+
 	private:
 		std::shared_ptr<Entity> mWheel;
 		std::shared_ptr<Entity> mCarBody;

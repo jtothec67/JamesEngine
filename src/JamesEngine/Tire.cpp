@@ -71,12 +71,19 @@ namespace JamesEngine
 
         float epsilon = 0.01f;
         float denominator = std::max(std::fabs(wheelCircumferentialSpeed), std::fabs(Vx));
-        denominator = std::max(denominator, epsilon);
+        denominator = std::max(std::fabs(Vx), epsilon);
         float slipRatio = (Vx - wheelCircumferentialSpeed) / denominator;
         float slipAngle = std::atan2(Vy, std::fabs(Vx));
 
         // Vertical load
-        float Fz = (mCarRb->GetMass() / 4) * 9.81f; // Change to work out load from suspension
+		float suspensionCompression = mSuspension->GetCompression();
+        float baseWeight = mCarRb->GetMass() / 4.0f * 9.81f;
+
+        // Weight transfer coefficient (how much load shifts with suspension movement)
+        float weightTransferCoeff = 2000.0f;
+        float additionalLoad = -suspensionCompression * weightTransferCoeff;
+
+        float Fz = baseWeight + additionalLoad;
 
         float longStiff = mTireParams.brushLongStiffCoeff * Fz;
         float latStiff = mTireParams.brushLatStiffCoeff * Fz;
@@ -106,12 +113,9 @@ namespace JamesEngine
             Fx = Fmax * (forceRatioX / gamma);
             Fy = Fmax * (forceRatioY / gamma);
 
-			/*std::cout << GetEntity()->GetTag() << " is sliding. Fmax: " << Fmax << " gamma: " << gamma << std::endl;
-			std::cout << "Vx: " << Vx << " Vy: " << Vy << std::endl;
-			std::cout << "slipRatio: " << slipRatio << " slipAngle: " << slipAngle << std::endl;
-			std::cout << "C_x: " << longStiff << " C_y: " << latStiff << std::endl;
-            std::cout << "Car velocity: " << mCarRb->GetVelocity().x << " " << mCarRb->GetVelocity().y << " " << mCarRb->GetVelocity().z << std::endl;*/
-        }
+			//std::cout << GetEntity()->GetTag() << "Tire is sliding! Fx: " << Fx << ", Fy: " << Fy << std::endl;
+			//std::cout << GetEntity()->GetTag() << " slip Ratio: " << slipRatio << ", Slip Angle: " << slipAngle << std::endl;
+	    }
 
         glm::vec3 forceWorld = projForward * Fx + projSide * Fy;
 
@@ -121,6 +125,11 @@ namespace JamesEngine
         // Update Simulated Wheel Angular Velocity
         float roadTorque = -Fx * mTireParams.tireRadius;
         float netTorque = mDriveTorque + roadTorque;
+
+        // Apply wheel damping (rolling resistance)
+        float wheelDampingCoefficient = 10.0f; // Tune this value
+        float dampingTorque = -mWheelAngularVelocity * wheelDampingCoefficient;
+        netTorque += dampingTorque;
 
         // Add brake torque only if it's resisting current spin
         if (mBrakeTorque > 0.0f)

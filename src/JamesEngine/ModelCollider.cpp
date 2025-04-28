@@ -70,6 +70,7 @@ namespace JamesEngine
             std::cout << "You need to add a model to the model collider" << std::endl;
             return;
         }
+
 		// Build the BVH from the model's triangles.
         mBVHRoot = BuildBVH(mModel->mModel->GetFaces(), mBVHLeafThreshold);
         const std::vector<Renderer::Model::Face>& faces = mModel->mModel->GetFaces();

@@ -208,6 +208,7 @@ namespace Renderer
                     {
                         size_t index = materialGroupIndices[currentMaterial];
                         m_materialGroups[index].faces.emplace_back(f);
+                        m_faces.emplace_back(f);
                     }
                     else
                     {

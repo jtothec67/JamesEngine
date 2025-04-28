@@ -269,6 +269,11 @@ struct CameraController : Component
 		}
 	}
 
+	void OnCollision(std::shared_ptr<Entity> _collidedEntity)
+	{
+		std::cout << "COLLISION" << std::endl;
+	}
+
 	float mfpsTimer = 0.f;
 	int currentFPS = 0;
 
@@ -309,10 +314,10 @@ int main()
 		tyreParams.tireRadius = 0.34f;
 		tyreParams.wheelMass = 25.f;
 
-		float FStiffness = 50000;
+		float FStiffness = 60000;
 		float FDamping = 10000;
 
-		float RStiffness = 60000;
+		float RStiffness = 600000;
 		float RDamping = 10000;
 
 		core->GetSkybox()->SetTexture(core->GetResources()->Load<SkyboxTexture>("skyboxes/sky"));
@@ -324,7 +329,7 @@ int main()
 		std::shared_ptr<Entity> freeCamEntity = core->AddEntity();
 		std::shared_ptr<Camera> freeCam = freeCamEntity->AddComponent<Camera>();
 		freeCam->SetPriority(10);
-		freeCamEntity->GetComponent<Transform>()->SetPosition(vec3(-5, 1, -16));
+		freeCamEntity->GetComponent<Transform>()->SetPosition(vec3(-5, 1, -0));
 		freeCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, -90, 0));
 		freeCamEntity->AddComponent<CameraController>();
 		freeCamEntity->AddComponent<freelookCamController>();
@@ -355,22 +360,37 @@ int main()
 		wheelCamEntity->GetComponent<Transform>()->SetPosition(vec3(-1.36, 0.246, -1.63));
 		wheelCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 183.735, 0));
 
+		//// Track
+		//std::shared_ptr<Entity> track = core->AddEntity();
+		//track->SetTag("track");
+		//track->GetComponent<Transform>()->SetPosition(vec3(0, 0, 10));
+		//track->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
+		//std::shared_ptr<ModelRenderer> trackMR = track->AddComponent<ModelRenderer>();
+		//trackMR->SetModel(core->GetResources()->Load<Model>("models/track/cartoon_track_trimmed no-mtl"));
+		//trackMR->AddTexture(core->GetResources()->Load<Texture>("models/track/rock"));
+		//std::shared_ptr<ModelCollider> trackCollider = track->AddComponent<ModelCollider>();
+		//trackCollider->SetModel(core->GetResources()->Load<Model>("models/track/cartoon_track_trimmed no-mtl"));
+		//trackCollider->SetDebugVisual(false);
+
+		//std::shared_ptr<Model> trackModel = core->GetResources()->Load<Model>("models/Austria/Source/austria5");
+		std::shared_ptr<Model> trackModel = core->GetResources()->Load<Model>("models/Austria/Source/austria5");
+
 		// Track
 		std::shared_ptr<Entity> track = core->AddEntity();
 		track->SetTag("track");
-		track->GetComponent<Transform>()->SetPosition(vec3(0, 0, 10));
+		track->GetComponent<Transform>()->SetPosition(vec3(0, 0, 0));
 		track->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		std::shared_ptr<ModelRenderer> trackMR = track->AddComponent<ModelRenderer>();
-		trackMR->SetModel(core->GetResources()->Load<Model>("models/track/cartoon_track_trimmed no-mtl"));
+		trackMR->SetModel(trackModel);
 		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/track/rock"));
 		std::shared_ptr<ModelCollider> trackCollider = track->AddComponent<ModelCollider>();
-		trackCollider->SetModel(core->GetResources()->Load<Model>("models/track/cartoon_track_trimmed no-mtl"));
-		trackCollider->SetDebugVisual(false);
+		trackCollider->SetModel(trackModel);
+		//trackCollider->SetDebugVisual(false);
 
 		// Car Body
 		std::shared_ptr<Entity> carBody = core->AddEntity();
 		carBody->SetTag("carBody");
-		carBody->GetComponent<Transform>()->SetPosition(vec3(0, 0.45, -16));
+		carBody->GetComponent<Transform>()->SetPosition(vec3(0, 1.45, 0));
 		carBody->GetComponent<Transform>()->SetRotation(vec3(0, 90, 0));
 		carBody->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
 		std::shared_ptr<ModelRenderer> mercedesMR = carBody->AddComponent<ModelRenderer>();
