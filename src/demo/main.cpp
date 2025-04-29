@@ -41,16 +41,6 @@ struct freelookCamController : public Component
 			GetTransform()->Rotate(vec3(0, sensitivity, 0));// * GetCore()->DeltaTime(), 0));
 		if (GetKeyboard()->IsKey(SDLK_RIGHT))
 			GetTransform()->Rotate(vec3(0, -sensitivity, 0));// * GetCore()->DeltaTime(), 0));
-	}
-};
-
-struct CollisionTest : public Component
-{
-	std::shared_ptr<Rigidbody> rb;
-
-	void OnTick()
-	{
-		GetTransform()->SetPosition(rb->mCollisionPoint);
 
 		if (GetKeyboard()->IsKeyDown(SDLK_o))
 		{
@@ -59,6 +49,10 @@ struct CollisionTest : public Component
 		else if (GetKeyboard()->IsKeyDown(SDLK_p))
 		{
 			GetCore()->SetTimeScale(1);
+		}
+		else if (GetKeyboard()->IsKeyDown(SDLK_m))
+		{
+			GetCore()->SetTimeScale(0);
 		}
 	}
 };
@@ -78,7 +72,7 @@ struct CarController : public Component
 	float maxSteeringAngle = 25.f;
 	float wheelTurnRate = 30.f;
 
-	float driveTorque = 650.f;
+	float driveTorque = 2500.f;
 	float frontBrakeTorque = 2000.f;
 	float rearBrakeTorque = 1350.f; // Values at a 60-40 brake bias, seem high but don't shoot the messenger.
 
@@ -162,7 +156,7 @@ struct CarController : public Component
 			RRWheelTire->SetWheelAngularVelocity(0);
 		}
 
-		//std::cout << "Car forward speed: " << glm::dot(rb->GetVelocity(), GetTransform()->GetForward()) << std::endl;
+		std::cout << "Car forward speed: " << glm::dot(rb->GetVelocity(), GetTransform()->GetForward()) << std::endl;
 	}
 
 	void OnFixedTick()
@@ -307,17 +301,17 @@ int main()
 		tyreParams.brushLongStiff = 200000.f;
 		tyreParams.brushLatStiff = 180000.f;
 
-		tyreParams.brushLongStiffCoeff = 80.f;
-		tyreParams.brushLatStiffCoeff = 60.f;
+		tyreParams.brushLongStiffCoeff = 80;
+		tyreParams.brushLatStiffCoeff = 20;
 
-		tyreParams.peakFrictionCoefficient = 1.2f;
+		tyreParams.peakFrictionCoefficient = 1.5f;
 		tyreParams.tireRadius = 0.34f;
 		tyreParams.wheelMass = 25.f;
 
-		float FStiffness = 60000;
+		float FStiffness = 50000;
 		float FDamping = 10000;
 
-		float RStiffness = 600000;
+		float RStiffness = 60000;
 		float RDamping = 10000;
 
 		core->GetSkybox()->SetTexture(core->GetResources()->Load<SkyboxTexture>("skyboxes/sky"));
@@ -360,37 +354,36 @@ int main()
 		wheelCamEntity->GetComponent<Transform>()->SetPosition(vec3(-1.36, 0.246, -1.63));
 		wheelCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 183.735, 0));
 
-		//// Track
-		//std::shared_ptr<Entity> track = core->AddEntity();
-		//track->SetTag("track");
-		//track->GetComponent<Transform>()->SetPosition(vec3(0, 0, 10));
-		//track->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
-		//std::shared_ptr<ModelRenderer> trackMR = track->AddComponent<ModelRenderer>();
-		//trackMR->SetModel(core->GetResources()->Load<Model>("models/track/cartoon_track_trimmed no-mtl"));
-		//trackMR->AddTexture(core->GetResources()->Load<Texture>("models/track/rock"));
-		//std::shared_ptr<ModelCollider> trackCollider = track->AddComponent<ModelCollider>();
-		//trackCollider->SetModel(core->GetResources()->Load<Model>("models/track/cartoon_track_trimmed no-mtl"));
-		//trackCollider->SetDebugVisual(false);
-
-		//std::shared_ptr<Model> trackModel = core->GetResources()->Load<Model>("models/Austria/Source/austria5");
-		std::shared_ptr<Model> trackModel = core->GetResources()->Load<Model>("models/Austria/Source/austria5");
-
 		// Track
 		std::shared_ptr<Entity> track = core->AddEntity();
 		track->SetTag("track");
 		track->GetComponent<Transform>()->SetPosition(vec3(0, 0, 0));
 		track->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		std::shared_ptr<ModelRenderer> trackMR = track->AddComponent<ModelRenderer>();
-		trackMR->SetModel(trackModel);
-		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/track/rock"));
+		trackMR->SetModel(core->GetResources()->Load<Model>("models/Austria/Source/austria5"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/garages_spielberg_baseColor"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/garages_spielberg_baseColor"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/road_spielberg_baseColor"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/grass_spielberg_baseColor"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/tarmac_dirty_spielberg_baseColor"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/SPIELBERG_baseColor"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/runoff_spielberg_baseColor"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/TARMAC_FLAG_baseColor"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/white"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/grass_2_spielberg_baseColor"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/fence_metal_spielberg_baseColor"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/barriers_spielberg_baseColor"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/banners_spielberg_baseColor"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/spielberg_sand_patches_baseColor"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/trees_spielberg_baseColor"));
 		std::shared_ptr<ModelCollider> trackCollider = track->AddComponent<ModelCollider>();
-		trackCollider->SetModel(trackModel);
-		//trackCollider->SetDebugVisual(false);
+		trackCollider->SetModel(core->GetResources()->Load<Model>("models/Austria/Source/austria5"));
+		trackCollider->SetDebugVisual(false);
 
 		// Car Body
 		std::shared_ptr<Entity> carBody = core->AddEntity();
 		carBody->SetTag("carBody");
-		carBody->GetComponent<Transform>()->SetPosition(vec3(0, 1.45, 0));
+		carBody->GetComponent<Transform>()->SetPosition(vec3(0, 0, 0));
 		carBody->GetComponent<Transform>()->SetRotation(vec3(0, 90, 0));
 		carBody->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
 		std::shared_ptr<ModelRenderer> mercedesMR = carBody->AddComponent<ModelRenderer>();
@@ -431,7 +424,7 @@ int main()
 		carBodyCollider->SetPositionOffset(vec3(0, 0.37, 0.22));
 		std::shared_ptr<Rigidbody> carBodyRB = carBody->AddComponent<Rigidbody>();
 		carBodyRB->SetMass(1230);
-		//carBodyRB->AddForce(vec3(123000, 0, 0));
+		carBodyRB->AddForce(vec3(12300000, 0, 0));
 		cockpitCamEntity->GetComponent<Transform>()->SetParent(carBody);
 		bonnetCamEntity->GetComponent<Transform>()->SetParent(carBody);
 		chaseCamEntity->GetComponent<Transform>()->SetParent(carBody);
@@ -611,23 +604,6 @@ int main()
 		carController->FRWheelTire = FRWheelTire;
 		carController->RLWheelTire = RLWheelTire;
 		carController->RRWheelTire = RRWheelTire;
-
-		std::shared_ptr<Entity> testEntity = core->AddEntity();
-		testEntity->GetComponent<Transform>()->SetPosition(vec3(4.80949, 9.48961, 6.23224));
-		testEntity->GetComponent<Transform>()->SetRotation(vec3(0, 90, 0));
-		testEntity->GetComponent<Transform>()->SetScale(vec3(0.1, 0.1, 0.1));
-		std::shared_ptr<ModelRenderer> testTR = testEntity->AddComponent<ModelRenderer>();
-		testTR->SetModel(core->GetResources()->Load<Model>("shapes/sphere"));
-		testTR->AddTexture(core->GetResources()->Load<Texture>("images/cat"));
-		testEntity->AddComponent<CollisionTest>()->rb = FLWheelRB;
-
-
-		std::shared_ptr<Entity> testBall1 = core->AddEntity();
-		testBall1->GetComponent<Transform>()->SetPosition(vec3(0, 0.8 - 0.45, -16));
-		testBall1->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
-		std::shared_ptr<ModelRenderer> testBall1MR = testBall1->AddComponent<ModelRenderer>();
-		testBall1MR->SetModel(core->GetResources()->Load<Model>("shapes/sphere"));
-		testBall1MR->AddTexture(core->GetResources()->Load<Texture>("images/cat"));
 
 	}
 

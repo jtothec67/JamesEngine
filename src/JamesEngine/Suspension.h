@@ -48,6 +48,9 @@ namespace JamesEngine
 
 		float GetCompression() { return mSuspensionTravel - mHitDistance; }
 
+		void SetSurfaceNormal(glm::vec3 _surfaceNormal) { mSurfaceNormal = _surfaceNormal; }
+		glm::vec3 GetSurfaceNormal() { return mSurfaceNormal; }
+
 	private:
 		std::shared_ptr<Entity> mWheel;
 		std::shared_ptr<Entity> mCarBody;
@@ -66,6 +69,12 @@ namespace JamesEngine
 
 		float mSuspensionTravel = 0.4f;
 		float mWheelRadius = 0.34f;
+
+		float  mRestLength = 0;
+
+		float mExtensionPullStrength = 0.2f;
+
+		glm::vec3 mSurfaceNormal{ 0 };
 
 		bool mDebugVisual = true;
 

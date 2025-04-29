@@ -59,9 +59,11 @@ namespace JamesEngine
             return vec - n * glm::dot(vec, n);
             };
 
-        glm::vec3 projForward = glm::normalize(ProjectOntoPlane(tireForward, mSurfaceNormal));
-        glm::vec3 projSide = glm::normalize(glm::cross(mSurfaceNormal, projForward));
-        glm::vec3 projVelocity = ProjectOntoPlane(carVel, mSurfaceNormal);
+        glm::vec3 surfaceNormal = mSuspension->GetSurfaceNormal();
+
+        glm::vec3 projForward = glm::normalize(ProjectOntoPlane(tireForward, surfaceNormal));
+        glm::vec3 projSide = glm::normalize(glm::cross(surfaceNormal, projForward));
+        glm::vec3 projVelocity = ProjectOntoPlane(carVel, surfaceNormal);
 
         float Vx = glm::dot(projVelocity, projForward);
         float Vy = glm::dot(projVelocity, projSide);
@@ -71,7 +73,6 @@ namespace JamesEngine
 
         float epsilon = 0.01f;
         float denominator = std::max(std::fabs(wheelCircumferentialSpeed), std::fabs(Vx));
-        denominator = std::max(std::fabs(Vx), epsilon);
         float slipRatio = (Vx - wheelCircumferentialSpeed) / denominator;
         float slipAngle = std::atan2(Vy, std::fabs(Vx));
 
@@ -113,7 +114,7 @@ namespace JamesEngine
             Fx = Fmax * (forceRatioX / gamma);
             Fy = Fmax * (forceRatioY / gamma);
 
-			//std::cout << GetEntity()->GetTag() << "Tire is sliding! Fx: " << Fx << ", Fy: " << Fy << std::endl;
+			std::cout << GetEntity()->GetTag() << "Tire is sliding! Fx: " << Fx << ", Fy: " << Fy << std::endl;
 			//std::cout << GetEntity()->GetTag() << " slip Ratio: " << slipRatio << ", Slip Angle: " << slipAngle << std::endl;
 	    }
 
@@ -125,11 +126,6 @@ namespace JamesEngine
         // Update Simulated Wheel Angular Velocity
         float roadTorque = -Fx * mTireParams.tireRadius;
         float netTorque = mDriveTorque + roadTorque;
-
-        // Apply wheel damping (rolling resistance)
-        float wheelDampingCoefficient = 10.0f; // Tune this value
-        float dampingTorque = -mWheelAngularVelocity * wheelDampingCoefficient;
-        netTorque += dampingTorque;
 
         // Add brake torque only if it's resisting current spin
         if (mBrakeTorque > 0.0f)
@@ -153,12 +149,16 @@ namespace JamesEngine
         }
 
         float r = mTireParams.tireRadius;
-        float inertia = 0.5f * mTireParams.wheelMass * r * r;
+        float inertia = 0.5f * (mTireParams.wheelMass * 10) * r * r;
         float angularAcceleration = netTorque / inertia;
         mWheelAngularVelocity += angularAcceleration * dt;
 
         mDriveTorque = 0.0f;
         mBrakeTorque = 0.0f;
+
+        //std::cout << GetEntity()->GetTag() << " wheel speed: " << mWheelAngularVelocity << std::endl;
+        //std::cout << GetEntity()->GetTag() << " slip ratio: " << slipRatio << std::endl;
+        //std::cout << GetEntity()->GetTag() << " slip ratio: " << slipRatio << " Fx: " << Fx << ", Fy: " << Fy << std::endl;
 	}
 
 	void Tire::OnTick()

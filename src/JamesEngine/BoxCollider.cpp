@@ -381,7 +381,7 @@ namespace JamesEngine
                 _penetrationDepth = recalculatedPenetration;
                 _normal = weightedNormal;
 
-                return true;
+                //return true;
             }
         }
 

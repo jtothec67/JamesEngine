@@ -126,12 +126,11 @@ namespace JamesEngine
 
         if (!mGroundContact)
             return;
-        
+
         std::shared_ptr<Transform> anchorTransform = mAnchorPoint->GetComponent<Transform>();
         glm::vec3 suspensionDirection = glm::normalize(anchorTransform->GetUp());
 
-        float compression = mSuspensionTravel - mHitDistance;
-		std::cout << "Compression: " << compression << std::endl;
+        float compression = (0.34 - mHitDistance) / mSuspensionTravel;
 
         // Get point velocity
         glm::vec3 pointVelocity = mCarRb->GetVelocityAtPoint(anchorTransform->GetPosition());
@@ -140,22 +139,10 @@ namespace JamesEngine
         // Spring and damping
         float springForce = mStiffness * compression;
         float velocityMagnitude = std::abs(relativeVelocity);
-        float dampingForce = -mDamping * relativeVelocity;
+        float dampingForce = -mDamping * (glm::sign(compression) * relativeVelocity);
 
         glm::vec3 totalForce = suspensionDirection * (springForce + dampingForce);
-
-        // Project force onto world up direction (assuming world up is Y axis)
-        glm::vec3 worldUp(0.0f, 1.0f, 0.0f);
-        float forceMagnitude = glm::dot(totalForce, worldUp);
-        glm::vec3 projectedForce = worldUp * forceMagnitude;
-
-        glm::vec3 force = (springForce + dampingForce) * worldUp;
-        float slopeFactor = glm::dot(suspensionDirection, worldUp);
-        mCarRb->ApplyForce(force * slopeFactor, anchorTransform->GetPosition());
-
-		std::cout << "Force: " << force.x << ", " << force.y << ", " << force.z << std::endl;
-
-        //mCarRb->ApplyForce(totalForce, anchorTransform->GetPosition());
+        mCarRb->ApplyForce(totalForce, anchorTransform->GetPosition());
     }
 
 	void Suspension::OnLateFixedTick()
