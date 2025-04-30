@@ -81,10 +81,11 @@ namespace JamesEngine
         float baseWeight = mCarRb->GetMass() / 4.0f * 9.81f;
 
         // Weight transfer coefficient (how much load shifts with suspension movement)
-        float weightTransferCoeff = 2000.0f;
-        float additionalLoad = -suspensionCompression * weightTransferCoeff;
+        float weightTransferCoeff = 20000.0f;
+        float additionalLoad = suspensionCompression * weightTransferCoeff;
 
         float Fz = baseWeight + additionalLoad;
+		//std::cout << GetEntity()->GetTag() << " Fz: " << Fz << " compression: " << suspensionCompression << std::endl;
 
         float longStiff = mTireParams.brushLongStiffCoeff * Fz;
         float latStiff = mTireParams.brushLatStiffCoeff * Fz;
@@ -96,6 +97,7 @@ namespace JamesEngine
 
         // Maximum friction force
         float Fmax = mTireParams.peakFrictionCoefficient * Fz;
+        //std::cout << GetEntity()->GetTag() << " Fmax: " << Fmax << std::endl;
 
         float Fx, Fy;
 
@@ -114,7 +116,7 @@ namespace JamesEngine
             Fx = Fmax * (forceRatioX / gamma);
             Fy = Fmax * (forceRatioY / gamma);
 
-			std::cout << GetEntity()->GetTag() << "Tire is sliding! Fx: " << Fx << ", Fy: " << Fy << std::endl;
+			//std::cout << GetEntity()->GetTag() << "Tire is sliding! Fx: " << Fx << ", Fy: " << Fy << std::endl;
 			//std::cout << GetEntity()->GetTag() << " slip Ratio: " << slipRatio << ", Slip Angle: " << slipAngle << std::endl;
 	    }
 
