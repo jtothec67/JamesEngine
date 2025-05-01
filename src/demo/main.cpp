@@ -1,6 +1,7 @@
 #include "JamesEngine/JamesEngine.h"
 
 #include <iostream>
+#include <iomanip>
 
 using namespace JamesEngine;
 
@@ -57,6 +58,80 @@ struct freelookCamController : public Component
 	}
 };
 
+struct StartFinishLine : public Component
+{
+	bool onALap = false;
+
+	float lapTime = 0.f;
+
+	float lastLapTime = 0.f;
+	std::string lastLapTimeString = "0:00.000";
+
+	float bestLapTime = 0.f;
+	std::string bestLapTimeString = "0:00.000";
+
+	void OnTick()
+	{
+		if (onALap)
+		{
+			lapTime += GetCore()->DeltaTime();
+		}
+		else
+		{
+			lapTime = 0.f;
+		}
+	}
+
+	void OnCollision(std::shared_ptr<Entity> _collidedEntity)
+	{
+		if (_collidedEntity->GetTag() != "carBody")
+			return;
+
+		if (onALap && lapTime > 2)
+		{
+			lastLapTime = lapTime;
+			lastLapTimeString = FormatTime(lastLapTime);
+
+			if (lapTime < bestLapTime || bestLapTime == 0)
+			{
+				bestLapTime = lastLapTime;
+				bestLapTimeString = FormatTime(bestLapTime);
+			}
+
+			lapTime = 0.f;
+		}
+		else
+		{
+			lapTime = 0.f;
+			onALap = true;
+		}
+	}
+
+	void OnGUI()
+	{
+		int width, height;
+		GetCore()->GetWindow()->GetWindowSize(width, height);
+
+		GetGUI()->Text(vec2(width / 2, height - 50), 50, vec3(0, 0, 0), FormatTime(lapTime), GetCore()->GetResources()->Load<Font>("fonts/munro"));
+
+		GetGUI()->Text(vec2(width - 200, height - 50), 40, vec3(0, 0, 0), "Last lap: \n" + lastLapTimeString, GetCore()->GetResources()->Load<Font>("fonts/munro"));
+
+		GetGUI()->Text(vec2(width - 200, height - 200), 40, vec3(0, 0, 0), "Best lap: \n" + bestLapTimeString, GetCore()->GetResources()->Load<Font>("fonts/munro"));
+	}
+
+	std::string FormatTime(float time)
+	{
+		int minutes = static_cast<int>(time) / 60;
+		int seconds = static_cast<int>(time) % 60;
+		int milliseconds = static_cast<int>((time - static_cast<int>(time)) * 1000);
+		std::ostringstream formattedTime;
+		formattedTime << minutes << ":"
+			<< std::setw(2) << std::setfill('0') << seconds << "."
+			<< std::setw(3) << std::setfill('0') << milliseconds;
+		return formattedTime.str();
+	}
+};
+
 struct CarController : public Component
 {
 	std::shared_ptr<Rigidbody> rb;
@@ -77,7 +152,7 @@ struct CarController : public Component
 
 	float driveTorque = 1600.f;
 	float frontBrakeTorque = 2000.f;
-	float rearBrakeTorque = 1350.f; // Values at a 60-40 brake bias, seem high but don't shoot the messenger.
+	float rearBrakeTorque = 1350.f;
 
 	float forwardSpeed = 100000.f;
 	float turnSpeed = 1000.f;
@@ -162,6 +237,8 @@ struct CarController : public Component
 			FRWheelTire->SetWheelAngularVelocity(0);
 			RLWheelTire->SetWheelAngularVelocity(0);
 			RRWheelTire->SetWheelAngularVelocity(0);
+
+			GetCore()->FindComponent<StartFinishLine>()->onALap = false;
 		}
 
 		//std::cout << "Car forward speed: " << glm::dot(rb->GetVelocity(), GetTransform()->GetForward()) << std::endl;
@@ -226,8 +303,8 @@ struct CarController : public Component
 		}
 
 		// Get forward and down directions from car's transform
-		glm::vec3 forward = glm::normalize(GetEntity()->GetComponent<Transform>()->GetForward());
-		glm::vec3 down = -glm::normalize(GetEntity()->GetComponent<Transform>()->GetUp());
+		glm::vec3 forward = GetEntity()->GetComponent<Transform>()->GetForward();
+		glm::vec3 down = -GetEntity()->GetComponent<Transform>()->GetUp();
 
 		// Project velocity onto forward direction to get forward speed
 		float forwardSpeed = glm::dot(rb->GetVelocity(), forward);
@@ -246,8 +323,6 @@ struct CarController : public Component
 		// Apply them to the car at rear and front downforce positions
 		rb->ApplyForce(rearDownforce, rearDownforcePos->GetComponent<Transform>()->GetPosition());
 		rb->ApplyForce(frontDownforce, frontDownforcePos->GetComponent<Transform>()->GetPosition());
-
-		std::cout << "Car forward speed: " << forwardSpeed * 3.6f << std::endl;
 
 		/*std::cout << "Rear downforce: " << rearDownforce.x << ", " << rearDownforce.y << ", " << rearDownforce.z << std::endl;
 		std::cout << "Front downforce: " << frontDownforce.x << ", " << frontDownforce.y << ", " << frontDownforce.z << std::endl;
@@ -273,6 +348,9 @@ struct CarController : public Component
 		GetGUI()->BlendImage(vec2(300, 300), vec2(200, 100), GetCore()->GetResources()->Load<Texture>("images/transparent"), GetCore()->GetResources()->Load<Texture>("images/green"), mThrottleInput);
 		GetGUI()->BlendImage(vec2(300, 100), vec2(200, 100), GetCore()->GetResources()->Load<Texture>("images/transparent"), GetCore()->GetResources()->Load<Texture>("images/red"), mBrakeInput);
 	
+		float speed = glm::dot(rb->GetVelocity(), GetEntity()->GetComponent<Transform>()->GetForward());
+		GetGUI()->Text(vec2(width / 2, 100), 40, vec3(0, 0, 0), std::to_string((int)(speed * 3.6)), GetCore()->GetResources()->Load<Font>("fonts/munro"));
+
 		//GetGUI()->Text(vec2(300, 300), 40, vec3(0, 0, 0), std::to_string(mThrottleInput), GetCore()->GetResources()->Load<Font>("fonts/munro"));
 		//GetGUI()->Text(vec2(300, 100), 40, vec3(0, 0, 0), std::to_string(mBrakeInput), GetCore()->GetResources()->Load<Font>("fonts/munro"));
 	}
@@ -336,13 +414,10 @@ int main()
 	{
 
 		TireParams tyreParams;
-		tyreParams.brushLongStiff = 200000.f;
-		tyreParams.brushLatStiff = 180000.f;
-
 		tyreParams.brushLongStiffCoeff = 60;
 		tyreParams.brushLatStiffCoeff = 80;
 
-		tyreParams.peakFrictionCoefficient = 1.5f;
+		tyreParams.peakFrictionCoefficient = 2.f;
 		tyreParams.tireRadius = 0.34f;
 		tyreParams.wheelMass = 25.f;
 
@@ -418,10 +493,20 @@ int main()
 		trackCollider->SetModel(core->GetResources()->Load<Model>("models/Austria/Source/austria5"));
 		trackCollider->SetDebugVisual(false);
 
+		// Start/finish line
+		std::shared_ptr<Entity> startFinishLine = core->AddEntity();
+		startFinishLine->SetTag("startFinishLine");
+		startFinishLine->GetComponent<Transform>()->SetPosition(vec3(-31.07, 0.489, 3));
+		startFinishLine->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
+		std::shared_ptr<BoxCollider> startFinishLineCollider = startFinishLine->AddComponent<BoxCollider>();
+		startFinishLineCollider->SetSize(vec3(0.1, 6, 35));
+		startFinishLineCollider->IsTrigger(true);
+		std::shared_ptr <StartFinishLine> startFinishLineComponent = startFinishLine->AddComponent<StartFinishLine>();
+
 		// Car Body
 		std::shared_ptr<Entity> carBody = core->AddEntity();
 		carBody->SetTag("carBody");
-		carBody->GetComponent<Transform>()->SetPosition(vec3(0, 0, 0));
+		carBody->GetComponent<Transform>()->SetPosition(vec3(70.0522, 18.086, -144.966));
 		carBody->GetComponent<Transform>()->SetRotation(vec3(0, 90, 0));
 		carBody->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
 		std::shared_ptr<ModelRenderer> mercedesMR = carBody->AddComponent<ModelRenderer>();

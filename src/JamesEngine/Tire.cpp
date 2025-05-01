@@ -167,10 +167,12 @@ namespace JamesEngine
 	{
         mWheelRotation += glm::degrees(mWheelAngularVelocity * GetCore()->DeltaTime());
 
-        if (mWheelRotation > 360) {
+        if (mWheelRotation > 360)
+        {
             mWheelRotation -= 360;
         }
-        else if (mWheelRotation < 0.0f) {
+        else if (mWheelRotation < 0.0f)
+        {
             mWheelRotation += 360;
         }
 

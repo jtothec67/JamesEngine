@@ -46,7 +46,7 @@ namespace JamesEngine
 
 		void SetHitDistance(float _hitDistance) { mHitDistance = _hitDistance; }
 
-		float GetCompression() { return mSuspensionTravel - mHitDistance; }
+		float GetCompression() { return mCompression; }
 
 		void SetSurfaceNormal(glm::vec3 _surfaceNormal) { mSurfaceNormal = _surfaceNormal; }
 		glm::vec3 GetSurfaceNormal() { return mSurfaceNormal; }
@@ -67,7 +67,7 @@ namespace JamesEngine
 
 		float mSteeringAngle = 0.0f;
 
-		float mSuspensionTravel = 0.4f;
+		float mSuspensionTravel = 0.34f;
 		float mWheelRadius = 0.34f;
 
 		float  mRestLength = 0;
@@ -75,6 +75,8 @@ namespace JamesEngine
 		float mExtensionPullStrength = 0.2f;
 
 		glm::vec3 mSurfaceNormal{ 0 };
+
+		float mCompression = 0.0f;
 
 		bool mDebugVisual = true;
 

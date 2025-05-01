@@ -61,7 +61,7 @@ namespace JamesEngine
 
 				collisionNormal = glm::normalize(collisionNormal);
 
-				// Call OnCOllision for all components on both entities
+				// Call OnCollision for all components on both entities
 				for (size_t ci = 0; ci < GetEntity()->mComponents.size(); ci++)
 				{
 					GetEntity()->mComponents.at(ci)->OnCollision(otherCollider->GetEntity());
@@ -71,6 +71,9 @@ namespace JamesEngine
 				{
 					otherCollider->GetEntity()->mComponents.at(ci)->OnCollision(GetEntity());
 				}
+
+				if (otherCollider->IsTrigger())
+					continue;
 
 				std::shared_ptr<Rigidbody> otherRigidbody = otherCollider->GetEntity()->GetComponent<Rigidbody>();
 

@@ -29,12 +29,17 @@ namespace JamesEngine
 
 		void SetDebugVisual(bool _value) { mDebugVisual = _value; }
 
+		void IsTrigger(bool _value) { mIsTrigger = _value; }
+		bool IsTrigger() { return mIsTrigger; }
+
 	protected:
 		friend class BoxCollider;
 		friend class SphereCollider;
 
 		glm::vec3 mPositionOffset{ 0 };
 		glm::vec3 mRotationOffset{ 0 };
+
+		bool mIsTrigger = false;
 
 		bool mDebugVisual = true;
 

@@ -7,9 +7,6 @@ namespace JamesEngine
 
 	struct TireParams
 	{
-		float brushLongStiff;
-		float brushLatStiff;
-
 		float brushLongStiffCoeff;
 		float brushLatStiffCoeff;
 

@@ -130,16 +130,16 @@ namespace JamesEngine
         std::shared_ptr<Transform> anchorTransform = mAnchorPoint->GetComponent<Transform>();
         glm::vec3 suspensionDirection = glm::normalize(anchorTransform->GetUp());
 
-        float compression = (0.34 - mHitDistance) / mSuspensionTravel;
+        mCompression = (mWheelRadius - mHitDistance) / mSuspensionTravel;
 
         // Get point velocity
         glm::vec3 pointVelocity = mCarRb->GetVelocityAtPoint(anchorTransform->GetPosition());
         float relativeVelocity = glm::dot(pointVelocity, suspensionDirection);
 
         // Spring and damping
-        float springForce = mStiffness * compression;
+        float springForce = mStiffness * mCompression;
         float velocityMagnitude = std::abs(relativeVelocity);
-        float dampingForce = -mDamping * (glm::sign(compression) * relativeVelocity);
+        float dampingForce = -mDamping * (glm::sign(mCompression) * relativeVelocity);
 
         glm::vec3 totalForce = suspensionDirection * (springForce + dampingForce);
         mCarRb->ApplyForce(totalForce, anchorTransform->GetPosition());
@@ -155,6 +155,8 @@ namespace JamesEngine
 		// Sets the position of the wheel to be the same as the anchor point
         glm::vec3 anchorPos = mAnchorPoint->GetComponent<Transform>()->GetPosition();
         mWheel->GetComponent<Transform>()->SetPosition(anchorPos);
+		//std::cout << GetEntity()->GetTag() << " wheel pos: " << anchorPos.x << ", " << anchorPos.y << ", " << anchorPos.z << std::endl;
+		//std::cout << "car position : " << mCarBody->GetComponent<Transform>()->GetPosition().x << ", " << mCarBody->GetComponent<Transform>()->GetPosition().y << ", " << mCarBody->GetComponent<Transform>()->GetPosition().z << std::endl;
 
 		// Sets the wheel rotation based on the steering angle
         glm::quat anchorRotationQuat = mAnchorPoint->GetComponent<Transform>()->GetWorldRotation();

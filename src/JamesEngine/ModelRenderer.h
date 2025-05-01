@@ -23,7 +23,10 @@ namespace JamesEngine
 		void SetSpecularStrength(float _strength) { mSpecularStrength = _strength; }
 
 		void SetPositionOffset(glm::vec3 _offset) { mPositionOffset = _offset; }
+		glm::vec3 GetPositionOffset() { return mPositionOffset; }
+
 		void SetRotationOffset(glm::vec3 _offset) { mRotationOffset = _offset; }
+		glm::vec3 GetRotationOffset() { return mRotationOffset; }
 
 	private:
 		std::shared_ptr<Model> mModel = nullptr;
