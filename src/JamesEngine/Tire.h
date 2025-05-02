@@ -13,6 +13,7 @@ namespace JamesEngine
 		float peakFrictionCoefficient;
 		float tireRadius;
 		float wheelMass;
+		float rollingResistance;
 	};
 
 	class Rigidbody;
@@ -36,6 +37,7 @@ namespace JamesEngine
 		void SetInitialRotationOffset(const glm::vec3& _offset) { mInitialRotationOffset = _offset; }
 
 		void SetWheelAngularVelocity(float _angularVelocity) { mWheelAngularVelocity = _angularVelocity; }
+		float GetWheelAngularVelocity() const { return mWheelAngularVelocity; }
 
 	private:
 		void BrushTireModel();

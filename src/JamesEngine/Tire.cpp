@@ -125,6 +125,14 @@ namespace JamesEngine
         // Apply force to car at the anchor point
         mCarRb->ApplyForce(forceWorld, anchorPos);
 
+        // RollingResistance
+        glm::vec3 rollingResistanceDir = -glm::normalize(carVel);
+
+        glm::vec3 rollingResistanceForce = rollingResistanceDir * mTireParams.rollingResistance * Fz;
+        mCarRb->ApplyForce(rollingResistanceForce, anchorPos);
+
+		std::cout << GetEntity()->GetTag() << " rolling resistance: " << rollingResistanceForce.x << ", " << rollingResistanceForce.y << ", " << rollingResistanceForce.z << std::endl;
+
         // Update Simulated Wheel Angular Velocity
         float roadTorque = -Fx * mTireParams.tireRadius;
         float netTorque = mDriveTorque + roadTorque;
@@ -157,10 +165,6 @@ namespace JamesEngine
 
         mDriveTorque = 0.0f;
         mBrakeTorque = 0.0f;
-
-        //std::cout << GetEntity()->GetTag() << " wheel speed: " << mWheelAngularVelocity << std::endl;
-        //std::cout << GetEntity()->GetTag() << " slip ratio: " << slipRatio << std::endl;
-        //std::cout << GetEntity()->GetTag() << " slip ratio: " << slipRatio << " Fx: " << Fx << ", Fy: " << Fy << std::endl;
 	}
 
 	void Tire::OnTick()

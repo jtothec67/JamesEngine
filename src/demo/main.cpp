@@ -147,15 +147,24 @@ struct CarController : public Component
 	std::shared_ptr<Entity> rearDownforcePos;
 	std::shared_ptr<Entity> frontDownforcePos;
 
+	float dragCoefficient = 0.35f;
+	float frontalArea = 2.2f; // m^2
+
 	float maxSteeringAngle = 25.f;
 	float wheelTurnRate = 30.f;
 
-	float driveTorque = 1600.f;
+	float engineHorsepower = 550.f; // kW
+	float currentRPM = 7000;
+	float maxRPM = 7500;
+	float idleRPM = 1000;
+	int numGears = 6;
+	int currentGear = 1;
+	float gearRatios[6] = {3, 2.25, 1.75, 1.35, 1.1, 0.9};
+	float finalDrive = 3.7f;
+	float drivetrainEfficiency = 0.8f;
+
 	float frontBrakeTorque = 2000.f;
 	float rearBrakeTorque = 1350.f;
-
-	float forwardSpeed = 100000.f;
-	float turnSpeed = 1000.f;
 
 	bool lastInputController = false;
 
@@ -184,6 +193,24 @@ struct CarController : public Component
 		//
 		// SDL_CONTROLLER_AXIS_TRIGGERLEFT is the left trigger, 0 to 1
 		// Same for RIGHT
+
+		if (GetInput()->GetController()->IsButtonDown(SDL_CONTROLLER_BUTTON_X)) // Square on playstation
+		{
+			currentGear++;
+			currentGear = glm::clamp(currentGear, 1, numGears);
+		}
+
+		if (GetInput()->GetController()->IsButtonDown(SDL_CONTROLLER_BUTTON_A)) // X on playstation
+		{
+			currentGear--;
+			currentGear = glm::clamp(currentGear, 1, numGears);
+		}
+
+		float wheelAngularVelocity = RRWheelTire->GetWheelAngularVelocity();
+		float wheelRPM = glm::degrees(wheelAngularVelocity) / 6.0f;
+
+		currentRPM = wheelRPM * gearRatios[currentGear - 1] * finalDrive;
+		currentRPM = glm::clamp(currentRPM, idleRPM, maxRPM);
 
 		if (GetKeyboard()->IsKey(SDLK_h))
 		{
@@ -249,8 +276,12 @@ struct CarController : public Component
 	{
 		if (GetKeyboard()->IsKey(SDLK_u))
 		{
-			RLWheelTire->AddDriveTorque(driveTorque);
-			RRWheelTire->AddDriveTorque(driveTorque);
+			float engineTorque = (engineHorsepower * 9550) / currentRPM;
+
+			float wheelTorque = engineTorque * gearRatios[currentGear - 1] * finalDrive * drivetrainEfficiency;
+
+			RLWheelTire->AddDriveTorque(wheelTorque);
+			RRWheelTire->AddDriveTorque(wheelTorque);
 			mThrottleInput = 1;
 		}
 		else
@@ -291,8 +322,13 @@ struct CarController : public Component
 
 		if (!GetKeyboard()->IsKey(SDLK_u) && !GetKeyboard()->IsKey(SDLK_j))
 		{
-			RLWheelTire->AddDriveTorque(throttleTrigger * driveTorque);
-			RRWheelTire->AddDriveTorque(throttleTrigger * driveTorque);
+			float engineTorque = (engineHorsepower * 9550) / currentRPM;
+			engineTorque = glm::min(engineTorque, 750.f) * throttleTrigger;
+
+			float wheelTorque = engineTorque * gearRatios[currentGear - 1] * finalDrive * drivetrainEfficiency;
+
+			RLWheelTire->AddDriveTorque(wheelTorque);
+			RRWheelTire->AddDriveTorque(wheelTorque);
 			mThrottleInput = throttleTrigger;
 
 			FLWheelTire->AddBrakeTorque(brakeTrigger * frontBrakeTorque);
@@ -302,32 +338,33 @@ struct CarController : public Component
 			mBrakeInput = brakeTrigger;
 		}
 
-		// Get forward and down directions from car's transform
+		// Downforce
 		glm::vec3 forward = GetEntity()->GetComponent<Transform>()->GetForward();
 		glm::vec3 down = -GetEntity()->GetComponent<Transform>()->GetUp();
 
-		// Project velocity onto forward direction to get forward speed
 		float forwardSpeed = glm::dot(rb->GetVelocity(), forward);
 
-		// Ensure forwardSpeed is non-negative for square
 		forwardSpeed = std::max(0.0f, forwardSpeed);
 
-		// Compute downforce scaling factor
 		float speedRatio = forwardSpeed / referenceSpeed;
 		float scale = speedRatio * speedRatio;
 
-		// Compute actual downforces in car's down direction
 		glm::vec3 rearDownforce = down * (rearDownforceAt200 * scale);
 		glm::vec3 frontDownforce = down * (frontDownforceAt200 * scale);
 
-		// Apply them to the car at rear and front downforce positions
 		rb->ApplyForce(rearDownforce, rearDownforcePos->GetComponent<Transform>()->GetPosition());
 		rb->ApplyForce(frontDownforce, frontDownforcePos->GetComponent<Transform>()->GetPosition());
 
-		/*std::cout << "Rear downforce: " << rearDownforce.x << ", " << rearDownforce.y << ", " << rearDownforce.z << std::endl;
-		std::cout << "Front downforce: " << frontDownforce.x << ", " << frontDownforce.y << ", " << frontDownforce.z << std::endl;
-		std::cout << "Rear downforce magnitude: " << glm::length(rearDownforce) << std::endl;
-		std::cout << "Front downforce magnitude: " << glm::length(frontDownforce) << std::endl;*/
+		// Drag
+		glm::vec3 velocity = rb->GetVelocity();
+		float speed = glm::length(velocity);
+
+		glm::vec3 dragDirection = -glm::normalize(velocity);
+		float airDensity = 1.225f;
+
+		float dragForceMag = 0.5f * airDensity * speed * speed * dragCoefficient * frontalArea;
+		glm::vec3 dragForce = dragDirection * dragForceMag;
+		rb->AddForce(dragForce);
 	}
 
 	void OnGUI()
@@ -351,8 +388,9 @@ struct CarController : public Component
 		float speed = glm::dot(rb->GetVelocity(), GetEntity()->GetComponent<Transform>()->GetForward());
 		GetGUI()->Text(vec2(width / 2, 100), 40, vec3(0, 0, 0), std::to_string((int)(speed * 3.6)), GetCore()->GetResources()->Load<Font>("fonts/munro"));
 
-		//GetGUI()->Text(vec2(300, 300), 40, vec3(0, 0, 0), std::to_string(mThrottleInput), GetCore()->GetResources()->Load<Font>("fonts/munro"));
-		//GetGUI()->Text(vec2(300, 100), 40, vec3(0, 0, 0), std::to_string(mBrakeInput), GetCore()->GetResources()->Load<Font>("fonts/munro"));
+		float redValue = (currentRPM - idleRPM) / (maxRPM - idleRPM);
+		GetGUI()->Text(vec2(width - 200, 200), 100, vec3(redValue, 0, 0), std::to_string(currentGear), GetCore()->GetResources()->Load<Font>("fonts/munro"));
+		GetGUI()->Text(vec2(width - 200, 100), 50, vec3(redValue, 0, 0), std::to_string((int)(currentRPM)), GetCore()->GetResources()->Load<Font>("fonts/munro"));
 	}
 };
 
@@ -414,17 +452,18 @@ int main()
 	{
 
 		TireParams tyreParams;
-		tyreParams.brushLongStiffCoeff = 60;
-		tyreParams.brushLatStiffCoeff = 80;
+		tyreParams.brushLongStiffCoeff = 80;
+		tyreParams.brushLatStiffCoeff = 20;
 
 		tyreParams.peakFrictionCoefficient = 2.f;
 		tyreParams.tireRadius = 0.34f;
 		tyreParams.wheelMass = 25.f;
+		tyreParams.rollingResistance = 0.015f;
 
-		float FStiffness = 30000;
+		float FStiffness = 50000;
 		float FDamping = 7000;
 
-		float RStiffness = 40000;
+		float RStiffness = 60000;
 		float RDamping = 7000;
 
 		core->GetSkybox()->SetTexture(core->GetResources()->Load<SkyboxTexture>("skyboxes/sky"));
@@ -444,14 +483,13 @@ int main()
 		std::shared_ptr<Entity> cockpitCamEntity = core->AddEntity();
 		std::shared_ptr<Camera> cockpitCam = cockpitCamEntity->AddComponent<Camera>();
 		cockpitCam->SetPriority(1);
-		cockpitCam->SetFov(90.f);
+		//cockpitCam->SetFov(60.f);
 		cockpitCamEntity->GetComponent<Transform>()->SetPosition(vec3(0.371884, 0.62567, -0.148032));
 		cockpitCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
 
 		std::shared_ptr<Entity> bonnetCamEntity = core->AddEntity();
 		std::shared_ptr<Camera> bonnetCam = bonnetCamEntity->AddComponent<Camera>();
 		bonnetCam->SetPriority(1);
-		bonnetCam->SetFov(60.f);
 		bonnetCamEntity->GetComponent<Transform>()->SetPosition(vec3(0, 0.767, 0.39));
 		bonnetCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
 
