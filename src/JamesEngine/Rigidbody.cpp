@@ -92,27 +92,30 @@ namespace JamesEngine
 				}
 				else // We are rigidbody, other isn't
 				{
-					Move(penetrationDepth * collisionNormal);
-
-					ApplyImpulseResponseStatic(collisionNormal, collisionPoint);
-
-					if (std::dynamic_pointer_cast<RayCollider>(ourCollider))
+					if (!mIsStatic)
 					{
-						glm::vec3 velocityAtPoint = mVelocity;
+						Move(penetrationDepth * collisionNormal);
 
-						// Project velocity onto normal
-						float normalVelocity = glm::dot(velocityAtPoint, collisionNormal);
+						ApplyImpulseResponseStatic(collisionNormal, collisionPoint);
 
-						if (normalVelocity < 0.0f) // Only if moving into the surface
+						if (std::dynamic_pointer_cast<RayCollider>(ourCollider))
 						{
-							float restitution = GetRestitution();
+							glm::vec3 velocityAtPoint = mVelocity;
 
-							float impulseMagnitude = -(1.0f + restitution) * normalVelocity;
-							impulseMagnitude /= 1.f / GetMass();
+							// Project velocity onto normal
+							float normalVelocity = glm::dot(velocityAtPoint, collisionNormal);
 
-							glm::vec3 impulse = impulseMagnitude * collisionNormal;
+							if (normalVelocity < 0.0f) // Only if moving into the surface
+							{
+								float restitution = GetRestitution();
 
-							ApplyImpulse(impulse);
+								float impulseMagnitude = -(1.0f + restitution) * normalVelocity;
+								impulseMagnitude /= 1.f / GetMass();
+
+								glm::vec3 impulse = impulseMagnitude * collisionNormal;
+
+								ApplyImpulse(impulse);
+							}
 						}
 					}
 				}

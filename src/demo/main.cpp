@@ -147,16 +147,16 @@ struct CarController : public Component
 	std::shared_ptr<Entity> rearDownforcePos;
 	std::shared_ptr<Entity> frontDownforcePos;
 
-	float dragCoefficient = 0.35f;
+	float dragCoefficient = 1.35f;
 	float frontalArea = 2.2f; // m^2
 
 	float maxSteeringAngle = 25.f;
 	float wheelTurnRate = 30.f;
 
-	float engineHorsepower = 550.f; // kW
+	float enginePeakPowerkW = 550.f; // kW
 	float currentRPM = 7000;
 	float maxRPM = 7500;
-	float idleRPM = 1000;
+	float idleRPM = 500;
 	int numGears = 6;
 	int currentGear = 1;
 	float gearRatios[6] = {3, 2.25, 1.75, 1.35, 1.1, 0.9};
@@ -182,7 +182,7 @@ struct CarController : public Component
 
 	// Downforce
 	float rearDownforceAt200 = 6000.0f; // Newtons at 200 km/h
-	float frontDownforceAt200 = 3500.0f; // Newtons at 200 km/h
+	float frontDownforceAt200 = 5500.0f; // Newtons at 200 km/h
 	float referenceSpeed = 200.0f / 3.6f; // Convert km/h to m/s
 
 	void OnTick()
@@ -276,7 +276,21 @@ struct CarController : public Component
 	{
 		if (GetKeyboard()->IsKey(SDLK_u))
 		{
-			float engineTorque = (engineHorsepower * 9550) / currentRPM;
+			// Normalized power shape (0.0 to 1.0 across RPM)
+			float rpmNorm = glm::clamp((currentRPM - idleRPM) / (maxRPM - idleRPM), 0.0f, 1.0f);
+
+			// Power curve shape (cubic ease-in)
+			float powerFraction = glm::clamp((rpmNorm * rpmNorm) * (3.0f - 2.0f * rpmNorm), 0.027f, 1.0f);
+
+			float actualPowerKW = enginePeakPowerkW * powerFraction;
+
+			float engineTorque = (actualPowerKW * 9550.0f) / currentRPM;
+
+			if (engineTorque > 750.0f)
+				engineTorque = 750.0f;
+
+			if (currentRPM >= maxRPM)
+				engineTorque = 0.0f;
 
 			float wheelTorque = engineTorque * gearRatios[currentGear - 1] * finalDrive * drivetrainEfficiency;
 
@@ -322,8 +336,22 @@ struct CarController : public Component
 
 		if (!GetKeyboard()->IsKey(SDLK_u) && !GetKeyboard()->IsKey(SDLK_j))
 		{
-			float engineTorque = (engineHorsepower * 9550) / currentRPM;
-			engineTorque = glm::min(engineTorque, 750.f) * throttleTrigger;
+			// Normalized power shape (0.0 to 1.0 across RPM)
+			float rpmNorm = glm::clamp((currentRPM - idleRPM) / (maxRPM - idleRPM), 0.0f, 1.0f);
+
+			// Power curve shape (cubic ease-in)
+			float powerFraction = glm::clamp((rpmNorm * rpmNorm) * (3.0f - 2.0f * rpmNorm), 0.027f, 1.0f);
+
+			float actualPowerKW = enginePeakPowerkW * powerFraction;
+
+			float engineTorque = (actualPowerKW * 9550.0f) / currentRPM;
+			engineTorque *= throttleTrigger;
+
+			if (engineTorque > 750.0f)
+				engineTorque = 750.0f;
+
+			if (currentRPM >= maxRPM)
+				engineTorque = 0.0f;
 
 			float wheelTorque = engineTorque * gearRatios[currentGear - 1] * finalDrive * drivetrainEfficiency;
 
@@ -452,8 +480,8 @@ int main()
 	{
 
 		TireParams tyreParams;
-		tyreParams.brushLongStiffCoeff = 80;
-		tyreParams.brushLatStiffCoeff = 20;
+		tyreParams.brushLongStiffCoeff = 70;
+		tyreParams.brushLatStiffCoeff = 60;
 
 		tyreParams.peakFrictionCoefficient = 2.f;
 		tyreParams.tireRadius = 0.34f;

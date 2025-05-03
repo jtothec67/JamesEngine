@@ -366,7 +366,12 @@ namespace JamesEngine
                 {
                     weightedNormal += contactNormals[i];// *penetrationDepths[i]; // Weight by depth
                 }
-                weightedNormal = glm::normalize(-weightedNormal);
+                float len = glm::length(weightedNormal);
+                if (len > 1e-6f)
+                    weightedNormal = glm::normalize(-weightedNormal);
+                else
+                    // fallback: just use the first contact normal
+                    weightedNormal = contactNormals[0];
 
                 glm::vec3 localNormal = glm::vec3(invBoxRotMatrix * glm::vec4(weightedNormal, 0.0f));
                 glm::vec3 supportLocal;

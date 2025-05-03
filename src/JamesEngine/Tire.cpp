@@ -74,7 +74,9 @@ namespace JamesEngine
         float epsilon = 0.01f;
         float denominator = std::max(std::fabs(wheelCircumferentialSpeed), std::fabs(Vx));
         float slipRatio = (Vx - wheelCircumferentialSpeed) / denominator;
-        float slipAngle = std::atan2(Vy, std::fabs(Vx));
+        float VxClamped = std::max(std::fabs(Vx), 0.5f);
+        float slipAngle = std::atan2(Vy, VxClamped);
+
 
         // Vertical load
 		float suspensionCompression = mSuspension->GetCompression();
@@ -106,6 +108,10 @@ namespace JamesEngine
             // Elastic region (we have grip)
             Fx = -longStiff * slipRatio;
             Fy = -latStiff * glm::tan(slipAngle);
+
+            // Clamp individual forces to stay within the grip circle
+            Fx = glm::clamp(Fx, -Fmax, Fmax);
+            Fy = glm::clamp(Fy, -Fmax, Fmax);
         }
         else
         {
@@ -130,8 +136,6 @@ namespace JamesEngine
 
         glm::vec3 rollingResistanceForce = rollingResistanceDir * mTireParams.rollingResistance * Fz;
         mCarRb->ApplyForce(rollingResistanceForce, anchorPos);
-
-		std::cout << GetEntity()->GetTag() << " rolling resistance: " << rollingResistanceForce.x << ", " << rollingResistanceForce.y << ", " << rollingResistanceForce.z << std::endl;
 
         // Update Simulated Wheel Angular Velocity
         float roadTorque = -Fx * mTireParams.tireRadius;
