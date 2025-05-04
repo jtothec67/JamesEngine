@@ -147,7 +147,7 @@ struct CarController : public Component
 	std::shared_ptr<Entity> rearDownforcePos;
 	std::shared_ptr<Entity> frontDownforcePos;
 
-	float dragCoefficient = 1.35f;
+	float dragCoefficient = 0.35f;
 	float frontalArea = 2.2f; // m^2
 
 	float maxSteeringAngle = 25.f;
@@ -155,8 +155,8 @@ struct CarController : public Component
 
 	float enginePeakPowerkW = 550.f; // kW
 	float currentRPM = 7000;
-	float maxRPM = 7500;
-	float idleRPM = 500;
+	float maxRPM = 8000;
+	float idleRPM = 1000;
 	int numGears = 6;
 	int currentGear = 1;
 	float gearRatios[6] = {3, 2.25, 1.75, 1.35, 1.1, 0.9};
@@ -185,6 +185,15 @@ struct CarController : public Component
 	float frontDownforceAt200 = 5500.0f; // Newtons at 200 km/h
 	float referenceSpeed = 200.0f / 3.6f; // Convert km/h to m/s
 
+	std::shared_ptr<AudioSource> engineAudioSource;
+
+	void OnAlive()
+	{
+		engineAudioSource = GetEntity()->AddComponent<AudioSource>();
+		engineAudioSource->SetSound(GetCore()->GetResources()->Load<Sound>("sounds/engine sample"));
+		engineAudioSource->SetLooping(true);
+	}
+
 	void OnTick()
 	{
 		// SDL_CONTROLLER_AXIS_LEFTX is the left stick X axis, -1 left to 1 right
@@ -211,6 +220,21 @@ struct CarController : public Component
 
 		currentRPM = wheelRPM * gearRatios[currentGear - 1] * finalDrive;
 		currentRPM = glm::clamp(currentRPM, idleRPM, maxRPM);
+
+		float minPitch = 0.5f;
+		float maxPitch = 1.3f;
+
+		if (currentRPM < 6000)
+		{
+			float t = (currentRPM - idleRPM) / (6000 - idleRPM);
+			engineAudioSource->SetPitch(minPitch + t * (1.0f - minPitch));
+		}
+		else
+		{
+			float t = (currentRPM - 6000) / (maxRPM - 6000);
+			engineAudioSource->SetPitch(1.0f + t * (maxPitch - 1.0f));
+		}
+		
 
 		if (GetKeyboard()->IsKey(SDLK_h))
 		{
@@ -294,8 +318,8 @@ struct CarController : public Component
 
 			float wheelTorque = engineTorque * gearRatios[currentGear - 1] * finalDrive * drivetrainEfficiency;
 
-			RLWheelTire->AddDriveTorque(wheelTorque);
-			RRWheelTire->AddDriveTorque(wheelTorque);
+			RLWheelTire->AddDriveTorque(wheelTorque / 2);
+			RRWheelTire->AddDriveTorque(wheelTorque / 2);
 			mThrottleInput = 1;
 		}
 		else
@@ -355,8 +379,8 @@ struct CarController : public Component
 
 			float wheelTorque = engineTorque * gearRatios[currentGear - 1] * finalDrive * drivetrainEfficiency;
 
-			RLWheelTire->AddDriveTorque(wheelTorque);
-			RRWheelTire->AddDriveTorque(wheelTorque);
+			RLWheelTire->AddDriveTorque(wheelTorque / 2);
+			RRWheelTire->AddDriveTorque(wheelTorque / 2);
 			mThrottleInput = throttleTrigger;
 
 			FLWheelTire->AddBrakeTorque(brakeTrigger * frontBrakeTorque);
@@ -479,14 +503,23 @@ int main()
 	// Scope to ensure the entities aren't being held in main if they're destroyed
 	{
 
-		TireParams tyreParams;
-		tyreParams.brushLongStiffCoeff = 70;
-		tyreParams.brushLatStiffCoeff = 60;
+		TireParams frontTyreParams;
+		frontTyreParams.brushLongStiffCoeff = 70;
+		frontTyreParams.brushLatStiffCoeff = 50;
 
-		tyreParams.peakFrictionCoefficient = 2.f;
-		tyreParams.tireRadius = 0.34f;
-		tyreParams.wheelMass = 25.f;
-		tyreParams.rollingResistance = 0.015f;
+		frontTyreParams.peakFrictionCoefficient = 1.2f;
+		frontTyreParams.tireRadius = 0.34f;
+		frontTyreParams.wheelMass = 25.f;
+		frontTyreParams.rollingResistance = 0.015f;
+
+		TireParams rearTyreParams;
+		rearTyreParams.brushLongStiffCoeff = 70;
+		rearTyreParams.brushLatStiffCoeff = 60;
+
+		rearTyreParams.peakFrictionCoefficient = 1.5f;
+		rearTyreParams.tireRadius = 0.34f;
+		rearTyreParams.wheelMass = 25.f;
+		rearTyreParams.rollingResistance = 0.015f;
 
 		float FStiffness = 50000;
 		float FDamping = 7000;
@@ -540,6 +573,7 @@ int main()
 		track->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		std::shared_ptr<ModelRenderer> trackMR = track->AddComponent<ModelRenderer>();
 		trackMR->SetModel(core->GetResources()->Load<Model>("models/Austria/Source/austria5"));
+		//trackMR->SetModel(core->GetResources()->Load<Model>("models/Austria/Source/flatplane"));
 		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/garages_spielberg_baseColor"));
 		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/garages_spielberg_baseColor"));
 		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/road_spielberg_baseColor"));
@@ -557,6 +591,7 @@ int main()
 		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/trees_spielberg_baseColor"));
 		std::shared_ptr<ModelCollider> trackCollider = track->AddComponent<ModelCollider>();
 		trackCollider->SetModel(core->GetResources()->Load<Model>("models/Austria/Source/austria5"));
+		//trackCollider->SetModel(core->GetResources()->Load<Model>("models/Austria/Source/flatplane"));
 		trackCollider->SetDebugVisual(false);
 
 		// Start/finish line
@@ -573,6 +608,7 @@ int main()
 		std::shared_ptr<Entity> carBody = core->AddEntity();
 		carBody->SetTag("carBody");
 		carBody->GetComponent<Transform>()->SetPosition(vec3(70.0522, 18.086, -144.966));
+		//carBody->GetComponent<Transform>()->SetPosition(vec3(0, 0.35, 0));
 		carBody->GetComponent<Transform>()->SetRotation(vec3(0, 90, 0));
 		carBody->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
 		std::shared_ptr<ModelRenderer> mercedesMR = carBody->AddComponent<ModelRenderer>();
@@ -694,7 +730,7 @@ int main()
 		std::shared_ptr<Tire> FLWheelTire = FLWheel->AddComponent<Tire>();
 		FLWheelTire->SetCarBody(carBody);
 		FLWheelTire->SetAnchorPoint(FLWheelAnchor);
-		FLWheelTire->SetTireParams(tyreParams);
+		FLWheelTire->SetTireParams(frontTyreParams);
 		FLWheelTire->SetInitialRotationOffset(vec3(0, 90, 0));
 
 		// Front Right Wheel
@@ -727,7 +763,7 @@ int main()
 		std::shared_ptr<Tire> FRWheelTire = FRWheel->AddComponent<Tire>();
 		FRWheelTire->SetCarBody(carBody);
 		FRWheelTire->SetAnchorPoint(FRWheelAnchor);
-		FRWheelTire->SetTireParams(tyreParams);
+		FRWheelTire->SetTireParams(frontTyreParams);
 		FRWheelTire->SetInitialRotationOffset(vec3(0, -90, 0));
 
 		// Rear Left Wheel
@@ -760,7 +796,7 @@ int main()
 		std::shared_ptr<Tire> RLWheelTire = RLWheel->AddComponent<Tire>();
 		RLWheelTire->SetCarBody(carBody);
 		RLWheelTire->SetAnchorPoint(RLWheelAnchor);
-		RLWheelTire->SetTireParams(tyreParams);
+		RLWheelTire->SetTireParams(rearTyreParams);
 		RLWheelTire->SetInitialRotationOffset(vec3(0, 90, 0));
 
 		// Rear Right Wheel
@@ -793,7 +829,7 @@ int main()
 		std::shared_ptr<Tire> RRWheelTire = RRWheel->AddComponent<Tire>();
 		RRWheelTire->SetCarBody(carBody);
 		RRWheelTire->SetAnchorPoint(RRWheelAnchor);
-		RRWheelTire->SetTireParams(tyreParams);
+		RRWheelTire->SetTireParams(rearTyreParams);
 		RRWheelTire->SetInitialRotationOffset(vec3(0, -90, 0));
 
 		std::shared_ptr<CarController> carController = carBody->AddComponent<CarController>();

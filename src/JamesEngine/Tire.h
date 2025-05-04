@@ -59,8 +59,9 @@ namespace JamesEngine
 
 		float mWheelRotation = 0.f;
 
-		int mLastVx = 0;
-		int mLastVy = 0;
+		glm::vec2 mLastTireForces = glm::vec2(0.f, 0.f);
+
+		float mTireDamping = 0.7f;
 
 		glm::vec3 mInitialRotationOffset = glm::vec3(0.f, 0.f, 0.f);
 	};

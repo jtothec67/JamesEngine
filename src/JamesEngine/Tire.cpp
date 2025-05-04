@@ -126,6 +126,18 @@ namespace JamesEngine
 			//std::cout << GetEntity()->GetTag() << " slip Ratio: " << slipRatio << ", Slip Angle: " << slipAngle << std::endl;
 	    }
 
+        glm::vec2 targetForce(Fx, Fy);
+
+        // Interpolate from last frame's force
+        glm::vec2 smoothedForce = glm::mix(mLastTireForces, targetForce, 1.0f - mTireDamping);
+
+        // Store for next frame
+        mLastTireForces = smoothedForce;
+
+        // Use smoothed values
+        Fx = smoothedForce.x;
+        Fy = smoothedForce.y;
+
         glm::vec3 forceWorld = projForward * Fx + projSide * Fy;
 
         // Apply force to car at the anchor point
