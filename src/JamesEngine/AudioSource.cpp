@@ -38,7 +38,7 @@ namespace JamesEngine
 	{
 		std::shared_ptr<Core> core = GetEntity()->GetCore();
 		glm::vec3 cameraPosition = core->GetCamera()->GetPosition();
-		glm::vec3 cameraForward = core->GetCamera()->GetTransform()->GetForward(); // Assuming you have a method to get the forward vector
+		glm::vec3 cameraForward = core->GetCamera()->GetTransform()->GetForward();
 		glm::vec3 cameraUp = core->GetCamera()->GetTransform()->GetUp();
 
 		alListener3f(AL_POSITION, cameraPosition.x, cameraPosition.y, cameraPosition.z);

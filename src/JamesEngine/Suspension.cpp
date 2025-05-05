@@ -155,7 +155,7 @@ namespace JamesEngine
 		// Sets the position of the wheel to be the same as the anchor point
         glm::vec3 anchorPos = mAnchorPoint->GetComponent<Transform>()->GetPosition();
         mWheel->GetComponent<Transform>()->SetPosition(anchorPos);
-		//std::cout << GetEntity()->GetTag() << " anchor pos: " << anchorPos.x << ", " << anchorPos.y << ", " << anchorPos.z << std::endl;
+		std::cout << GetEntity()->GetTag() << " anchor pos: " << anchorPos.x << ", " << anchorPos.y << ", " << anchorPos.z << std::endl;
 		//std::cout << "car position : " << mCarBody->GetComponent<Transform>()->GetPosition().x << ", " << mCarBody->GetComponent<Transform>()->GetPosition().y << ", " << mCarBody->GetComponent<Transform>()->GetPosition().z << std::endl;
 
 		// Sets the wheel rotation based on the steering angle

@@ -22,17 +22,17 @@ struct freelookCamController : public Component
 		else
 			speed = normalSpeed;
 
-		if (GetKeyboard()->IsKey(SDLK_w))
+		if (GetKeyboard()->IsKey(SDLK_u))
 			GetTransform()->Move(-GetTransform()->GetForward() * speed);// * GetCore()->DeltaTime());
-		if (GetKeyboard()->IsKey(SDLK_s))
+		if (GetKeyboard()->IsKey(SDLK_j))
 			GetTransform()->Move(GetTransform()->GetForward() * speed);// * GetCore()->DeltaTime());
-		if (GetKeyboard()->IsKey(SDLK_a))
+		if (GetKeyboard()->IsKey(SDLK_h))
 			GetTransform()->Move(GetTransform()->GetRight() * speed);// * GetCore()->DeltaTime());
-		if (GetKeyboard()->IsKey(SDLK_d))
+		if (GetKeyboard()->IsKey(SDLK_k))
 			GetTransform()->Move(-GetTransform()->GetRight() * speed);// * GetCore()->DeltaTime());
-		if (GetKeyboard()->IsKey(SDLK_q))
+		if (GetKeyboard()->IsKey(SDLK_y))
 			GetTransform()->Move(-GetTransform()->GetUp() * speed);// * GetCore()->DeltaTime());
-		if (GetKeyboard()->IsKey(SDLK_e))
+		if (GetKeyboard()->IsKey(SDLK_i))
 			GetTransform()->Move(GetTransform()->GetUp() * speed);// * GetCore()->DeltaTime());
 		if (GetKeyboard()->IsKey(SDLK_UP))
 			GetTransform()->Rotate(vec3(sensitivity, 0, 0));// * GetCore()->DeltaTime(), 0, 0));
@@ -43,11 +43,11 @@ struct freelookCamController : public Component
 		if (GetKeyboard()->IsKey(SDLK_RIGHT))
 			GetTransform()->Rotate(vec3(0, -sensitivity, 0));// * GetCore()->DeltaTime(), 0));
 
-		if (GetKeyboard()->IsKeyDown(SDLK_o))
+		if (GetKeyboard()->IsKeyDown(SDLK_b))
 		{
 			GetCore()->SetTimeScale(0.1);
 		}
-		else if (GetKeyboard()->IsKeyDown(SDLK_p))
+		else if (GetKeyboard()->IsKeyDown(SDLK_n))
 		{
 			GetCore()->SetTimeScale(1);
 		}
@@ -203,27 +203,30 @@ struct CarController : public Component
 		// SDL_CONTROLLER_AXIS_TRIGGERLEFT is the left trigger, 0 to 1
 		// Same for RIGHT
 
-		if (GetInput()->GetController()->IsButtonDown(SDL_CONTROLLER_BUTTON_X)) // Square on playstation
+		// Upshift
+		if (GetInput()->GetController()->IsButtonDown(SDL_CONTROLLER_BUTTON_X) || GetKeyboard()->IsKeyDown(SDLK_p)) // Square on playstation
 		{
 			currentGear++;
 			currentGear = glm::clamp(currentGear, 1, numGears);
 		}
 
-		if (GetInput()->GetController()->IsButtonDown(SDL_CONTROLLER_BUTTON_A)) // X on playstation
+		//Downshift
+		if (GetInput()->GetController()->IsButtonDown(SDL_CONTROLLER_BUTTON_A) || GetKeyboard()->IsKeyDown(SDLK_o)) // X on playstation
 		{
 			currentGear--;
 			currentGear = glm::clamp(currentGear, 1, numGears);
 		}
 
+		// Calculate current engine RPM
 		float wheelAngularVelocity = RRWheelTire->GetWheelAngularVelocity();
 		float wheelRPM = glm::degrees(wheelAngularVelocity) / 6.0f;
 
 		currentRPM = wheelRPM * gearRatios[currentGear - 1] * finalDrive;
 		currentRPM = glm::clamp(currentRPM, idleRPM, maxRPM);
 
+		// Change engine sound pitch based on RPM
 		float minPitch = 0.5f;
 		float maxPitch = 1.3f;
-
 		if (currentRPM < 6000)
 		{
 			float t = (currentRPM - idleRPM) / (6000 - idleRPM);
@@ -235,8 +238,8 @@ struct CarController : public Component
 			engineAudioSource->SetPitch(1.0f + t * (maxPitch - 1.0f));
 		}
 		
-
-		if (GetKeyboard()->IsKey(SDLK_h))
+		// Steer left keyboard
+		if (GetKeyboard()->IsKey(SDLK_a))
 		{
 			FLWheelSuspension->SetSteeringAngle(maxSteeringAngle);
 			FRWheelSuspension->SetSteeringAngle(maxSteeringAngle);
@@ -244,7 +247,8 @@ struct CarController : public Component
 			lastInputController = false;
 		}
 
-		if (GetKeyboard()->IsKey(SDLK_k))
+		// Steer right keyboard
+		if (GetKeyboard()->IsKey(SDLK_d))
 		{
 			FLWheelSuspension->SetSteeringAngle(-maxSteeringAngle);
 			FRWheelSuspension->SetSteeringAngle(-maxSteeringAngle);
@@ -252,13 +256,15 @@ struct CarController : public Component
 			lastInputController = false;
 		}
 
-		if (!lastInputController && !GetKeyboard()->IsKey(SDLK_k) && !GetKeyboard()->IsKey(SDLK_h))
+		// Not on controller and not holding a key, don't steer
+		if (!lastInputController && !GetKeyboard()->IsKey(SDLK_d) && !GetKeyboard()->IsKey(SDLK_a))
 		{
 			FLWheelSuspension->SetSteeringAngle(0);
 			FRWheelSuspension->SetSteeringAngle(0);
 			mSteerInput = 0;
 		}
 
+		// Get steer angle from controller
 		float leftStickX = GetInput()->GetController()->GetAxis(SDL_CONTROLLER_AXIS_LEFTX);
 		
 		// Remap from [deadzone, 1] to [0, 1]
@@ -269,7 +275,9 @@ struct CarController : public Component
 			deadzonedX = 0.f;
 
 		float steerAngle = -maxSteeringAngle * deadzonedX;
-		if (!GetKeyboard()->IsKey(SDLK_h) && !GetKeyboard()->IsKey(SDLK_k))
+
+		// If no keyboard input, steer with controller angle
+		if (!GetKeyboard()->IsKey(SDLK_a) && !GetKeyboard()->IsKey(SDLK_d))
 		{
 			FLWheelSuspension->SetSteeringAngle(steerAngle);
 			FRWheelSuspension->SetSteeringAngle(steerAngle);
@@ -277,6 +285,7 @@ struct CarController : public Component
 			lastInputController = true;
 		}
 
+		// Reset car
 		if (GetKeyboard()->IsKey(SDLK_SPACE))
 		{
 			SetPosition(vec3(70.0522, 18.086, -144.966));
@@ -291,14 +300,11 @@ struct CarController : public Component
 
 			GetCore()->FindComponent<StartFinishLine>()->onALap = false;
 		}
-
-		//std::cout << "Car forward speed: " << glm::dot(rb->GetVelocity(), GetTransform()->GetForward()) << std::endl;
-		//std::cout << "Positioinn: " << GetTransform()->GetPosition().x << ", " << GetTransform()->GetPosition().y << ", " << GetTransform()->GetPosition().z << std::endl;
 	}
 
 	void OnFixedTick()
 	{
-		if (GetKeyboard()->IsKey(SDLK_u))
+		if (GetKeyboard()->IsKey(SDLK_w))
 		{
 			// Normalized power shape (0.0 to 1.0 across RPM)
 			float rpmNorm = glm::clamp((currentRPM - idleRPM) / (maxRPM - idleRPM), 0.0f, 1.0f);
@@ -310,8 +316,11 @@ struct CarController : public Component
 
 			float engineTorque = (actualPowerKW * 9550.0f) / currentRPM;
 
-			if (engineTorque > 750.0f)
-				engineTorque = 750.0f;
+			if (currentGear == 1 && currentRPM < 3000.0f)
+			{
+				float boost = glm::smoothstep(1000.0f, 3000.0f, currentRPM);
+				engineTorque *= glm::mix(2.f, 1.f, boost);
+			}
 
 			if (currentRPM >= maxRPM)
 				engineTorque = 0.0f;
@@ -325,7 +334,7 @@ struct CarController : public Component
 		else
 			mThrottleInput = 0;
 
-		if (GetKeyboard()->IsKey(SDLK_j))
+		if (GetKeyboard()->IsKey(SDLK_s))
 		{
 			FLWheelTire->AddBrakeTorque(frontBrakeTorque);
 			FRWheelTire->AddBrakeTorque(frontBrakeTorque);
@@ -336,6 +345,7 @@ struct CarController : public Component
 		else
 			mBrakeInput = 0;
 
+		// Get controller throttle input
 		float throttleTrigger = GetInput()->GetController()->GetAxis(SDL_CONTROLLER_AXIS_TRIGGERRIGHT);
 		if (throttleTrigger < mThrottleDeadZone)
 			throttleTrigger = 0.f;
@@ -347,6 +357,7 @@ struct CarController : public Component
 				throttleTrigger = (throttleTrigger - mThrottleDeadZone) / (mThrottleMaxInput - mThrottleDeadZone);
 		}
 
+		// Get controller brake input
 		float brakeTrigger = GetInput()->GetController()->GetAxis(SDL_CONTROLLER_AXIS_TRIGGERLEFT);
 		if (brakeTrigger < mBrakeDeadZone)
 			brakeTrigger = 0.0f;
@@ -358,8 +369,9 @@ struct CarController : public Component
 				brakeTrigger = (brakeTrigger - mBrakeDeadZone) / (mBrakeMaxInput - mBrakeDeadZone);
 		}
 
-		if (!GetKeyboard()->IsKey(SDLK_u) && !GetKeyboard()->IsKey(SDLK_j))
+		if (!GetKeyboard()->IsKey(SDLK_w) && !GetKeyboard()->IsKey(SDLK_s))
 		{
+			// Calculate engine torque
 			// Normalized power shape (0.0 to 1.0 across RPM)
 			float rpmNorm = glm::clamp((currentRPM - idleRPM) / (maxRPM - idleRPM), 0.0f, 1.0f);
 
@@ -370,19 +382,23 @@ struct CarController : public Component
 
 			float engineTorque = (actualPowerKW * 9550.0f) / currentRPM;
 			engineTorque *= throttleTrigger;
-
-			if (engineTorque > 750.0f)
-				engineTorque = 750.0f;
-
+			if (currentGear == 1 && currentRPM < 3000.0f)
+			{
+				float boost = glm::smoothstep(1000.0f, 3000.0f, currentRPM);
+				engineTorque *= glm::mix(2.f, 1.f, boost);
+			}
 			if (currentRPM >= maxRPM)
 				engineTorque = 0.0f;
 
+			// Convert engine torque to wheel torque
 			float wheelTorque = engineTorque * gearRatios[currentGear - 1] * finalDrive * drivetrainEfficiency;
 
+			// Apply wheel torque (/2 split between 2 wheels)
 			RLWheelTire->AddDriveTorque(wheelTorque / 2);
 			RRWheelTire->AddDriveTorque(wheelTorque / 2);
 			mThrottleInput = throttleTrigger;
 
+			// Apply brake torque
 			FLWheelTire->AddBrakeTorque(brakeTrigger * frontBrakeTorque);
 			FRWheelTire->AddBrakeTorque(brakeTrigger * frontBrakeTorque);
 			RLWheelTire->AddBrakeTorque(brakeTrigger * rearBrakeTorque);
@@ -390,7 +406,7 @@ struct CarController : public Component
 			mBrakeInput = brakeTrigger;
 		}
 
-		// Downforce
+		// Add downforce
 		glm::vec3 forward = GetEntity()->GetComponent<Transform>()->GetForward();
 		glm::vec3 down = -GetEntity()->GetComponent<Transform>()->GetUp();
 
@@ -407,7 +423,7 @@ struct CarController : public Component
 		rb->ApplyForce(rearDownforce, rearDownforcePos->GetComponent<Transform>()->GetPosition());
 		rb->ApplyForce(frontDownforce, frontDownforcePos->GetComponent<Transform>()->GetPosition());
 
-		// Drag
+		// Add drag
 		glm::vec3 velocity = rb->GetVelocity();
 		float speed = glm::length(velocity);
 
@@ -424,25 +440,25 @@ struct CarController : public Component
 		int width, height;
 		GetCore()->GetWindow()->GetWindowSize(width, height);
 
-		GetGUI()->Image(vec2(300, 300), vec2(220, 120), GetCore()->GetResources()->Load<Texture>("images/white"));
-		GetGUI()->Image(vec2(300, 100), vec2(220, 120), GetCore()->GetResources()->Load<Texture>("images/white"));
+		GetGUI()->Image(vec2(width / 2, 25), vec2(750, 25), GetCore()->GetResources()->Load<Texture>("images/white"));
 
-		GetGUI()->Image(vec2(width/2, 200), vec2(770, 120), GetCore()->GetResources()->Load<Texture>("images/white"));
+		float normalized = (currentRPM - 6000) / (maxRPM - 6000);
+		float revBlend = glm::clamp(normalized, 0.0f, 1.0f);
+		GetGUI()->BlendImage(vec2(width / 2, 200), vec2(750, 100), GetCore()->GetResources()->Load<Texture>("images/white"), GetCore()->GetResources()->Load<Texture>("images/senegal"), revBlend);
+
+		GetGUI()->BlendImage(vec2(150, 175), vec2(200, 75), GetCore()->GetResources()->Load<Texture>("images/white"), GetCore()->GetResources()->Load<Texture>("images/green"), mThrottleInput);
+		GetGUI()->BlendImage(vec2(150, 75), vec2(200, 75), GetCore()->GetResources()->Load<Texture>("images/white"), GetCore()->GetResources()->Load<Texture>("images/red"), mBrakeInput);
 
 		if (mSteerInput > 0)
-			GetGUI()->BlendImage(vec2((width / 2) - 750/4, 200), vec2(750/2, 100), GetCore()->GetResources()->Load<Texture>("images/black"), GetCore()->GetResources()->Load<Texture>("images/transparent"), 1 - (mSteerInput / maxSteeringAngle));
+			GetGUI()->BlendImage(vec2((width / 2) - 750 / 4, 25), vec2(750 / 2, 25), GetCore()->GetResources()->Load<Texture>("images/black"), GetCore()->GetResources()->Load<Texture>("images/white"), 1 - (mSteerInput / maxSteeringAngle));
 		else if (mSteerInput < 0)
-			GetGUI()->BlendImage(vec2((width / 2) + 750 / 4, 200), vec2(750 / 2, 100), GetCore()->GetResources()->Load<Texture>("images/transparent"), GetCore()->GetResources()->Load<Texture>("images/black"), (mSteerInput / -maxSteeringAngle));
+			GetGUI()->BlendImage(vec2((width / 2) + 750 / 4, 25), vec2((750 / 2) + 2, 25), GetCore()->GetResources()->Load<Texture>("images/white"), GetCore()->GetResources()->Load<Texture>("images/black"), (mSteerInput / -maxSteeringAngle));
 
-		GetGUI()->BlendImage(vec2(300, 300), vec2(200, 100), GetCore()->GetResources()->Load<Texture>("images/transparent"), GetCore()->GetResources()->Load<Texture>("images/green"), mThrottleInput);
-		GetGUI()->BlendImage(vec2(300, 100), vec2(200, 100), GetCore()->GetResources()->Load<Texture>("images/transparent"), GetCore()->GetResources()->Load<Texture>("images/red"), mBrakeInput);
-	
 		float speed = glm::dot(rb->GetVelocity(), GetEntity()->GetComponent<Transform>()->GetForward());
-		GetGUI()->Text(vec2(width / 2, 100), 40, vec3(0, 0, 0), std::to_string((int)(speed * 3.6)), GetCore()->GetResources()->Load<Font>("fonts/munro"));
+		GetGUI()->Text(vec2(width - 200, 100), 100, vec3(1, 1, 1), std::to_string((int)(speed * 3.6)), GetCore()->GetResources()->Load<Font>("fonts/munro"));
 
-		float redValue = (currentRPM - idleRPM) / (maxRPM - idleRPM);
-		GetGUI()->Text(vec2(width - 200, 200), 100, vec3(redValue, 0, 0), std::to_string(currentGear), GetCore()->GetResources()->Load<Font>("fonts/munro"));
-		GetGUI()->Text(vec2(width - 200, 100), 50, vec3(redValue, 0, 0), std::to_string((int)(currentRPM)), GetCore()->GetResources()->Load<Font>("fonts/munro"));
+		GetGUI()->Text(vec2(width / 2, 100), 75, vec3(1, 1, 1), std::to_string(currentGear), GetCore()->GetResources()->Load<Font>("fonts/munro"));
+		GetGUI()->Text(vec2((width / 2) + 100, 75), 50, vec3(1, 1, 1), std::to_string((int)(currentRPM)), GetCore()->GetResources()->Load<Font>("fonts/munro"));
 	}
 };
 
@@ -505,7 +521,7 @@ int main()
 
 		TireParams frontTyreParams;
 		frontTyreParams.brushLongStiffCoeff = 70;
-		frontTyreParams.brushLatStiffCoeff = 50;
+		frontTyreParams.brushLatStiffCoeff = 60;
 
 		frontTyreParams.peakFrictionCoefficient = 1.2f;
 		frontTyreParams.tireRadius = 0.34f;
@@ -516,7 +532,7 @@ int main()
 		rearTyreParams.brushLongStiffCoeff = 70;
 		rearTyreParams.brushLatStiffCoeff = 60;
 
-		rearTyreParams.peakFrictionCoefficient = 1.5f;
+		rearTyreParams.peakFrictionCoefficient = 1.9f;
 		rearTyreParams.tireRadius = 0.34f;
 		rearTyreParams.wheelMass = 25.f;
 		rearTyreParams.rollingResistance = 0.015f;
@@ -643,7 +659,7 @@ int main()
 		mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_37"));
 		mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_37"));
 		mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_39"));
-		mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/mirrors"));
+		mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/black"));
 		std::shared_ptr<BoxCollider> carBodyCollider = carBody->AddComponent<BoxCollider>();
 		carBodyCollider->SetSize(vec3(1.97, 0.9, 4.52));
 		carBodyCollider->SetPositionOffset(vec3(0, 0.37, 0.22));
