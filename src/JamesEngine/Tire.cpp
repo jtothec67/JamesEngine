@@ -50,7 +50,6 @@ namespace JamesEngine
 
         glm::vec3 anchorPos = anchorTransform->GetPosition();
 
-        // Use velocity of car at anchor point instead of wheel rigidbody
         glm::vec3 carVel = mCarRb->GetVelocityAtPoint(anchorPos);
 
         glm::vec3 tireForward = glm::normalize(wheelTransform->GetForward());
@@ -77,9 +76,9 @@ namespace JamesEngine
         float VxClamped = std::max(std::fabs(Vx), 0.5f);
         float slipAngle = std::atan2(Vy, VxClamped);
 
-
         // Vertical load
-		float suspensionCompression = mSuspension->GetCompression();
+		float suspensionCompression = mSuspension->GetCompression() - 0.048; // Hardcoded front wheel suspension rest length
+        //std::cout << GetEntity()->GetTag() << " compression: " << suspensionCompression << std::endl;
         float baseWeight = mCarRb->GetMass() / 4.0f * 9.81f;
 
         // Weight transfer coefficient (how much load shifts with suspension movement)
@@ -122,8 +121,9 @@ namespace JamesEngine
             Fx = Fmax * (forceRatioX / gamma);
             Fy = Fmax * (forceRatioY / gamma);
 
-			//std::cout << GetEntity()->GetTag() << "Tire is sliding! Fx: " << Fx << ", Fy: " << Fy << std::endl;
+			//std::cout << GetEntity()->GetTag() << " tire is sliding! Fx: " << Fx << ", Fy: " << Fy << std::endl;
 			//std::cout << GetEntity()->GetTag() << " slip Ratio: " << slipRatio << ", Slip Angle: " << slipAngle << std::endl;
+			//std::cout << GetEntity()->GetTag() << " gamma difference: " << gamma - Fmax << std::endl;
 	    }
 
         glm::vec2 targetForce(Fx, Fy);
@@ -142,6 +142,7 @@ namespace JamesEngine
 
         // Apply force to car at the anchor point
         mCarRb->ApplyForce(forceWorld, anchorPos);
+		//std::cout << GetEntity()->GetTag() << " tire force: " << forceWorld.x << ", " << forceWorld.y << ", " << forceWorld.z << std::endl;
 
         // RollingResistance
         glm::vec3 rollingResistanceDir = -glm::normalize(carVel);

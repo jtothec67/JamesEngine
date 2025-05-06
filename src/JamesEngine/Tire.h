@@ -61,7 +61,7 @@ namespace JamesEngine
 
 		glm::vec2 mLastTireForces = glm::vec2(0.f, 0.f);
 
-		float mTireDamping = 0.7f;
+		float mTireDamping = 0.0f;
 
 		glm::vec3 mInitialRotationOffset = glm::vec3(0.f, 0.f, 0.f);
 	};
