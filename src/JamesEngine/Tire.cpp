@@ -77,7 +77,7 @@ namespace JamesEngine
         float slipAngle = std::atan2(Vy, VxClamped);
 
         // Vertical load
-		float suspensionCompression = mSuspension->GetCompression() - 0.048; // Hardcoded front wheel suspension rest length
+        float suspensionCompression = mSuspension->GetCompression() - 0.03; // Hardcoded front wheel suspension rest length
         //std::cout << GetEntity()->GetTag() << " compression: " << suspensionCompression << std::endl;
         float baseWeight = mCarRb->GetMass() / 4.0f * 9.81f;
 
@@ -141,14 +141,14 @@ namespace JamesEngine
         glm::vec3 forceWorld = projForward * Fx + projSide * Fy;
 
         // Apply force to car at the anchor point
-        mCarRb->ApplyForce(forceWorld, anchorPos);
+        mCarRb->ApplyForce(forceWorld, mTireContactPoint);
 		//std::cout << GetEntity()->GetTag() << " tire force: " << forceWorld.x << ", " << forceWorld.y << ", " << forceWorld.z << std::endl;
 
         // RollingResistance
         glm::vec3 rollingResistanceDir = -glm::normalize(carVel);
 
         glm::vec3 rollingResistanceForce = rollingResistanceDir * mTireParams.rollingResistance * Fz;
-        mCarRb->ApplyForce(rollingResistanceForce, anchorPos);
+        mCarRb->ApplyForce(rollingResistanceForce, mTireContactPoint);
 
         // Update Simulated Wheel Angular Velocity
         float roadTorque = -Fx * mTireParams.tireRadius;

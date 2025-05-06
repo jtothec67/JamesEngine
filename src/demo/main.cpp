@@ -147,7 +147,7 @@ struct CarController : public Component
 	std::shared_ptr<Entity> rearDownforcePos;
 	std::shared_ptr<Entity> frontDownforcePos;
 
-	float dragCoefficient = 0.35f;
+	float dragCoefficient = 0.6f;
 	float frontalArea = 2.2f; // m^2
 
 	float maxSteeringAngle = 25.f;
@@ -672,11 +672,11 @@ int main()
 		rearTyreParams.wheelMass = 25.f;
 		rearTyreParams.rollingResistance = 0.015f;
 
-		float FStiffness = 50000;
-		float FDamping = 7000;
+		float FStiffness = 70000;
+		float FDamping = 12500;
 
-		float RStiffness = 60000;
-		float RDamping = 7000;
+		float RStiffness = 50000;
+		float RDamping = 20000;
 
 		core->GetSkybox()->SetTexture(core->GetResources()->Load<SkyboxTexture>("skyboxes/sky"));
 
@@ -763,7 +763,6 @@ int main()
 		carBody->GetComponent<Transform>()->SetRotation(vec3(0, 90, 0));
 		carBody->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
 		std::shared_ptr<ModelRenderer> mercedesMR = carBody->AddComponent<ModelRenderer>();
-		//mercedesMR->SetPositionOffset(vec3(0, 0.3, 0));
 		mercedesMR->SetRotationOffset(vec3(0, 180, 0));
 		mercedesMR->SetModel(core->GetResources()->Load<Model>("models/Mercedes/source/mercedes"));
 		mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_0"));

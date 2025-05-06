@@ -140,6 +140,8 @@ namespace JamesEngine
         // Spring and damping
         float springForce = mStiffness * mCompression;
         float velocityMagnitude = std::abs(relativeVelocity);
+        float effectiveDamping = mDamping + mHighSpeedDampingFactor * std::abs(glm::length(pointVelocity));
+		//std::cout << GetEntity()->GetTag() << " effective damping: " << effectiveDamping << std::endl;
         float dampingForce = -mDamping * (glm::sign(mCompression) * relativeVelocity);
 
         glm::vec3 totalForce = suspensionDirection * (springForce + dampingForce);

@@ -61,6 +61,7 @@ namespace JamesEngine
 
 		float mStiffness = 500;
 		float mDamping = 50;
+		float mHighSpeedDampingFactor = 500.f;
 
 		bool mGroundContact = false;
 		float mHitDistance = 0.0f;

@@ -34,6 +34,10 @@ namespace JamesEngine
 
 		void SetTireParams(const TireParams& _tireParams) { mTireParams = _tireParams; }
 
+		void SetTireContactPoint(const glm::vec3& _contactPoint) { mTireContactPoint = _contactPoint; }
+
+		void SetTireDamping(float _damping) { mTireDamping = _damping; }
+
 		void SetInitialRotationOffset(const glm::vec3& _offset) { mInitialRotationOffset = _offset; }
 
 		void SetWheelAngularVelocity(float _angularVelocity) { mWheelAngularVelocity = _angularVelocity; }
@@ -54,6 +58,8 @@ namespace JamesEngine
 
 		float mDriveTorque = 0.f;
 		float mBrakeTorque = 0.f;
+
+		glm::vec3 mTireContactPoint = glm::vec3(0.f, 0.f, 0.f);
 
 		float mWheelAngularVelocity = 0.f;
 

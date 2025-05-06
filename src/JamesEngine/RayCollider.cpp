@@ -192,6 +192,12 @@ namespace JamesEngine
                     sus->SetSurfaceNormal(hitNormal);
                 }
 
+				std::shared_ptr<Tire> tire = GetEntity()->GetComponent<Tire>();
+				if (tire)
+				{
+					tire->SetTireContactPoint(hitPoint);
+				}
+
                 return true;
             }
         }
