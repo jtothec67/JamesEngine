@@ -43,6 +43,10 @@ namespace JamesEngine
 		void SetWheelAngularVelocity(float _angularVelocity) { mWheelAngularVelocity = _angularVelocity; }
 		float GetWheelAngularVelocity() const { return mWheelAngularVelocity; }
 
+		void IsSliding(bool _isSliding) { mIsSliding = _isSliding; }
+
+		float GetSlidingAmount();
+
 	private:
 		void BrushTireModel();
 
@@ -68,6 +72,8 @@ namespace JamesEngine
 		glm::vec2 mLastTireForces = glm::vec2(0.f, 0.f);
 
 		float mTireDamping = 0.0f;
+
+		bool mIsSliding = false;
 
 		glm::vec3 mInitialRotationOffset = glm::vec3(0.f, 0.f, 0.f);
 	};

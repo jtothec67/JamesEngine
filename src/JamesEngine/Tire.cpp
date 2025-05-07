@@ -41,7 +41,10 @@ namespace JamesEngine
 	void Tire::BrushTireModel()
 	{
         if (!mSuspension->GetCollision())
+        {
+			mIsSliding = false;
             return;
+        }
 
         float dt = GetCore()->FixedDeltaTime();
 
@@ -111,6 +114,8 @@ namespace JamesEngine
             // Clamp individual forces to stay within the grip circle
             Fx = glm::clamp(Fx, -Fmax, Fmax);
             Fy = glm::clamp(Fy, -Fmax, Fmax);
+
+			mIsSliding = false;
         }
         else
         {
@@ -120,6 +125,8 @@ namespace JamesEngine
 
             Fx = Fmax * (forceRatioX / gamma);
             Fy = Fmax * (forceRatioY / gamma);
+
+			mIsSliding = true;
 
 			//std::cout << GetEntity()->GetTag() << " tire is sliding! Fx: " << Fx << ", Fy: " << Fy << std::endl;
 			//std::cout << GetEntity()->GetTag() << " slip Ratio: " << slipRatio << ", Slip Angle: " << slipAngle << std::endl;
@@ -200,5 +207,14 @@ namespace JamesEngine
         glm::vec3 modelRotationOffset = glm::vec3(mWheelRotation, 0.0f, 0.0f) + mInitialRotationOffset;
         GetEntity()->GetComponent<ModelRenderer>()->SetRotationOffset(modelRotationOffset);
 	}
+
+    float Tire::GetSlidingAmount()
+    {
+        if (mIsSliding)
+        {
+            return glm::length(mCarRb->GetVelocityAtPoint(mTireContactPoint) - mCarRb->GetVelocity());
+        }
+        return 0.f;
+    }
 
 }

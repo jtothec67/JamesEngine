@@ -16,7 +16,6 @@ namespace JamesEngine
 
         void Update();
 
-        /// Button queries
         bool IsButton(int button) const;
         bool IsButtonDown(int button) const;
         bool IsButtonUp(int button) const;
@@ -24,6 +23,8 @@ namespace JamesEngine
         float GetAxis(int axis) const;
 
         bool IsConnected() const { return mController != nullptr; }
+
+        void SetRumble(float lowFreqStrength, float highFreqStrength, float _duration);
 
     private:
         friend class Input;

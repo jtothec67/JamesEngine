@@ -55,6 +55,8 @@ struct freelookCamController : public Component
 		{
 			GetCore()->SetTimeScale(0);
 		}
+
+		//std::cout << "Camera position: " << GetTransform()->GetPosition().x << ", " << GetTransform()->GetPosition().y << ", " << GetTransform()->GetPosition().z << std::endl;
 	}
 };
 
@@ -173,7 +175,7 @@ struct CarController : public Component
 	float mThrottleMaxInput = 0.62f;
 	float mThrottleDeadZone = 0.05f;
 
-	float mBrakeMaxInput = 0.79f;
+	float mBrakeMaxInput = 0.77f;
 	float mBrakeDeadZone = 0.05f;
 
 	float mThrottleInput = 0.f;
@@ -288,8 +290,8 @@ struct CarController : public Component
 		// Reset car
 		if (GetKeyboard()->IsKey(SDLK_SPACE))
 		{
-			SetPosition(vec3(70.0522, 18.086, -144.966));
-			SetRotation(vec3(0, 90, 0));
+			SetPosition(vec3(647.479, -65.4695, -252.504));
+			SetRotation(vec3(177.438, 48.71, -179.937));
 			rb->SetVelocity(vec3(0, 0, 0));
 			rb->SetAngularVelocity(vec3(0, 0, 0));
 			rb->SetAngularMomentum(vec3(0, 0, 0));
@@ -304,6 +306,15 @@ struct CarController : public Component
 
 	void OnFixedTick()
 	{
+		float FLSlide = glm::clamp(FLWheelTire->GetSlidingAmount(), 0.5f, 1.f);
+		float FRSlide = glm::clamp(FRWheelTire->GetSlidingAmount(), 0.5f, 1.f);
+		float RLSlide = glm::clamp(RLWheelTire->GetSlidingAmount(), 0.5f, 1.f);
+		float RRSlide = glm::clamp(RRWheelTire->GetSlidingAmount(), 0.5f, 1.f);
+
+		float lowFreq = FLSlide + FRSlide + RLSlide + RRSlide;
+
+		GetInput()->GetController()->SetRumble((lowFreq / 4)-0.5f, 0, GetCore()->FixedDeltaTime());
+
 		if (GetKeyboard()->IsKey(SDLK_w))
 		{
 			// Normalized power shape (0.0 to 1.0 across RPM)
@@ -384,9 +395,10 @@ struct CarController : public Component
 			engineTorque *= throttleTrigger;
 			if (currentGear == 1 && currentRPM < 3000.0f)
 			{
-				float boost = glm::smoothstep(1000.0f, 3000.0f, currentRPM);
-				engineTorque *= glm::mix(2.f, 1.f, boost);
+				float boost = glm::smoothstep(1000.0f, 5000.0f, currentRPM);
+				engineTorque *= glm::mix(4.f, 1.f, boost);
 			}
+
 			if (currentRPM >= maxRPM)
 				engineTorque = 0.0f;
 
@@ -658,7 +670,7 @@ int main()
 		frontTyreParams.brushLongStiffCoeff = 70;
 		frontTyreParams.brushLatStiffCoeff = 60;
 
-		frontTyreParams.peakFrictionCoefficient = 1.3f;
+		frontTyreParams.peakFrictionCoefficient = 1.5f;
 		frontTyreParams.tireRadius = 0.34f;
 		frontTyreParams.wheelMass = 25.f;
 		frontTyreParams.rollingResistance = 0.015f;
@@ -680,15 +692,15 @@ int main()
 
 		core->GetSkybox()->SetTexture(core->GetResources()->Load<SkyboxTexture>("skyboxes/sky"));
 
-		core->GetLightManager()->AddLight("light1", vec3(0, 20, 0), vec3(1, 1, 1), 1.f);
-		core->GetLightManager()->SetAmbient(vec3(1.f));
+		core->GetLightManager()->AddLight("light1", vec3(0, 200, 0), vec3(1, 1, 1), 1.f);
+		core->GetLightManager()->SetAmbient(vec3(0.3f));
 
 		// Cameras
 		std::shared_ptr<Entity> freeCamEntity = core->AddEntity();
 		std::shared_ptr<Camera> freeCam = freeCamEntity->AddComponent<Camera>();
 		freeCam->SetPriority(10);
-		freeCamEntity->GetComponent<Transform>()->SetPosition(vec3(-5, 1, -0));
-		freeCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, -90, 0));
+		freeCamEntity->GetComponent<Transform>()->SetPosition(vec3(204.75, -84.9107, -384.765));
+		freeCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		freeCamEntity->AddComponent<CameraController>();
 		freeCamEntity->AddComponent<freelookCamController>();
 
@@ -717,41 +729,101 @@ int main()
 		wheelCamEntity->GetComponent<Transform>()->SetPosition(vec3(-1.36, 0.246, -1.63));
 		wheelCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 183.735, 0));
 
-		// Track
+		//// Track, Austria
+		//std::shared_ptr<Entity> track = core->AddEntity();
+		//track->SetTag("track");
+		//track->GetComponent<Transform>()->SetPosition(vec3(0, 0, 0));
+		//track->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
+		//std::shared_ptr<ModelRenderer> trackMR = track->AddComponent<ModelRenderer>();
+		//trackMR->SetModel(core->GetResources()->Load<Model>("models/Austria/Source/austria5"));
+		////trackMR->SetModel(core->GetResources()->Load<Model>("models/Austria/Source/flatplane"));
+		//trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/garages_spielberg_baseColor"));
+		//trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/garages_spielberg_baseColor"));
+		//trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/road_spielberg_baseColor"));
+		//trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/grass_spielberg_baseColor"));
+		//trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/tarmac_dirty_spielberg_baseColor"));
+		//trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/SPIELBERG_baseColor"));
+		//trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/runoff_spielberg_baseColor"));
+		//trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/TARMAC_FLAG_baseColor"));
+		//trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/white"));
+		//trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/grass_2_spielberg_baseColor"));
+		//trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/fence_metal_spielberg_baseColor"));
+		//trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/barriers_spielberg_baseColor"));
+		//trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/banners_spielberg_baseColor"));
+		//trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/spielberg_sand_patches_baseColor"));
+		//trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/trees_spielberg_baseColor"));
+		//std::shared_ptr<ModelCollider> trackCollider = track->AddComponent<ModelCollider>();
+		//trackCollider->SetModel(core->GetResources()->Load<Model>("models/Austria/Source/austria5"));
+		////trackCollider->SetModel(core->GetResources()->Load<Model>("models/Austria/Source/flatplane"));
+		//trackCollider->SetDebugVisual(false);
+
+		// Track, Imola
 		std::shared_ptr<Entity> track = core->AddEntity();
 		track->SetTag("track");
 		track->GetComponent<Transform>()->SetPosition(vec3(0, 0, 0));
 		track->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		std::shared_ptr<ModelRenderer> trackMR = track->AddComponent<ModelRenderer>();
-		trackMR->SetModel(core->GetResources()->Load<Model>("models/Austria/Source/austria5"));
-		//trackMR->SetModel(core->GetResources()->Load<Model>("models/Austria/Source/flatplane"));
-		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/garages_spielberg_baseColor"));
-		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/garages_spielberg_baseColor"));
-		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/road_spielberg_baseColor"));
-		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/grass_spielberg_baseColor"));
-		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/tarmac_dirty_spielberg_baseColor"));
-		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/SPIELBERG_baseColor"));
-		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/runoff_spielberg_baseColor"));
-		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/TARMAC_FLAG_baseColor"));
-		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/white"));
-		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/grass_2_spielberg_baseColor"));
-		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/fence_metal_spielberg_baseColor"));
-		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/barriers_spielberg_baseColor"));
-		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/banners_spielberg_baseColor"));
-		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/spielberg_sand_patches_baseColor"));
-		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Austria/Textures/trees_spielberg_baseColor"));
+		trackMR->SetModel(core->GetResources()->Load<Model>("models/Imola/Source/Imola6"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/grey"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/env_ext"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/external"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/Grass001_2K_Color"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/buildings"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/buildings"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/pink"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/green"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/curb2"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/green"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/bridges-b"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/white"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/blue"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/VideoCAMERA"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/commissario_NEW"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/objects1"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/numbers"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/seatext"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/sponsors"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/marks"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/asph-pitlane"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/beige"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/curb-no-alpha"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/asph-old-no-alpha"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/Flag_8"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/Flag_7"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/Flag_2"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/Flag_6"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/Flag_5"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/Flag_4"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/Flag_3"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/Flag_1"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/crowd1"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/People_00"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/quinte"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/gstands"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/buildings"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/ivy"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/gstands"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/testgroove2"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/green"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/DRIVER_Suit2"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/DRIVER_Face"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/grey"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/trees2"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/trees"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/fences"));
+		trackMR->SetSpecularStrength(0.f);
+		//trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/fences"));
 		std::shared_ptr<ModelCollider> trackCollider = track->AddComponent<ModelCollider>();
-		trackCollider->SetModel(core->GetResources()->Load<Model>("models/Austria/Source/austria5"));
-		//trackCollider->SetModel(core->GetResources()->Load<Model>("models/Austria/Source/flatplane"));
+		trackCollider->SetModel(core->GetResources()->Load<Model>("models/Imola/Source/Imola6"));
 		trackCollider->SetDebugVisual(false);
 
 		// Start/finish line
 		std::shared_ptr<Entity> startFinishLine = core->AddEntity();
 		startFinishLine->SetTag("startFinishLine");
-		startFinishLine->GetComponent<Transform>()->SetPosition(vec3(-31.07, 0.489, 3));
-		startFinishLine->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
+		startFinishLine->GetComponent<Transform>()->SetPosition(vec3(204.75, -84.9107, -384.765));
+		startFinishLine->GetComponent<Transform>()->SetRotation(vec3(0, 1, 0));
 		std::shared_ptr<BoxCollider> startFinishLineCollider = startFinishLine->AddComponent<BoxCollider>();
-		startFinishLineCollider->SetSize(vec3(0.1, 6, 35));
+		startFinishLineCollider->SetSize(vec3(0.1, 6, 60));
 		startFinishLineCollider->IsTrigger(true);
 		std::shared_ptr <StartFinishLine> startFinishLineComponent = startFinishLine->AddComponent<StartFinishLine>();
 
@@ -759,8 +831,8 @@ int main()
 		std::shared_ptr<Entity> carBody = core->AddEntity();
 		carBody->SetTag("carBody");
 		//carBody->GetComponent<Transform>()->SetPosition(vec3(70.0522, 18.086, -144.966));
-		carBody->GetComponent<Transform>()->SetPosition(vec3(0, 0.35, 0));
-		carBody->GetComponent<Transform>()->SetRotation(vec3(0, 90, 0));
+		carBody->GetComponent<Transform>()->SetPosition(vec3(647.479, -65.4695, -252.504));
+		carBody->GetComponent<Transform>()->SetRotation(vec3(177.438, 48.71, -179.937));
 		carBody->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
 		std::shared_ptr<ModelRenderer> mercedesMR = carBody->AddComponent<ModelRenderer>();
 		mercedesMR->SetRotationOffset(vec3(0, 180, 0));

@@ -66,6 +66,7 @@ namespace JamesEngine
         if (mController)
         {
             std::cout << "Controller disconnected" << std::endl;
+            SDL_GameControllerRumble(mController, 0, 0, 0);
             SDL_GameControllerClose(mController);
             mController = nullptr;
             mButtons.clear();
@@ -74,5 +75,15 @@ namespace JamesEngine
             mAxisValues.fill(0);
         }
     }
+
+	void Controller::SetRumble(float _lowFreqStrength, float _highFreqStrength, float _deltaTime)
+	{
+		if (mController)
+		{
+            Uint32 durationMs = static_cast<Uint32>(_deltaTime * 1000.0f);
+
+			SDL_GameControllerRumble(mController, static_cast<Uint16>(_lowFreqStrength * 65535), static_cast<Uint16>(_highFreqStrength * 65535), durationMs);
+		}
+	}
 
 }
