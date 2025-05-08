@@ -119,49 +119,51 @@ namespace JamesEngine
 
     void Suspension::OnFixedTick()
     {
+        // Sets the position of the wheel to be the same as the anchor point
+        glm::vec3 anchorPos = mAnchorPoint->GetComponent<Transform>()->GetPosition();
+        mWheel->GetComponent<Transform>()->SetPosition(anchorPos);
+
+        // Compute wheel model offset based on contact or full suspension travel
         float offsetDistance = mWheelRadius - (mGroundContact ? mHitDistance : mSuspensionTravel);
 
+        // Apply visual offset to wheel model
         glm::vec3 modelOffsetLocal(0.0f, offsetDistance, 0.0f);
         mWheel->GetComponent<ModelRenderer>()->SetPositionOffset(modelOffsetLocal);
 
+        // If wheel is not touching ground, no suspension force
         if (!mGroundContact)
             return;
 
+        // Determine suspension direction from anchor transform
         std::shared_ptr<Transform> anchorTransform = mAnchorPoint->GetComponent<Transform>();
         glm::vec3 suspensionDirection = glm::normalize(anchorTransform->GetUp());
 
+		// Calculate compression ratio of suspension, 0 at ideal height, 1 at max compression
         mCompression = (mWheelRadius - mHitDistance) / mSuspensionTravel;
-		//std::cout << GetEntity()->GetTag() << " compression: " << mCompression << std::endl;
 
-        // Get point velocity
+        // Get velocity of wheel anchor point along suspension axis
         glm::vec3 pointVelocity = mCarRb->GetVelocityAtPoint(anchorTransform->GetPosition());
         float relativeVelocity = glm::dot(pointVelocity, suspensionDirection);
 
-        // Spring and damping
+        // Compute spring force from stiffness and compression
         float springForce = mStiffness * mCompression;
-        float velocityMagnitude = std::abs(relativeVelocity);
-        float effectiveDamping = mDamping + mHighSpeedDampingFactor * std::abs(glm::length(pointVelocity));
-		//std::cout << GetEntity()->GetTag() << " effective damping: " << effectiveDamping << std::endl;
+
+		// Compute damping force based on velocity and compression
         float dampingForce = -mDamping * (glm::sign(mCompression) * relativeVelocity);
 
+        // Apply combined spring and damping force to chassis
         glm::vec3 totalForce = suspensionDirection * (springForce + dampingForce);
         mCarRb->ApplyForce(totalForce, anchorTransform->GetPosition());
-		//std::cout << GetEntity()->GetTag() << " suspension force: " << totalForce.x << ", " << totalForce.y << ", " << totalForce.z << std::endl;
     }
 
 	void Suspension::OnLateFixedTick()
 	{
+		// Reset ground contact state for next frame
         mGroundContact = false;
 	}
 
     void Suspension::OnTick()
     {
-		// Sets the position of the wheel to be the same as the anchor point
-        glm::vec3 anchorPos = mAnchorPoint->GetComponent<Transform>()->GetPosition();
-        mWheel->GetComponent<Transform>()->SetPosition(anchorPos);
-		//std::cout << GetEntity()->GetTag() << " anchor pos: " << anchorPos.x << ", " << anchorPos.y << ", " << anchorPos.z << std::endl;
-		//std::cout << "car position : " << mCarBody->GetComponent<Transform>()->GetPosition().x << ", " << mCarBody->GetComponent<Transform>()->GetPosition().y << ", " << mCarBody->GetComponent<Transform>()->GetPosition().z << std::endl;
-
 		// Sets the wheel rotation based on the steering angle
         glm::quat anchorRotationQuat = mAnchorPoint->GetComponent<Transform>()->GetWorldRotation();
         glm::quat steeringQuat = glm::angleAxis(glm::radians(mSteeringAngle), glm::vec3(0.0f, 1.0f, 0.0f));

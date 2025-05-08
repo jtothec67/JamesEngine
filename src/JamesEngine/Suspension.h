@@ -61,7 +61,6 @@ namespace JamesEngine
 
 		float mStiffness = 500;
 		float mDamping = 50;
-		float mHighSpeedDampingFactor = 500.f;
 
 		bool mGroundContact = false;
 		float mHitDistance = 0.0f;
@@ -72,8 +71,6 @@ namespace JamesEngine
 		float mWheelRadius = 0.34f;
 
 		float  mRestLength = 0;
-
-		float mExtensionPullStrength = 0.2f;
 
 		glm::vec3 mSurfaceNormal{ 0 };
 

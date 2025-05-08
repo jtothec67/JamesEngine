@@ -19,6 +19,7 @@ namespace Renderer
 
 		void GetSize(int& _width, int& _height) { _width = m_width; _height = m_height; }
 		bool IsSkybox() { return skybox; }
+		std::string GetPath() { return m_path; }
 
 	private:
 		GLuint m_id = 0;
@@ -29,6 +30,8 @@ namespace Renderer
 		bool m_dirty = true;
 
 		bool skybox = false;
+
+		std::string m_path = "";
 
 		std::vector<unsigned char> m_data;
 		std::vector<std::string> m_syboxFaces;

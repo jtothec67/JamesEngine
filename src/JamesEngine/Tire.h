@@ -18,6 +18,7 @@ namespace JamesEngine
 
 	class Rigidbody;
 	class Suspension;
+	class AudioSource;
 
 	class Tire : public Component
 	{
@@ -35,8 +36,6 @@ namespace JamesEngine
 		void SetTireParams(const TireParams& _tireParams) { mTireParams = _tireParams; }
 
 		void SetTireContactPoint(const glm::vec3& _contactPoint) { mTireContactPoint = _contactPoint; }
-
-		void SetTireDamping(float _damping) { mTireDamping = _damping; }
 
 		void SetInitialRotationOffset(const glm::vec3& _offset) { mInitialRotationOffset = _offset; }
 
@@ -58,6 +57,8 @@ namespace JamesEngine
 
 		std::shared_ptr<Suspension> mSuspension;
 
+		std::shared_ptr<AudioSource> mAudioSource;
+
 		TireParams mTireParams;
 
 		float mDriveTorque = 0.f;
@@ -69,11 +70,9 @@ namespace JamesEngine
 
 		float mWheelRotation = 0.f;
 
-		glm::vec2 mLastTireForces = glm::vec2(0.f, 0.f);
-
-		float mTireDamping = 0.0f;
-
 		bool mIsSliding = false;
+
+		bool mIsLocked = false;
 
 		glm::vec3 mInitialRotationOffset = glm::vec3(0.f, 0.f, 0.f);
 	};

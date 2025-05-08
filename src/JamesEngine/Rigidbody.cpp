@@ -32,7 +32,7 @@ namespace JamesEngine
 		if (!mIsStatic)
 		{
 			// Step 1: Compute each of the forces acting on the object (only gravity by default)
-			glm::vec3 force = mMass * mAcceleration;// *GetCore()->FixedDeltaTime();
+			glm::vec3 force = mMass * mAcceleration;
 			AddForce(force);
 		}
 

@@ -6,12 +6,18 @@
 #include "Rigidbody.h"
 #include "Suspension.h"
 #include "ModelRenderer.h"
+#include "AudioSource.h"
+#include "Resources.h"
 
 namespace JamesEngine
 {
 
     void Tire::OnAlive()
     {
+        mAudioSource = GetEntity()->AddComponent<AudioSource>();
+		mAudioSource->SetSound(GetCore()->GetResources()->Load<Sound>("sounds/tire screech"));
+		mAudioSource->SetLooping(true);
+
 		if (!mCarBody || !mAnchorPoint)
 		{
 			std::cout << "Tire component is missing a car body or anchor point" << std::endl;
@@ -40,155 +46,178 @@ namespace JamesEngine
 
 	void Tire::BrushTireModel()
 	{
+        float dt = GetCore()->FixedDeltaTime();
+
+        // If wheel is off the ground, don't do tire model, just deal with inputs
         if (!mSuspension->GetCollision())
         {
-			mIsSliding = false;
+            mIsSliding = false;
+
+            float netTorque = mDriveTorque;
+
+            if (mBrakeTorque > 0.0f)
+            {
+                float brakeDirection = -glm::sign(mWheelAngularVelocity);
+                float resistingTorque = brakeDirection * mBrakeTorque;
+
+                // Only apply brake torque if it's resisting the current spin
+                if (glm::sign(resistingTorque) == -glm::sign(mWheelAngularVelocity))
+                {
+                    netTorque += resistingTorque;
+                }
+            }
+
+            // Slow wheel down when in air (simple damping)
+            float wheelDampingCoeff = 2.f;
+            float dragTorque = -wheelDampingCoeff * mWheelAngularVelocity;
+            netTorque += dragTorque;
+
+            // Compute inertia and angular acceleration
+            float r = mTireParams.tireRadius;
+            float inertia = 0.5f * (mTireParams.wheelMass * 10) * r * r;
+            float angularAcceleration = netTorque / inertia;
+            mWheelAngularVelocity += angularAcceleration * dt;
+
+            // Reset drive and brake torques, silence audio
+            mDriveTorque = 0.0f;
+            mBrakeTorque = 0.0f;
+            mAudioSource->SetGain(0.0f);
+
             return;
         }
 
-        float dt = GetCore()->FixedDeltaTime();
+        // Compute vehicle velocity at contact
+        glm::vec3 carVel = mCarRb->GetVelocityAtPoint(mTireContactPoint);
 
-        auto wheelTransform = GetEntity()->GetComponent<Transform>();
-        auto anchorTransform = mAnchorPoint->GetComponent<Transform>();
-
-        glm::vec3 anchorPos = anchorTransform->GetPosition();
-
-        glm::vec3 carVel = mCarRb->GetVelocityAtPoint(anchorPos);
-
-        glm::vec3 tireForward = glm::normalize(wheelTransform->GetForward());
-
+        // Build contact plane basis vectors
+        glm::vec3 tireForward = glm::normalize(GetEntity()->GetComponent<Transform>()->GetForward());
         auto ProjectOntoPlane = [&](const glm::vec3& vec, const glm::vec3& n) -> glm::vec3 {
             return vec - n * glm::dot(vec, n);
             };
-
         glm::vec3 surfaceNormal = mSuspension->GetSurfaceNormal();
-
         glm::vec3 projForward = glm::normalize(ProjectOntoPlane(tireForward, surfaceNormal));
         glm::vec3 projSide = glm::normalize(glm::cross(surfaceNormal, projForward));
         glm::vec3 projVelocity = ProjectOntoPlane(carVel, surfaceNormal);
 
+		// Decompose velocity into longitudinal and lateral (Vx long, Vy lat)
         float Vx = glm::dot(projVelocity, projForward);
         float Vy = glm::dot(projVelocity, projSide);
 
-        // Use stored angular velocity instead of rigidbody angular velocity
+        // Compute slip ratio and angle based on wheel rotation and ground speed
         float wheelCircumferentialSpeed = mWheelAngularVelocity * mTireParams.tireRadius;
-
-        float epsilon = 0.01f;
         float denominator = std::max(std::fabs(wheelCircumferentialSpeed), std::fabs(Vx));
         float slipRatio = (Vx - wheelCircumferentialSpeed) / denominator;
         float VxClamped = std::max(std::fabs(Vx), 0.5f);
         float slipAngle = std::atan2(Vy, VxClamped);
 
-        // Vertical load
-        float suspensionCompression = mSuspension->GetCompression() - 0.03; // Hardcoded front wheel suspension rest length
-        //std::cout << GetEntity()->GetTag() << " compression: " << suspensionCompression << std::endl;
+        // Compute vertical load from suspension compression and weight transfer
+        float suspensionCompression = mSuspension->GetCompression() - 0.03; // Hardcoded rest heigh on front wheels
         float baseWeight = mCarRb->GetMass() / 4.0f * 9.81f;
-
-        // Weight transfer coefficient (how much load shifts with suspension movement)
-        float weightTransferCoeff = 20000.0f;
+        float weightTransferCoeff = 20000.0f; // Arbitrary value
         float additionalLoad = suspensionCompression * weightTransferCoeff;
-
         float Fz = baseWeight + additionalLoad;
-		//std::cout << GetEntity()->GetTag() << " Fz: " << Fz << " compression: " << suspensionCompression << std::endl;
 
+        // Determine tire stiffness and maximum friction force
         float longStiff = mTireParams.brushLongStiffCoeff * Fz;
         float latStiff = mTireParams.brushLatStiffCoeff * Fz;
 
-        // Compute gamma (combined slip deformation in tire's contact patch)
         float slipRatioSquared = (longStiff * slipRatio) * (longStiff * slipRatio);
         float slipAngleSquared = (latStiff * glm::tan(slipAngle)) * (latStiff * glm::tan(slipAngle));
         float gamma = glm::sqrt(slipAngleSquared + slipRatioSquared);
-
-        // Maximum friction force
         float Fmax = mTireParams.peakFrictionCoefficient * Fz;
-        //std::cout << GetEntity()->GetTag() << " Fmax: " << Fmax << std::endl;
 
+        // Compute friction forces and handle grip vs sliding behavior
         float Fx, Fy;
+        float maxBrakeTorqueTransferable = Fmax * mTireParams.tireRadius;
+        bool tooMuchBrake = (mBrakeTorque > maxBrakeTorqueTransferable);
 
         if (gamma < Fmax)
         {
-            // Elastic region (we have grip)
+            // Elastic (grip) region: proportional longitudinal and lateral forces
             Fx = -longStiff * slipRatio;
             Fy = -latStiff * glm::tan(slipAngle);
 
-            // Clamp individual forces to stay within the grip circle
             Fx = glm::clamp(Fx, -Fmax, Fmax);
             Fy = glm::clamp(Fy, -Fmax, Fmax);
 
-			mIsSliding = false;
+            mIsSliding = false;
         }
         else
         {
-            // Sliding region
+            // Sliding region: friction limited by Fmax
             float forceRatioX = -longStiff * slipRatio;
             float forceRatioY = -latStiff * glm::tan(slipAngle);
 
             Fx = Fmax * (forceRatioX / gamma);
             Fy = Fmax * (forceRatioY / gamma);
 
-			mIsSliding = true;
+            mIsSliding = true;
 
-			//std::cout << GetEntity()->GetTag() << " tire is sliding! Fx: " << Fx << ", Fy: " << Fy << std::endl;
-			//std::cout << GetEntity()->GetTag() << " slip Ratio: " << slipRatio << ", Slip Angle: " << slipAngle << std::endl;
-			//std::cout << GetEntity()->GetTag() << " gamma difference: " << gamma - Fmax << std::endl;
-	    }
+			// Check for excessive braking resulting in lockup
+			bool excessiveSlip = std::abs(slipRatio) > 0.175f; // Arbitrary threshold
+            if (tooMuchBrake && excessiveSlip)
+            {
+                mIsLocked = true;
+            }
+        }
 
-        glm::vec2 targetForce(Fx, Fy);
-
-        // Interpolate from last frame's force
-        glm::vec2 smoothedForce = glm::mix(mLastTireForces, targetForce, 1.0f - mTireDamping);
-
-        // Store for next frame
-        mLastTireForces = smoothedForce;
-
-        // Use smoothed values
-        Fx = smoothedForce.x;
-        Fy = smoothedForce.y;
-
+        // Convert to world space and apply tire and rolling resistance forces
         glm::vec3 forceWorld = projForward * Fx + projSide * Fy;
-
-        // Apply force to car at the anchor point
         mCarRb->ApplyForce(forceWorld, mTireContactPoint);
-		//std::cout << GetEntity()->GetTag() << " tire force: " << forceWorld.x << ", " << forceWorld.y << ", " << forceWorld.z << std::endl;
 
-        // RollingResistance
         glm::vec3 rollingResistanceDir = -glm::normalize(carVel);
-
         glm::vec3 rollingResistanceForce = rollingResistanceDir * mTireParams.rollingResistance * Fz;
         mCarRb->ApplyForce(rollingResistanceForce, mTireContactPoint);
 
-        // Update Simulated Wheel Angular Velocity
+        // Update wheel angular velocity with drive, road, and brake torques, handle lock
         float roadTorque = -Fx * mTireParams.tireRadius;
         float netTorque = mDriveTorque + roadTorque;
-
-        // Add brake torque only if it's resisting current spin
         if (mBrakeTorque > 0.0f)
         {
-            float brakeDirection = -glm::sign(mWheelAngularVelocity); // Opposes spin
+			// Apply brake torque if it's resisting spin
+            float brakeDirection = -glm::sign(mWheelAngularVelocity);
             float resistingTorque = brakeDirection * mBrakeTorque;
-
-            // Only apply brake torque if it's resisting the current spin
             if (glm::sign(resistingTorque) == -glm::sign(mWheelAngularVelocity))
             {
                 netTorque += resistingTorque;
             }
-
-            // If the wheel is nearly stopped and brake is active, hold it at 0
-            const float angularStopThreshold = 1.0f; // rad/s
-            if (std::abs(mWheelAngularVelocity) < angularStopThreshold)
-            {
-                mWheelAngularVelocity = 0.0f;
-                netTorque = 0.0f; // Don't apply any torque when clamped
-            }
         }
 
-        float r = mTireParams.tireRadius;
-        float inertia = 0.5f * (mTireParams.wheelMass * 10) * r * r;
+        if (mIsLocked)
+        {
+            // Wheel locked: no rotation and full sliding friction
+            mWheelAngularVelocity = 0.0f;
+            Fx = -mTireParams.peakFrictionCoefficient * Fz * glm::sign(Vx);
+            Fy = -mTireParams.peakFrictionCoefficient * Fz * glm::tan(slipAngle);
+            roadTorque = 0.0f;
+        }
+
+        if (mBrakeTorque <= maxBrakeTorqueTransferable || !mIsSliding)
+        {
+            mIsLocked = false;
+        }
+
+        // Compute inertia and angular acceleration
+        float inertia = 0.5f * (mTireParams.wheelMass * 10) * mTireParams.tireRadius * mTireParams.tireRadius;
         float angularAcceleration = netTorque / inertia;
         mWheelAngularVelocity += angularAcceleration * dt;
-
         mDriveTorque = 0.0f;
         mBrakeTorque = 0.0f;
+
+        // Set tire screech audio based on slip conditions
+        float tireScreechVolume = 0.0f;
+        if (mIsSliding && glm::length(carVel) > 5)
+        {
+            if (slipRatio > 0.0f)
+                tireScreechVolume = glm::clamp(slipRatio, 0.f, 1.f);
+            else
+                tireScreechVolume = glm::clamp(-slipRatio * 4, 0.f, 1.f);
+            mAudioSource->SetGain(tireScreechVolume);
+        }
+        else
+        {
+            mAudioSource->SetGain(0.0f);
+        }
 	}
 
 	void Tire::OnTick()

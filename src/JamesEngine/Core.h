@@ -162,7 +162,7 @@ namespace JamesEngine
 		// Used when loading scenes to ensure first frames don't have a large delta time
 		bool mDeltaTimeZero = true;
 		int mDeltaTimeZeroCounter = 0;
-		int mNumDeltaTimeZeros = 3;
+		int mNumDeltaTimeZeros = 2;
 	};
 
 }

@@ -13,6 +13,10 @@ namespace JamesEngine
 
 		SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER);
 
+		// Enable 4x MSAA (anti-aliasing)
+		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+
 		mRaw = SDL_CreateWindow("My Engine",
 			SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 			mWidth, mHeight,
@@ -37,6 +41,8 @@ namespace JamesEngine
 		// (using a value other than 0 on a monitor without gsync/freesync feels very slow)
 		SDL_GL_SetSwapInterval(mVSync ? 1 : 0);
 
+		glEnable(GL_MULTISAMPLE);
+		glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glEnable(GL_DEPTH_TEST);

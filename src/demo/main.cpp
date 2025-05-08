@@ -42,21 +42,6 @@ struct freelookCamController : public Component
 			GetTransform()->Rotate(vec3(0, sensitivity, 0));// * GetCore()->DeltaTime(), 0));
 		if (GetKeyboard()->IsKey(SDLK_RIGHT))
 			GetTransform()->Rotate(vec3(0, -sensitivity, 0));// * GetCore()->DeltaTime(), 0));
-
-		if (GetKeyboard()->IsKeyDown(SDLK_b))
-		{
-			GetCore()->SetTimeScale(0.1);
-		}
-		else if (GetKeyboard()->IsKeyDown(SDLK_n))
-		{
-			GetCore()->SetTimeScale(1);
-		}
-		else if (GetKeyboard()->IsKeyDown(SDLK_m))
-		{
-			GetCore()->SetTimeScale(0);
-		}
-
-		//std::cout << "Camera position: " << GetTransform()->GetPosition().x << ", " << GetTransform()->GetPosition().y << ", " << GetTransform()->GetPosition().z << std::endl;
 	}
 };
 
@@ -136,61 +121,68 @@ struct StartFinishLine : public Component
 
 struct CarController : public Component
 {
+	// Core physics and wheel components
 	std::shared_ptr<Rigidbody> rb;
-
 	std::shared_ptr<Suspension> FLWheelSuspension;
 	std::shared_ptr<Suspension> FRWheelSuspension;
-
 	std::shared_ptr<Tire> FLWheelTire;
 	std::shared_ptr<Tire> FRWheelTire;
 	std::shared_ptr<Tire> RLWheelTire;
 	std::shared_ptr<Tire> RRWheelTire;
 
+	// Downforce anchor points
 	std::shared_ptr<Entity> rearDownforcePos;
 	std::shared_ptr<Entity> frontDownforcePos;
 
+	// Aerodynamic properties
 	float dragCoefficient = 0.6f;
 	float frontalArea = 2.2f; // m^2
 
+	// Steering parameters
 	float maxSteeringAngle = 25.f;
 	float wheelTurnRate = 30.f;
 
+	// Engine and transmission parameters
 	float enginePeakPowerkW = 550.f; // kW
 	float currentRPM = 7000;
 	float maxRPM = 8000;
 	float idleRPM = 1000;
 	int numGears = 6;
 	int currentGear = 1;
-	float gearRatios[6] = {3, 2.25, 1.75, 1.35, 1.1, 0.9};
+	float gearRatios[6] = { 3, 2.25, 1.75, 1.35, 1.1, 0.9 };
 	float finalDrive = 3.7f;
 	float drivetrainEfficiency = 0.8f;
 
+	// Brake torques
 	float frontBrakeTorque = 2000.f;
 	float rearBrakeTorque = 1350.f;
 
+	// Input tracking
 	bool lastInputController = false;
 
+	// Steering and pedal deadzones and limits
 	float mSteerDeadzone = 0.1f;
-
-	float mThrottleMaxInput = 0.62f;
+	float mThrottleMaxInput = 1.f;
 	float mThrottleDeadZone = 0.05f;
-
-	float mBrakeMaxInput = 0.77f;
+	float mBrakeMaxInput = 1.f;
 	float mBrakeDeadZone = 0.05f;
 
+	// Current input values
 	float mThrottleInput = 0.f;
 	float mBrakeInput = 0.f;
 	float mSteerInput = 0.f;
 
-	// Downforce
-	float rearDownforceAt200 = 6000.0f; // Newtons at 200 km/h
-	float frontDownforceAt200 = 5500.0f; // Newtons at 200 km/h
-	float referenceSpeed = 200.0f / 3.6f; // Convert km/h to m/s
+	// Downforce settings at reference speed
+	float rearDownforceAt200 = 6000.0f; // N at 200 km/h
+	float frontDownforceAt200 = 5500.0f; // N at 200 km/h
+	float referenceSpeed = 200.0f / 3.6f; // m/s
 
+	// Engine audio
 	std::shared_ptr<AudioSource> engineAudioSource;
 
 	void OnAlive()
 	{
+		// Initialize engine audio source and looping sound
 		engineAudioSource = GetEntity()->AddComponent<AudioSource>();
 		engineAudioSource->SetSound(GetCore()->GetResources()->Load<Sound>("sounds/engine sample"));
 		engineAudioSource->SetLooping(true);
@@ -220,13 +212,13 @@ struct CarController : public Component
 		}
 
 		// Calculate current engine RPM
-		float wheelAngularVelocity = RRWheelTire->GetWheelAngularVelocity();
+		float wheelAngularVelocity = (RRWheelTire->GetWheelAngularVelocity() + RLWheelTire->GetWheelAngularVelocity()) / 2;
 		float wheelRPM = glm::degrees(wheelAngularVelocity) / 6.0f;
 
 		currentRPM = wheelRPM * gearRatios[currentGear - 1] * finalDrive;
 		currentRPM = glm::clamp(currentRPM, idleRPM, maxRPM);
 
-		// Change engine sound pitch based on RPM
+		// Change engine pitch based on RPM
 		float minPitch = 0.5f;
 		float maxPitch = 1.3f;
 		if (currentRPM < 6000)
@@ -306,6 +298,7 @@ struct CarController : public Component
 
 	void OnFixedTick()
 	{
+		// Compute slip ratio for each tire and total rumble intensity
 		float FLSlide = glm::clamp(FLWheelTire->GetSlidingAmount(), 0.5f, 1.f);
 		float FRSlide = glm::clamp(FRWheelTire->GetSlidingAmount(), 0.5f, 1.f);
 		float RLSlide = glm::clamp(RLWheelTire->GetSlidingAmount(), 0.5f, 1.f);
@@ -313,29 +306,31 @@ struct CarController : public Component
 
 		float lowFreq = FLSlide + FRSlide + RLSlide + RRSlide;
 
+		// Apply controller rumble based on average slip
 		GetInput()->GetController()->SetRumble((lowFreq / 4)-0.5f, 0, GetCore()->FixedDeltaTime());
 
+		// Keyboard throttle: compute power curve and apply drive torque
 		if (GetKeyboard()->IsKey(SDLK_w))
 		{
 			// Normalized power shape (0.0 to 1.0 across RPM)
 			float rpmNorm = glm::clamp((currentRPM - idleRPM) / (maxRPM - idleRPM), 0.0f, 1.0f);
-
 			// Power curve shape (cubic ease-in)
 			float powerFraction = glm::clamp((rpmNorm * rpmNorm) * (3.0f - 2.0f * rpmNorm), 0.027f, 1.0f);
-
 			float actualPowerKW = enginePeakPowerkW * powerFraction;
-
 			float engineTorque = (actualPowerKW * 9550.0f) / currentRPM;
 
-			if (currentGear == 1 && currentRPM < 3000.0f)
+			// First-gear torque boost at low RPM
+			if (currentGear == 1 && currentRPM < 6000.0f)
 			{
-				float boost = glm::smoothstep(1000.0f, 3000.0f, currentRPM);
-				engineTorque *= glm::mix(2.f, 1.f, boost);
+				float boost = glm::smoothstep(1000.0f, 6000.0f, currentRPM);
+				engineTorque *= glm::mix(5.f, 1.f, boost);
 			}
 
+			// Prevent torque beyond redline
 			if (currentRPM >= maxRPM)
 				engineTorque = 0.0f;
 
+			// Convert engine torque to wheel torque
 			float wheelTorque = engineTorque * gearRatios[currentGear - 1] * finalDrive * drivetrainEfficiency;
 
 			RLWheelTire->AddDriveTorque(wheelTorque / 2);
@@ -345,6 +340,7 @@ struct CarController : public Component
 		else
 			mThrottleInput = 0;
 
+		// Keyboard brake: apply brake torque to all wheels
 		if (GetKeyboard()->IsKey(SDLK_s))
 		{
 			FLWheelTire->AddBrakeTorque(frontBrakeTorque);
@@ -356,7 +352,7 @@ struct CarController : public Component
 		else
 			mBrakeInput = 0;
 
-		// Get controller throttle input
+		// Controller throttle trigger with deadzone remapping
 		float throttleTrigger = GetInput()->GetController()->GetAxis(SDL_CONTROLLER_AXIS_TRIGGERRIGHT);
 		if (throttleTrigger < mThrottleDeadZone)
 			throttleTrigger = 0.f;
@@ -368,7 +364,7 @@ struct CarController : public Component
 				throttleTrigger = (throttleTrigger - mThrottleDeadZone) / (mThrottleMaxInput - mThrottleDeadZone);
 		}
 
-		// Get controller brake input
+		// Controller brake trigger with deadzone remapping
 		float brakeTrigger = GetInput()->GetController()->GetAxis(SDL_CONTROLLER_AXIS_TRIGGERLEFT);
 		if (brakeTrigger < mBrakeDeadZone)
 			brakeTrigger = 0.0f;
@@ -380,25 +376,25 @@ struct CarController : public Component
 				brakeTrigger = (brakeTrigger - mBrakeDeadZone) / (mBrakeMaxInput - mBrakeDeadZone);
 		}
 
+		// Mixed input: apply drive and brake when no keyboard input
 		if (!GetKeyboard()->IsKey(SDLK_w) && !GetKeyboard()->IsKey(SDLK_s))
 		{
-			// Calculate engine torque
 			// Normalized power shape (0.0 to 1.0 across RPM)
 			float rpmNorm = glm::clamp((currentRPM - idleRPM) / (maxRPM - idleRPM), 0.0f, 1.0f);
-
 			// Power curve shape (cubic ease-in)
 			float powerFraction = glm::clamp((rpmNorm * rpmNorm) * (3.0f - 2.0f * rpmNorm), 0.027f, 1.0f);
-
 			float actualPowerKW = enginePeakPowerkW * powerFraction;
-
 			float engineTorque = (actualPowerKW * 9550.0f) / currentRPM;
 			engineTorque *= throttleTrigger;
-			if (currentGear == 1 && currentRPM < 3000.0f)
+
+			// First-gear torque boost at low RPM
+			if (currentGear == 1 && currentRPM < 6000.0f)
 			{
-				float boost = glm::smoothstep(1000.0f, 5000.0f, currentRPM);
-				engineTorque *= glm::mix(4.f, 1.f, boost);
+				float boost = glm::smoothstep(1000.0f, 6000.0f, currentRPM);
+				engineTorque *= glm::mix(5.f, 1.f, boost);
 			}
 
+			// Prevent torque beyond redline
 			if (currentRPM >= maxRPM)
 				engineTorque = 0.0f;
 
@@ -488,6 +484,7 @@ struct CarController : public Component
 
 		float speed = glm::dot(rb->GetVelocity(), GetEntity()->GetComponent<Transform>()->GetForward());
 		GetGUI()->Text(vec2(width - 200, 100), 100, vec3(1, 1, 1), std::to_string((int)(speed * 3.6)), GetCore()->GetResources()->Load<Font>("fonts/munro"));
+		GetGUI()->Text(vec2(width - 50, 60), 25, vec3(1, 1, 1), "km/h", GetCore()->GetResources()->Load<Font>("fonts/munro"));
 
 		GetGUI()->Text(vec2(width / 2, 100), 75, vec3(1, 1, 1), std::to_string(currentGear), GetCore()->GetResources()->Load<Font>("fonts/munro"));
 		GetGUI()->Text(vec2((width / 2) + 100, 75), 50, vec3(1, 1, 1), std::to_string((int)(currentRPM)), GetCore()->GetResources()->Load<Font>("fonts/munro"));
@@ -635,6 +632,19 @@ struct CameraController : Component
 			GetCore()->GetCamera()->SetPriority(1);
 			mCameras[mCurrentCamera]->SetPriority(10);
 		}
+
+		if (GetKeyboard()->IsKeyDown(SDLK_b))
+		{
+			GetCore()->SetTimeScale(0.1);
+		}
+		else if (GetKeyboard()->IsKeyDown(SDLK_n))
+		{
+			GetCore()->SetTimeScale(1);
+		}
+		else if (GetKeyboard()->IsKeyDown(SDLK_m))
+		{
+			GetCore()->SetTimeScale(0);
+		}
 	}
 
 	float mfpsTimer = 0.f;
@@ -692,24 +702,23 @@ int main()
 
 		core->GetSkybox()->SetTexture(core->GetResources()->Load<SkyboxTexture>("skyboxes/sky"));
 
-		core->GetLightManager()->AddLight("light1", vec3(0, 200, 0), vec3(1, 1, 1), 1.f);
-		core->GetLightManager()->SetAmbient(vec3(0.3f));
+		core->GetLightManager()->AddLight("light1", vec3(0, 20000, 0), vec3(1, 1, 1), 1.f);
+		core->GetLightManager()->SetAmbient(vec3(0.4f));
 
-		// Cameras
-		std::shared_ptr<Entity> freeCamEntity = core->AddEntity();
-		std::shared_ptr<Camera> freeCam = freeCamEntity->AddComponent<Camera>();
-		freeCam->SetPriority(10);
-		freeCamEntity->GetComponent<Transform>()->SetPosition(vec3(204.75, -84.9107, -384.765));
-		freeCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
-		freeCamEntity->AddComponent<CameraController>();
-		freeCamEntity->AddComponent<freelookCamController>();
+		//// Cameras
+		//std::shared_ptr<Entity> freeCamEntity = core->AddEntity();
+		//std::shared_ptr<Camera> freeCam = freeCamEntity->AddComponent<Camera>();
+		//freeCam->SetPriority(10);
+		//freeCamEntity->GetComponent<Transform>()->SetPosition(vec3(204.75, -84.9107, -384.765));
+		//freeCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
+		//freeCamEntity->AddComponent<freelookCamController>();
 
 		std::shared_ptr<Entity> cockpitCamEntity = core->AddEntity();
 		std::shared_ptr<Camera> cockpitCam = cockpitCamEntity->AddComponent<Camera>();
-		cockpitCam->SetPriority(1);
-		//cockpitCam->SetFov(60.f);
+		cockpitCam->SetPriority(10);
 		cockpitCamEntity->GetComponent<Transform>()->SetPosition(vec3(0.371884, 0.62567, -0.148032));
 		cockpitCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
+		cockpitCamEntity->AddComponent<CameraController>();
 
 		std::shared_ptr<Entity> bonnetCamEntity = core->AddEntity();
 		std::shared_ptr<Camera> bonnetCam = bonnetCamEntity->AddComponent<Camera>();
@@ -770,7 +779,7 @@ int main()
 		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/Grass001_2K_Color"));
 		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/buildings"));
 		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/buildings"));
-		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/pink"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/jamesengine"));
 		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/green"));
 		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/curb2"));
 		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/green"));
@@ -940,7 +949,6 @@ int main()
 		FLWheelCollider->SetDirection(vec3(0, -1, 0));
 		FLWheelCollider->SetLength(0.4);
 		std::shared_ptr<Rigidbody> FLWheelRB = FLWheel->AddComponent<Rigidbody>();
-		//FLWheelRB->SetMass(0.1);
 		FLWheelRB->SetMass(2.5);
 		FLWheelRB->LockRotation(true);
 		FLWheelRB->IsStatic(true);
@@ -973,7 +981,6 @@ int main()
 		FRWheelCollider->SetDirection(vec3(0, -1, 0));
 		FRWheelCollider->SetLength(0.4);
 		std::shared_ptr<Rigidbody> FRWheelRB = FRWheel->AddComponent<Rigidbody>();
-		//FRWheelRB->SetMass(0.1);
 		FRWheelRB->SetMass(2.5);
 		FRWheelRB->LockRotation(true);
 		FRWheelRB->IsStatic(true);
@@ -1006,7 +1013,6 @@ int main()
 		RLWheelCollider->SetDirection(vec3(0, -1, 0));
 		RLWheelCollider->SetLength(0.4);
 		std::shared_ptr<Rigidbody> RLWheelRB = RLWheel->AddComponent<Rigidbody>();
-		//RLWheelRB->SetMass(0.1);
 		RLWheelRB->SetMass(2.5);
 		RLWheelRB->LockRotation(true);
 		RLWheelRB->IsStatic(true);
@@ -1039,7 +1045,6 @@ int main()
 		RRWheelCollider->SetDirection(vec3(0, -1, 0));
 		RRWheelCollider->SetLength(0.4);
 		std::shared_ptr<Rigidbody> RRWheelRB = RRWheel->AddComponent<Rigidbody>();
-		//RRWheelRB->SetMass(0.1);
 		RRWheelRB->SetMass(2.5);
 		RRWheelRB->LockRotation(true);
 		RRWheelRB->IsStatic(true);
