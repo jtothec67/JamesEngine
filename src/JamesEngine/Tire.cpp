@@ -48,6 +48,8 @@ namespace JamesEngine
 	{
         float dt = GetCore()->FixedDeltaTime();
 
+        //return;
+
         // If wheel is off the ground, don't do tire model, just deal with inputs
         if (!mSuspension->GetCollision())
         {
@@ -87,7 +89,7 @@ namespace JamesEngine
         }
 
         // Compute vehicle velocity at contact
-        glm::vec3 carVel = mCarRb->GetVelocityAtPoint(mTireContactPoint);
+        glm::vec3 carVel = mCarRb->GetVelocityAtPoint(mSuspension->GetContactPoint());
 
         // Build contact plane basis vectors
         glm::vec3 tireForward = glm::normalize(GetEntity()->GetComponent<Transform>()->GetForward());
@@ -106,15 +108,13 @@ namespace JamesEngine
         // Compute slip ratio and angle based on wheel rotation and ground speed
         float wheelCircumferentialSpeed = mWheelAngularVelocity * mTireParams.tireRadius;
         float denominator = std::max(std::fabs(wheelCircumferentialSpeed), std::fabs(Vx));
+		if (denominator < 0.001f) // Avoid division by zero
+			denominator = 0.001f;
         float slipRatio = (Vx - wheelCircumferentialSpeed) / denominator;
         float VxClamped = std::max(std::fabs(Vx), 0.5f);
         float slipAngle = std::atan2(Vy, VxClamped);
 
         // Compute vertical load from suspension compression and weight transfer
-        float suspensionCompression =  - 0.03; // Hardcoded rest heigh on front wheels
-        float baseWeight = mCarRb->GetMass() / 4.0f * 9.81f;
-        float weightTransferCoeff = 20000.0f; // Arbitrary value
-        float additionalLoad = suspensionCompression * weightTransferCoeff;
         float Fz = mSuspension->GetForce();
 
         // Determine tire stiffness and maximum friction force
@@ -130,6 +130,8 @@ namespace JamesEngine
         float Fx, Fy;
         float maxBrakeTorqueTransferable = Fmax * mTireParams.tireRadius;
         bool tooMuchBrake = (mBrakeTorque > maxBrakeTorqueTransferable);
+
+		std::cout << GetEntity()->GetTag() << " Fmax: " << Fmax << std::endl;
 
         if (gamma < Fmax)
         {
@@ -163,11 +165,11 @@ namespace JamesEngine
 
         // Convert to world space and apply tire and rolling resistance forces
         glm::vec3 forceWorld = projForward * Fx + projSide * Fy;
-        mCarRb->ApplyForce(forceWorld, mTireContactPoint);
+        mCarRb->ApplyForce(forceWorld, mSuspension->GetContactPoint());
 
         glm::vec3 rollingResistanceDir = -glm::normalize(carVel);
         glm::vec3 rollingResistanceForce = rollingResistanceDir * mTireParams.rollingResistance * Fz;
-        mCarRb->ApplyForce(rollingResistanceForce, mTireContactPoint);
+        mCarRb->ApplyForce(rollingResistanceForce, mSuspension->GetContactPoint());
 
         // Update wheel angular velocity with drive, road, and brake torques, handle lock
         float roadTorque = -Fx * mTireParams.tireRadius;
@@ -241,7 +243,7 @@ namespace JamesEngine
     {
         if (mIsSliding)
         {
-            return glm::length(mCarRb->GetVelocityAtPoint(mTireContactPoint) - mCarRb->GetVelocity());
+            return glm::length(mCarRb->GetVelocityAtPoint(mSuspension->GetContactPoint()) - mCarRb->GetVelocity());
         }
         return 0.f;
     }

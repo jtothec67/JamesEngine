@@ -39,16 +39,15 @@ namespace JamesEngine
 		void SetSuspensionTravel(float _suspensionTravel) { mSuspensionTravel = _suspensionTravel; }
 		float GetSuspensionTravel() { return mSuspensionTravel; }
 
-		void SetWheelRadius(float _wheelRadius) { mWheelRadius = _wheelRadius; }
-		float GetWheelRadius() { return mWheelRadius; }
+		void SetTireRadius(float _wheelRadius) { mTireRadius = _wheelRadius; }
+		float GetTireRadius() { return mTireRadius; }
 
 		void SetRestLength(float _restLength) { mRestLength = _restLength; }
 		float GetRestLength() { return mRestLength; }
 
 		void SetDebugVisual(bool _value) { mDebugVisual = _value; }
 
-		void SetHitDistance(float _hitDistance) { mHitDistance = _hitDistance; }
-		void SetContactPoint(glm::vec3 _contactPoint) { mContactPoint = _contactPoint; }
+		glm::vec3 GetContactPoint() { return mContactPoint; }
 
 		float GetForce() { return mForce; }
 
@@ -63,23 +62,19 @@ namespace JamesEngine
 		std::shared_ptr<Rigidbody> mWheelRb;
 		std::shared_ptr<Rigidbody> mCarRb;
 
+		bool mGroundContact = false;
+		glm::vec3 mContactPoint{ 0 };
+		glm::vec3 mSurfaceNormal = glm::vec3(0, 1, 0);
+		float mForce = 0.0f;
+
 		float mStiffness = 500;
 		float mDamping = 50;
 
-		bool mGroundContact = false;
-		float mHitDistance = 0.0f;
-		glm::vec3 mContactPoint{ 0 };
+		float mRestLength = 0.45f;
+		float mSuspensionTravel = 0.15f;
+		float mTireRadius = 0.34f;
 
 		float mSteeringAngle = 0.0f;
-
-		float mSuspensionTravel = 0.1f;
-		float mWheelRadius = 0.34f;
-
-		float  mRestLength = 0.02f;
-
-		glm::vec3 mSurfaceNormal{ 0 };
-
-		float mForce = 0.0f;
 
 		bool mDebugVisual = true;
 

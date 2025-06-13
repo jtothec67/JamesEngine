@@ -121,45 +121,56 @@ namespace JamesEngine
     {
         // Get anchor position and suspension direction
         glm::vec3 anchorPos = mAnchorPoint->GetComponent<Transform>()->GetPosition();
-        glm::vec3 suspensionDir = glm::normalize(mAnchorPoint->GetComponent<Transform>()->GetUp());
+        glm::vec3 suspensionDir = -glm::normalize(mAnchorPoint->GetComponent<Transform>()->GetUp());
 
-        // Calculate current length from anchor to wheel center
-        float currentLength = mRestLength;
+        // Setup raycast
+        Ray ray;
+        ray.origin = anchorPos;
+        ray.direction = suspensionDir;
+        ray.length = mRestLength + mTireRadius;
+
+        RaycastHit hit;
+        mGroundContact = GetCore()->GetRaycastSystem()->Raycast(ray, hit);
+
+        // Determine current suspension length
+        float currentLength;
         if (mGroundContact)
         {
-            float compressionDistance = mWheelRadius - mHitDistance;
-            currentLength = glm::clamp(mRestLength - compressionDistance, mRestLength - mSuspensionTravel, mRestLength);
-
+			mContactPoint = hit.point;
+			mSurfaceNormal = hit.normal;
+            //currentLength = glm::clamp(mHitDistance - mTireRadius, mRestLength - mSuspensionTravel, mRestLength);
+			currentLength = hit.distance - mTireRadius;
         }
         else
         {
-			//std::cout << GetEntity()->GetTag() << " suspension not grounded" << std::endl;
+            currentLength = mRestLength;
         }
 
-        // Set wheel position based on suspension length
-        glm::vec3 wheelPos = anchorPos - suspensionDir * currentLength;
+        // Set wheel position
+        glm::vec3 wheelPos = anchorPos + suspensionDir * currentLength;
         mWheel->GetComponent<Transform>()->SetPosition(wheelPos);
 
-        // No force if not grounded
+        // Exit early if no ground contact
         if (!mGroundContact)
             return;
 
         // Calculate displacement
         float displacement = mRestLength - currentLength;
 
-        // Get wheel velocity along suspension axis
-        glm::vec3 pointVelocity = mCarRb->GetVelocityAtPoint(wheelPos);
+        // Get velocity of anchor point projected along suspension direction
+        glm::vec3 pointVelocity = mCarRb->GetVelocityAtPoint(anchorPos);
         float relativeVelocity = glm::dot(pointVelocity, suspensionDir);
 
         // Calculate spring and damping forces
         float springForce = mStiffness * displacement;
         float dampingForce = -mDamping * relativeVelocity;
+        float totalMag = springForce - dampingForce;
 
-        // Apply total force to chassis
-        glm::vec3 totalForce = suspensionDir * (springForce + dampingForce);
+        glm::vec3 totalForce = -suspensionDir * totalMag;
+
+        // Apply force to car body
         mCarRb->ApplyForce(totalForce, anchorPos);
-
-        mForce = springForce + dampingForce;
+        mForce = totalMag;
     }
 
     void Suspension::OnLateFixedTick()

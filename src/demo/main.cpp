@@ -667,6 +667,15 @@ struct CameraController : Component
 	}
 };
 
+struct printPosition : Component
+{
+	void OnTick()
+	{
+		vec3 pos = GetEntity()->GetComponent<Transform>()->GetPosition();
+		//std::cout << GetEntity()->GetTag() << " position: " << pos.x << ", " << pos.y << ", " << pos.z << std::endl;
+	}
+};
+
 #undef main
 int main()
 {
@@ -680,7 +689,7 @@ int main()
 		frontTyreParams.brushLongStiffCoeff = 70;
 		frontTyreParams.brushLatStiffCoeff = 60;
 
-		frontTyreParams.peakFrictionCoefficient = 1.5f;
+		frontTyreParams.peakFrictionCoefficient = 1.2f;
 		frontTyreParams.tireRadius = 0.34f;
 		frontTyreParams.wheelMass = 25.f;
 		frontTyreParams.rollingResistance = 0.015f;
@@ -689,18 +698,18 @@ int main()
 		rearTyreParams.brushLongStiffCoeff = 70;
 		rearTyreParams.brushLatStiffCoeff = 60;
 
-		rearTyreParams.peakFrictionCoefficient = 1.9f;
+		rearTyreParams.peakFrictionCoefficient = 1.5f;
 		rearTyreParams.tireRadius = 0.34f;
 		rearTyreParams.wheelMass = 25.f;
 		rearTyreParams.rollingResistance = 0.015f;
 
 		float FStiffness = 100000;
 		float FDamping = 10000;
-		float FRestLength = 0.02f;
+		float FRestLength = 0.2f;
 
 		float RStiffness = 110000;
 		float RDamping = 11000;
-		float RRestLength = 0.0325f;
+		float RRestLength = 0.3f;
 
 		core->GetSkybox()->SetTexture(core->GetResources()->Load<SkyboxTexture>("skyboxes/sky"));
 
@@ -902,7 +911,7 @@ int main()
 
 		// Wheel Anchors
 		std::shared_ptr<Entity> FLWheelAnchor = core->AddEntity();
-		FLWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(0.856, -0.0079, 1.6));
+		FLWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(0.856, 0.183, 1.6));
 		FLWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.01, 0.01, 0.01));
 		FLWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
 		std::shared_ptr<ModelRenderer> FLWheelAnchorMR = FLWheelAnchor->AddComponent<ModelRenderer>();
@@ -910,7 +919,7 @@ int main()
 		FLWheelAnchorMR->AddTexture(core->GetResources()->Load<Texture>("images/cat"));
 
 		std::shared_ptr<Entity> FRWheelAnchor = core->AddEntity();
-		FRWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(-0.856, -0.0079, 1.6));
+		FRWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(-0.856, 0.183, 1.6));
 		FRWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.01, 0.01, 0.01));
 		FRWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
 		std::shared_ptr<ModelRenderer> FRWheelAnchorMR = FRWheelAnchor->AddComponent<ModelRenderer>();
@@ -918,7 +927,7 @@ int main()
 		FRWheelAnchorMR->AddTexture(core->GetResources()->Load<Texture>("images/cat"));
 
 		std::shared_ptr<Entity> RLWheelAnchor = core->AddEntity();
-		RLWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(0.863, -0.0009, -1.027));
+		RLWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(0.863, 0.2646, -1.027));
 		RLWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.01, 0.01, 0.01));
 		RLWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
 		std::shared_ptr<ModelRenderer> RLWheelAnchorMR = RLWheelAnchor->AddComponent<ModelRenderer>();
@@ -926,7 +935,7 @@ int main()
 		RLWheelAnchorMR->AddTexture(core->GetResources()->Load<Texture>("images/cat"));
 
 		std::shared_ptr<Entity> RRWheelAnchor = core->AddEntity();
-		RRWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(-0.863, -0.0009, -1.027));
+		RRWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(-0.863, 0.2646, -1.027));
 		RRWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.01, 0.01, 0.01));
 		RRWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
 		std::shared_ptr<ModelRenderer> RRWheelAnchorMR = RRWheelAnchor->AddComponent<ModelRenderer>();
@@ -966,6 +975,7 @@ int main()
 		FLWheelTire->SetAnchorPoint(FLWheelAnchor);
 		FLWheelTire->SetTireParams(frontTyreParams);
 		FLWheelTire->SetInitialRotationOffset(vec3(0, 90, 0));
+		FLWheel->AddComponent<printPosition>();
 
 		// Front Right Wheel
 		std::shared_ptr<Entity> FRWheel = core->AddEntity();
@@ -999,6 +1009,7 @@ int main()
 		FRWheelTire->SetAnchorPoint(FRWheelAnchor);
 		FRWheelTire->SetTireParams(frontTyreParams);
 		FRWheelTire->SetInitialRotationOffset(vec3(0, -90, 0));
+		FRWheel->AddComponent<printPosition>();
 
 		// Rear Left Wheel
 		std::shared_ptr<Entity> RLWheel = core->AddEntity();
@@ -1032,6 +1043,7 @@ int main()
 		RLWheelTire->SetAnchorPoint(RLWheelAnchor);
 		RLWheelTire->SetTireParams(rearTyreParams);
 		RLWheelTire->SetInitialRotationOffset(vec3(0, 90, 0));
+		RLWheel->AddComponent<printPosition>();
 
 		// Rear Right Wheel
 		std::shared_ptr<Entity> RRWheel = core->AddEntity();
@@ -1065,6 +1077,7 @@ int main()
 		RRWheelTire->SetAnchorPoint(RRWheelAnchor);
 		RRWheelTire->SetTireParams(rearTyreParams);
 		RRWheelTire->SetInitialRotationOffset(vec3(0, -90, 0));
+		RRWheel->AddComponent<printPosition>();
 
 		std::shared_ptr<CarController> carController = carBody->AddComponent<CarController>();
 		carController->rb = carBodyRB;
