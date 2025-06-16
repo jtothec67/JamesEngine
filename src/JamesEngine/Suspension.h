@@ -45,6 +45,9 @@ namespace JamesEngine
 		void SetRestLength(float _restLength) { mRestLength = _restLength; }
 		float GetRestLength() { return mRestLength; }
 
+		void SetRideHeight(float _rideHeight) { mRideHeight = _rideHeight; }
+		float GetRideHeight() { return mRideHeight; }
+
 		void SetDebugVisual(bool _value) { mDebugVisual = _value; }
 
 		glm::vec3 GetContactPoint() { return mContactPoint; }
@@ -71,6 +74,7 @@ namespace JamesEngine
 		float mDamping = 50;
 
 		float mRestLength = 0.45f;
+		float mRideHeight = 0.07f;
 		float mSuspensionTravel = 0.15f;
 		float mTireRadius = 0.34f;
 

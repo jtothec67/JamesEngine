@@ -138,7 +138,6 @@ namespace JamesEngine
         {
 			mContactPoint = hit.point;
 			mSurfaceNormal = hit.normal;
-            //currentLength = glm::clamp(mHitDistance - mTireRadius, mRestLength - mSuspensionTravel, mRestLength);
 			currentLength = hit.distance - mTireRadius;
         }
         else
@@ -154,15 +153,20 @@ namespace JamesEngine
         if (!mGroundContact)
             return;
 
-        // Calculate displacement
-        float displacement = mRestLength - currentLength;
+        float targetLength = glm::clamp(mRideHeight + mTireRadius, mRestLength - mSuspensionTravel, mRestLength);
 
         // Get velocity of anchor point projected along suspension direction
         glm::vec3 pointVelocity = mCarRb->GetVelocityAtPoint(anchorPos);
         float relativeVelocity = glm::dot(pointVelocity, suspensionDir);
 
-        // Calculate spring and damping forces
-        float springForce = mStiffness * displacement;
+        // Calculate displacement from target
+        float displacement = targetLength - currentLength;
+
+        // If the spring is fully extended, it can't apply force
+        float springForce = 0.0f;
+        if (currentLength < mRestLength)
+            springForce = glm::max(0.0f, mStiffness * displacement);
+
         float dampingForce = -mDamping * relativeVelocity;
         float totalMag = springForce - dampingForce;
 

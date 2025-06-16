@@ -49,5 +49,5 @@ public:
 
 private:
 	std::vector<std::shared_ptr<Light>> mLights;
-	glm::vec3 mAmbient = glm::vec3(0.1f, 0.1f, 0.1f);
+	glm::vec3 mAmbient = glm::vec3(1.f, 1.f, 1.f);
 };

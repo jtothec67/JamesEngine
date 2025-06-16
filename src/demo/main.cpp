@@ -705,11 +705,13 @@ int main()
 
 		float FStiffness = 100000;
 		float FDamping = 10000;
-		float FRestLength = 0.2f;
+		float FRestLength = 0.45f;
+		float FRideHeightRatio = 0.05f;
 
 		float RStiffness = 110000;
 		float RDamping = 11000;
-		float RRestLength = 0.3f;
+		float RRestLength = 0.5f;
+		float RRideHeightRatio = 0.065f;
 
 		core->GetSkybox()->SetTexture(core->GetResources()->Load<SkyboxTexture>("skyboxes/sky"));
 
@@ -911,7 +913,7 @@ int main()
 
 		// Wheel Anchors
 		std::shared_ptr<Entity> FLWheelAnchor = core->AddEntity();
-		FLWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(0.856, 0.183, 1.6));
+		FLWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(0.856, 0.38, 1.6));
 		FLWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.01, 0.01, 0.01));
 		FLWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
 		std::shared_ptr<ModelRenderer> FLWheelAnchorMR = FLWheelAnchor->AddComponent<ModelRenderer>();
@@ -919,7 +921,7 @@ int main()
 		FLWheelAnchorMR->AddTexture(core->GetResources()->Load<Texture>("images/cat"));
 
 		std::shared_ptr<Entity> FRWheelAnchor = core->AddEntity();
-		FRWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(-0.856, 0.183, 1.6));
+		FRWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(-0.856, 0.38, 1.6));
 		FRWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.01, 0.01, 0.01));
 		FRWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
 		std::shared_ptr<ModelRenderer> FRWheelAnchorMR = FRWheelAnchor->AddComponent<ModelRenderer>();
@@ -927,7 +929,7 @@ int main()
 		FRWheelAnchorMR->AddTexture(core->GetResources()->Load<Texture>("images/cat"));
 
 		std::shared_ptr<Entity> RLWheelAnchor = core->AddEntity();
-		RLWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(0.863, 0.2646, -1.027));
+		RLWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(0.863, 0.38, -1.027));
 		RLWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.01, 0.01, 0.01));
 		RLWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
 		std::shared_ptr<ModelRenderer> RLWheelAnchorMR = RLWheelAnchor->AddComponent<ModelRenderer>();
@@ -935,7 +937,7 @@ int main()
 		RLWheelAnchorMR->AddTexture(core->GetResources()->Load<Texture>("images/cat"));
 
 		std::shared_ptr<Entity> RRWheelAnchor = core->AddEntity();
-		RRWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(-0.863, 0.2646, -1.027));
+		RRWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(-0.863, 0.38, -1.027));
 		RRWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.01, 0.01, 0.01));
 		RRWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
 		std::shared_ptr<ModelRenderer> RRWheelAnchorMR = RRWheelAnchor->AddComponent<ModelRenderer>();
@@ -970,6 +972,7 @@ int main()
 		FLWheelSuspension->SetStiffness(FStiffness);
 		FLWheelSuspension->SetDamping(FDamping);
 		FLWheelSuspension->SetRestLength(FRestLength);
+		FLWheelSuspension->SetRideHeight(FRideHeightRatio);
 		std::shared_ptr<Tire> FLWheelTire = FLWheel->AddComponent<Tire>();
 		FLWheelTire->SetCarBody(carBody);
 		FLWheelTire->SetAnchorPoint(FLWheelAnchor);
@@ -1004,6 +1007,7 @@ int main()
 		FRWheelSuspension->SetStiffness(FStiffness);
 		FRWheelSuspension->SetDamping(FDamping);
 		FRWheelSuspension->SetRestLength(FRestLength);
+		FRWheelSuspension->SetRideHeight(FRideHeightRatio);
 		std::shared_ptr<Tire> FRWheelTire = FRWheel->AddComponent<Tire>();
 		FRWheelTire->SetCarBody(carBody);
 		FRWheelTire->SetAnchorPoint(FRWheelAnchor);
@@ -1038,6 +1042,7 @@ int main()
 		RLWheelSuspension->SetStiffness(RStiffness);
 		RLWheelSuspension->SetDamping(RDamping);
 		RLWheelSuspension->SetRestLength(RRestLength);
+		RLWheelSuspension->SetRideHeight(RRideHeightRatio);
 		std::shared_ptr<Tire> RLWheelTire = RLWheel->AddComponent<Tire>();
 		RLWheelTire->SetCarBody(carBody);
 		RLWheelTire->SetAnchorPoint(RLWheelAnchor);
@@ -1072,6 +1077,7 @@ int main()
 		RRWheelSuspension->SetStiffness(RStiffness);
 		RRWheelSuspension->SetDamping(RDamping);
 		RRWheelSuspension->SetRestLength(RRestLength);
+		RRWheelSuspension->SetRideHeight(RRideHeightRatio);
 		std::shared_ptr<Tire> RRWheelTire = RRWheel->AddComponent<Tire>();
 		RRWheelTire->SetCarBody(carBody);
 		RRWheelTire->SetAnchorPoint(RRWheelAnchor);
