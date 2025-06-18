@@ -48,8 +48,6 @@ namespace JamesEngine
 	{
         float dt = GetCore()->FixedDeltaTime();
 
-        //return;
-
         // If wheel is off the ground, don't do tire model, just deal with inputs
         if (!mSuspension->GetCollision())
         {
@@ -131,7 +129,7 @@ namespace JamesEngine
         float maxBrakeTorqueTransferable = Fmax * mTireParams.tireRadius;
         bool tooMuchBrake = (mBrakeTorque > maxBrakeTorqueTransferable);
 
-		std::cout << GetEntity()->GetTag() << " Fmax: " << Fmax << std::endl;
+		//std::cout << GetEntity()->GetTag() << " Fmax: " << Fmax << std::endl;
 
         if (gamma < Fmax)
         {

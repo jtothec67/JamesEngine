@@ -685,7 +685,7 @@ int main()
 	// Scope to ensure the entities aren't being held in main if they're destroyed
 	{
 
-		TireParams frontTyreParams;
+		TireParams frontTyreParams{};
 		frontTyreParams.brushLongStiffCoeff = 70;
 		frontTyreParams.brushLatStiffCoeff = 60;
 
@@ -694,7 +694,7 @@ int main()
 		frontTyreParams.wheelMass = 25.f;
 		frontTyreParams.rollingResistance = 0.015f;
 
-		TireParams rearTyreParams;
+		TireParams rearTyreParams{};
 		rearTyreParams.brushLongStiffCoeff = 70;
 		rearTyreParams.brushLatStiffCoeff = 60;
 
@@ -958,13 +958,6 @@ int main()
 		FLWheelMR->AddTexture(core->GetResources()->Load<Texture>("models/MercedesWheels/textures/gltf_embedded_31"));
 		FLWheelMR->AddTexture(core->GetResources()->Load<Texture>("models/MercedesWheels/textures/gltf_embedded_35"));
 		FLWheelMR->SetRotationOffset(vec3(0, 90, 0));
-		std::shared_ptr<RayCollider> FLWheelCollider = FLWheel->AddComponent<RayCollider>();
-		FLWheelCollider->SetDirection(vec3(0, -1, 0));
-		FLWheelCollider->SetLength(0.34);
-		std::shared_ptr<Rigidbody> FLWheelRB = FLWheel->AddComponent<Rigidbody>();
-		FLWheelRB->SetMass(2.5);
-		FLWheelRB->LockRotation(true);
-		FLWheelRB->IsStatic(true);
 		std::shared_ptr<Suspension> FLWheelSuspension = FLWheel->AddComponent<Suspension>();
 		FLWheelSuspension->SetWheel(FLWheel);
 		FLWheelSuspension->SetCarBody(carBody);
@@ -993,13 +986,6 @@ int main()
 		FRWheelMR->AddTexture(core->GetResources()->Load<Texture>("models/MercedesWheels/textures/gltf_embedded_31"));
 		FRWheelMR->AddTexture(core->GetResources()->Load<Texture>("models/MercedesWheels/textures/gltf_embedded_35"));
 		FRWheelMR->SetRotationOffset(vec3(0, -90, 0));
-		std::shared_ptr<RayCollider> FRWheelCollider = FRWheel->AddComponent<RayCollider>();
-		FRWheelCollider->SetDirection(vec3(0, -1, 0));
-		FRWheelCollider->SetLength(0.34);
-		std::shared_ptr<Rigidbody> FRWheelRB = FRWheel->AddComponent<Rigidbody>();
-		FRWheelRB->SetMass(2.5);
-		FRWheelRB->LockRotation(true);
-		FRWheelRB->IsStatic(true);
 		std::shared_ptr<Suspension> FRWheelSuspension = FRWheel->AddComponent<Suspension>();
 		FRWheelSuspension->SetWheel(FRWheel);
 		FRWheelSuspension->SetCarBody(carBody);
@@ -1028,13 +1014,6 @@ int main()
 		RLWheelMR->AddTexture(core->GetResources()->Load<Texture>("models/MercedesWheels/textures/gltf_embedded_31"));
 		RLWheelMR->AddTexture(core->GetResources()->Load<Texture>("models/MercedesWheels/textures/gltf_embedded_35"));
 		RLWheelMR->SetRotationOffset(vec3(0, 90, 0));
-		std::shared_ptr<RayCollider> RLWheelCollider = RLWheel->AddComponent<RayCollider>();
-		RLWheelCollider->SetDirection(vec3(0, -1, 0));
-		RLWheelCollider->SetLength(0.34);
-		std::shared_ptr<Rigidbody> RLWheelRB = RLWheel->AddComponent<Rigidbody>();
-		RLWheelRB->SetMass(2.5);
-		RLWheelRB->LockRotation(true);
-		RLWheelRB->IsStatic(true);
 		std::shared_ptr<Suspension> RLWheelSuspension = RLWheel->AddComponent<Suspension>();
 		RLWheelSuspension->SetWheel(RLWheel);
 		RLWheelSuspension->SetCarBody(carBody);
@@ -1063,13 +1042,6 @@ int main()
 		RRWheelMR->AddTexture(core->GetResources()->Load<Texture>("models/MercedesWheels/textures/gltf_embedded_31"));
 		RRWheelMR->AddTexture(core->GetResources()->Load<Texture>("models/MercedesWheels/textures/gltf_embedded_35"));
 		RRWheelMR->SetRotationOffset(vec3(0, -90, 0));
-		std::shared_ptr<RayCollider> RRWheelCollider = RRWheel->AddComponent<RayCollider>();
-		RRWheelCollider->SetDirection(vec3(0, -1, 0));
-		RRWheelCollider->SetLength(0.34);
-		std::shared_ptr<Rigidbody> RRWheelRB = RRWheel->AddComponent<Rigidbody>();
-		RRWheelRB->SetMass(2.5);
-		RRWheelRB->LockRotation(true);
-		RRWheelRB->IsStatic(true);
 		std::shared_ptr<Suspension> RRWheelSuspension = RRWheel->AddComponent<Suspension>();
 		RRWheelSuspension->SetWheel(RRWheel);
 		RRWheelSuspension->SetCarBody(carBody);

@@ -62,7 +62,6 @@ namespace JamesEngine
 		std::shared_ptr<Entity> mCarBody;
 		std::shared_ptr<Entity> mAnchorPoint;
 
-		std::shared_ptr<Rigidbody> mWheelRb;
 		std::shared_ptr<Rigidbody> mCarRb;
 
 		bool mGroundContact = false;

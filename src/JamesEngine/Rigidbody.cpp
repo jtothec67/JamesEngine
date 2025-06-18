@@ -34,14 +34,17 @@ namespace JamesEngine
 		std::vector<std::shared_ptr<Collider>> colliders;
 		GetEntity()->GetCore()->FindComponents(colliders);
 
+		std::shared_ptr<Collider> ourCollider = std::dynamic_pointer_cast<BoxCollider>(GetEntity()->GetComponent<Collider>());
+
+		if (!ourCollider) // We don't have a collider so we don't need to check collisions
+			return;
+
 		// Iterate through all colliders to see if we're colliding with any
 		for (auto& otherCollider : colliders)
 		{
 			// Skip if it is ourself
 			if (otherCollider->GetTransform() == GetTransform())
 				continue;
-
-			std::shared_ptr<Collider> ourCollider = GetEntity()->GetComponent<Collider>();
 
 			glm::vec3 collisionPoint;
 			glm::vec3 collisionNormal;

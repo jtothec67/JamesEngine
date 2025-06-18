@@ -108,11 +108,10 @@ namespace JamesEngine
             return;
         }
         mCarRb = mCarBody->GetComponent<Rigidbody>();
-        mWheelRb = mWheel->GetComponent<Rigidbody>();
 
-        if (!mCarRb || !mWheelRb)
+        if (!mCarRb)
         {
-            std::cout << "Suspension component is missing a rigidbody on the car body or wheel" << std::endl;
+            std::cout << "Suspension component is missing a rigidbody on the car" << std::endl;
             return;
         }
     }
