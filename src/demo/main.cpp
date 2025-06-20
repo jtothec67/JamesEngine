@@ -135,8 +135,8 @@ struct CarController : public Component
 	std::shared_ptr<Entity> frontDownforcePos;
 
 	// Aerodynamic properties
-	float dragCoefficient = 0.5f;
-	float frontalArea = 2.2f; // m^2
+	float dragCoefficient = 0.65f;
+	float frontalArea = 1.9f; // m^2
 
 	// Steering parameters
 	float maxSteeringAngle = 25.f;
@@ -703,15 +703,15 @@ int main()
 		rearTyreParams.wheelMass = 25.f;
 		rearTyreParams.rollingResistance = 0.015f;
 
-		float FStiffness = 100000;
+		float FStiffness = 143000;
 		float FDamping = 10000;
 		float FRestLength = 0.45f;
-		float FRideHeightRatio = 0.05f;
+		float FRideHeightRatio = 0.053f;
 
-		float RStiffness = 110000;
+		float RStiffness = 95000;
 		float RDamping = 11000;
 		float RRestLength = 0.5f;
-		float RRideHeightRatio = 0.065f;
+		float RRideHeightRatio = 0.078f;
 
 		core->GetSkybox()->SetTexture(core->GetResources()->Load<SkyboxTexture>("skyboxes/sky"));
 

@@ -387,6 +387,13 @@ namespace JamesEngine
 
 		SetPosition(GetPosition() + mVelocity * dt);
 
+		glm::vec3 accel = mForce / mMass;
+		float speed = glm::length(mVelocity);
+		std::cout << "Speed: " << speed
+			<< " | Accel mag: " << glm::length(accel)
+			<< " | Force mag: " << glm::length(mForce)
+			<< std::endl;
+
 		// ----- Angular Integration -----
 		mAngularMomentum += mTorque * dt;
 		// Recompute the inverse inertia tensor

@@ -109,6 +109,7 @@ namespace JamesEngine
 		if (denominator < 0.001f) // Avoid division by zero
 			denominator = 0.001f;
         float slipRatio = (Vx - wheelCircumferentialSpeed) / denominator;
+
         float VxClamped = std::max(std::fabs(Vx), 0.5f);
         float slipAngle = std::atan2(Vy, VxClamped);
 
@@ -161,35 +162,110 @@ namespace JamesEngine
             }
         }
 
-        // Convert to world space and apply tire and rolling resistance forces
-        glm::vec3 forceWorld = projForward * Fx + projSide * Fy;
-        mCarRb->ApplyForce(forceWorld, mSuspension->GetContactPoint());
+  //      if (mDriveTorque == 0)
+		//	projForward = glm::vec3(0, 0, 0); // No drive torque means no forward force
 
-        glm::vec3 rollingResistanceDir = -glm::normalize(carVel);
-        glm::vec3 rollingResistanceForce = rollingResistanceDir * mTireParams.rollingResistance * Fz;
-        mCarRb->ApplyForce(rollingResistanceForce, mSuspension->GetContactPoint());
+  //      // Convert to world space and apply tire and rolling resistance forces
+  //      glm::vec3 forceWorld = projForward * Fx + projSide * Fy;
+  //      mCarRb->ApplyForce(forceWorld, mSuspension->GetContactPoint());
 
-        // Update wheel angular velocity with drive, road, and brake torques, handle lock
-        float roadTorque = -Fx * mTireParams.tireRadius;
-        float netTorque = mDriveTorque + roadTorque;
+		//std::cout << GetEntity()->GetTag() << " tire force: " << glm::length(forceWorld) << std::endl;
+  //      glm::vec3 rollingResistanceDir = -tireForward * glm::sign(Vx);
+  //      glm::vec3 rollingResistanceForce = rollingResistanceDir * mTireParams.rollingResistance * Fz;
+  //      mCarRb->ApplyForce(rollingResistanceForce, mSuspension->GetContactPoint());
+		////std::cout << GetEntity()->GetTag() << " Rolling resistance: " << glm::length(rollingResistanceForce) << std::endl;
+
+  //      // Update wheel angular velocity with drive, road, and brake torques, handle lock
+  //      float roadTorque = -Fx * mTireParams.tireRadius;
+  //      float netTorque = mDriveTorque + roadTorque;
+  //      if (mBrakeTorque > 0.0f)
+  //      {
+		//	// Apply brake torque if it's resisting spin
+  //          float brakeDirection = -glm::sign(mWheelAngularVelocity);
+  //          float resistingTorque = brakeDirection * mBrakeTorque;
+  //          if (glm::sign(resistingTorque) == -glm::sign(mWheelAngularVelocity))
+  //          {
+  //              netTorque += resistingTorque;
+  //          }
+  //      }
+
+  //      if (mIsLocked)
+  //      {
+  //          // Wheel locked: no rotation and full sliding friction
+  //          mWheelAngularVelocity = 0.0f;
+  //          Fx = -mTireParams.peakFrictionCoefficient * Fz * glm::sign(Vx);
+  //          Fy = -mTireParams.peakFrictionCoefficient * Fz * glm::tan(slipAngle);
+  //          roadTorque = 0.0f;
+  //      }
+
+  //      if (mBrakeTorque <= maxBrakeTorqueTransferable || !mIsSliding)
+  //      {
+  //          mIsLocked = false;
+  //      }
+
+  //      // Compute inertia and angular acceleration
+  //      float inertia = 0.5f * (mTireParams.wheelMass * 10) * mTireParams.tireRadius * mTireParams.tireRadius;
+  //      float angularAcceleration = netTorque / inertia;
+  //      mWheelAngularVelocity += angularAcceleration * dt;
+  //      mDriveTorque = 0.0f;
+  //      mBrakeTorque = 0.0f;
+
+
+        // Compute max longitudinal force from available torque
+        float effectiveBrakeTorque = 0.0f;
         if (mBrakeTorque > 0.0f)
         {
-			// Apply brake torque if it's resisting spin
-            float brakeDirection = -glm::sign(mWheelAngularVelocity);
-            float resistingTorque = brakeDirection * mBrakeTorque;
+            float brakeDir = -glm::sign(mWheelAngularVelocity);
+            float resistingTorque = brakeDir * mBrakeTorque;
+
             if (glm::sign(resistingTorque) == -glm::sign(mWheelAngularVelocity))
             {
-                netTorque += resistingTorque;
+                effectiveBrakeTorque = resistingTorque;
             }
         }
 
+        float torqueAvailable = mDriveTorque + effectiveBrakeTorque;
+        float maxFx = std::abs(torqueAvailable / mTireParams.tireRadius);
+
+        // Clamp Fx to respect drivetrain limits
+        if (std::abs(mDriveTorque) > 0.01f || std::abs(effectiveBrakeTorque) > 0.01f)
+        {
+            float torqueAvailable = mDriveTorque + effectiveBrakeTorque;
+            float maxFx = std::abs(torqueAvailable / mTireParams.tireRadius);
+            Fx = glm::clamp(Fx, -maxFx, maxFx);
+        }
+
+        // Apply Fx to car only if drive or brake torque exists
+        if (std::abs(mDriveTorque) > 0.01f || std::abs(mBrakeTorque) > 0.01f)
+        {
+            glm::vec3 forceWorld = projForward * Fx + projSide * Fy;
+            mCarRb->ApplyForce(forceWorld, mSuspension->GetContactPoint());
+            std::cout << GetEntity()->GetTag() << " tire force: " << glm::length(forceWorld) << std::endl;
+        }
+        else
+        {
+            // Only apply lateral force + rolling resistance
+            glm::vec3 forceWorld = projSide * Fy;
+            mCarRb->ApplyForce(forceWorld, mSuspension->GetContactPoint());
+            std::cout << GetEntity()->GetTag() << " tire force: " << glm::length(forceWorld) << std::endl;
+        }
+
+        // Step 6: Apply rolling resistance
+        glm::vec3 rollingResistanceDir = -tireForward * glm::sign(Vx);
+        glm::vec3 rollingResistanceForce = rollingResistanceDir * mTireParams.rollingResistance * Fz;
+        mCarRb->ApplyForce(rollingResistanceForce, mSuspension->GetContactPoint());
+
+        //Step 7: Compute and apply wheel angular acceleration
+        float roadTorque = -Fx * mTireParams.tireRadius;
+        float netTorque = mDriveTorque + effectiveBrakeTorque + roadTorque;
+
         if (mIsLocked)
         {
-            // Wheel locked: no rotation and full sliding friction
             mWheelAngularVelocity = 0.0f;
             Fx = -mTireParams.peakFrictionCoefficient * Fz * glm::sign(Vx);
             Fy = -mTireParams.peakFrictionCoefficient * Fz * glm::tan(slipAngle);
             roadTorque = 0.0f;
+            netTorque = 0.0f;
         }
 
         if (mBrakeTorque <= maxBrakeTorqueTransferable || !mIsSliding)
@@ -197,10 +273,11 @@ namespace JamesEngine
             mIsLocked = false;
         }
 
-        // Compute inertia and angular acceleration
-        float inertia = 0.5f * (mTireParams.wheelMass * 10) * mTireParams.tireRadius * mTireParams.tireRadius;
+        float inertia = 0.5f * (mTireParams.wheelMass * 10.0f) * mTireParams.tireRadius * mTireParams.tireRadius;
         float angularAcceleration = netTorque / inertia;
         mWheelAngularVelocity += angularAcceleration * dt;
+
+        // ----- Step 8: Clear torques for next frame -----
         mDriveTorque = 0.0f;
         mBrakeTorque = 0.0f;
 
