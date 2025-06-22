@@ -154,8 +154,8 @@ struct CarController : public Component
 	float drivetrainEfficiency = 0.8f;
 
 	// Brake torques
-	float frontBrakeTorque = 2000.f;
-	float rearBrakeTorque = 1350.f;
+	float brakeTorqueCapacity = 15000.f;
+	float brakeBias = 0.56f; // 60% front, 40% rear
 
 	// Input tracking
 	bool lastInputController = false;
@@ -173,8 +173,8 @@ struct CarController : public Component
 	float mSteerInput = 0.f;
 
 	// Downforce settings at reference speed
-	float rearDownforceAt200 = 6000.0f; // N at 200 km/h
-	float frontDownforceAt200 = 5500.0f; // N at 200 km/h
+	float rearDownforceAt200 = 1500.0f; // N at 200 km/h
+	float frontDownforceAt200 = 900.0f; // N at 200 km/h
 	float referenceSpeed = 200.0f / 3.6f; // m/s
 
 	// Engine audio
@@ -343,6 +343,9 @@ struct CarController : public Component
 		// Keyboard brake: apply brake torque to all wheels
 		if (GetKeyboard()->IsKey(SDLK_s))
 		{
+			float frontBrakeTorque = brakeTorqueCapacity * brakeBias;
+			float rearBrakeTorque = brakeTorqueCapacity * (1.0f - brakeBias);
+
 			FLWheelTire->AddBrakeTorque(frontBrakeTorque);
 			FRWheelTire->AddBrakeTorque(frontBrakeTorque);
 			RLWheelTire->AddBrakeTorque(rearBrakeTorque);
@@ -406,11 +409,16 @@ struct CarController : public Component
 			RRWheelTire->AddDriveTorque(wheelTorque / 2);
 			mThrottleInput = throttleTrigger;
 
+			float totalBrakeTorque = brakeTorqueCapacity * brakeTrigger;
+
+			float frontBrakeTorque = (totalBrakeTorque * brakeBias) / 2;
+			float rearBrakeTorque = (totalBrakeTorque * (1.0f - brakeBias)) / 2;
+
 			// Apply brake torque
-			FLWheelTire->AddBrakeTorque(brakeTrigger * frontBrakeTorque);
-			FRWheelTire->AddBrakeTorque(brakeTrigger * frontBrakeTorque);
-			RLWheelTire->AddBrakeTorque(brakeTrigger * rearBrakeTorque);
-			RRWheelTire->AddBrakeTorque(brakeTrigger * rearBrakeTorque);
+			FLWheelTire->AddBrakeTorque(frontBrakeTorque);
+			FRWheelTire->AddBrakeTorque(frontBrakeTorque);
+			RLWheelTire->AddBrakeTorque(rearBrakeTorque);
+			RRWheelTire->AddBrakeTorque(rearBrakeTorque);
 			mBrakeInput = brakeTrigger;
 		}
 
@@ -689,7 +697,7 @@ int main()
 		frontTyreParams.brushLongStiffCoeff = 70;
 		frontTyreParams.brushLatStiffCoeff = 60;
 
-		frontTyreParams.peakFrictionCoefficient = 1.2f;
+		frontTyreParams.peakFrictionCoefficient = 1.6f;
 		frontTyreParams.tireRadius = 0.34f;
 		frontTyreParams.wheelMass = 25.f;
 		frontTyreParams.rollingResistance = 0.015f;
@@ -698,7 +706,7 @@ int main()
 		rearTyreParams.brushLongStiffCoeff = 70;
 		rearTyreParams.brushLatStiffCoeff = 60;
 
-		rearTyreParams.peakFrictionCoefficient = 1.5f;
+		rearTyreParams.peakFrictionCoefficient = 1.6f;
 		rearTyreParams.tireRadius = 0.34f;
 		rearTyreParams.wheelMass = 25.f;
 		rearTyreParams.rollingResistance = 0.015f;
