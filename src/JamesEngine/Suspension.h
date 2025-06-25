@@ -19,6 +19,7 @@ namespace JamesEngine
 #endif
 
 		void OnAlive();
+		void OnEarlyFixedTick();
 		void OnFixedTick();
 		void OnLateFixedTick();
 		void OnTick();
@@ -26,33 +27,40 @@ namespace JamesEngine
 		void SetWheel(std::shared_ptr<Entity> _wheel) { mWheel = _wheel; }
 		void SetCarBody(std::shared_ptr<Entity> _carBody) { mCarBody = _carBody; }
 		void SetAnchorPoint(std::shared_ptr<Entity> _anchorPoint) { mAnchorPoint = _anchorPoint; }
+		void SetOppositeAxelSuspension(std::shared_ptr<Suspension> _suspension) { mOppositeAxelSuspension = _suspension; }
 
 		void SetStiffness(float _stiffness) { mStiffness = _stiffness; }
-		void SetDamping(float _damping) { mDamping = _damping; }
 
-		void SetCollision(bool _groundContact) { mGroundContact = _groundContact; }
+		void SetDampingThreshold(float _dampingThreshold) { mDampingThreshold = _dampingThreshold; }
+		void SetReboundDampHigh(float _reboundDampHighSpeed) { mReboundDampHighSpeed = _reboundDampHighSpeed; }
+		void SetReboundDampLow(float _reboundDampLowSpeed) { mReboundDampLowSpeed = _reboundDampLowSpeed; }
+		void SetBumpDampHigh(float _bumpDampHighSpeed) { mBumpDampHighSpeed = _bumpDampHighSpeed; }
+		void SetBumpDampLow(float _bumpDampLowSpeed) { mBumpDampLowSpeed = _bumpDampLowSpeed; }
+
+		void SetBumpStopStiffness(float _bumpStopStiffness) { mBumpStopStiffness = _bumpStopStiffness; }
+		void SetBumpStopRange(float _bumpStopRange) { mBumpStopRange = _bumpStopRange; }
+
+		float SetAntiRollBarStiffness(float _antiRollBarStiffness) { mAntiRollBarStiffness = _antiRollBarStiffness; return mAntiRollBarStiffness; }
+
 		bool GetCollision() { return mGroundContact; }
 
 		void SetSteeringAngle(float _steeringAngle) { mSteeringAngle = _steeringAngle; }
-		float GetSteeringAngle() { return mSteeringAngle; }
 
 		void SetSuspensionTravel(float _suspensionTravel) { mSuspensionTravel = _suspensionTravel; }
-		float GetSuspensionTravel() { return mSuspensionTravel; }
 
 		void SetTireRadius(float _wheelRadius) { mTireRadius = _wheelRadius; }
-		float GetTireRadius() { return mTireRadius; }
 
 		void SetRestLength(float _restLength) { mRestLength = _restLength; }
-		float GetRestLength() { return mRestLength; }
 
 		void SetRideHeight(float _rideHeight) { mRideHeight = _rideHeight; }
-		float GetRideHeight() { return mRideHeight; }
 
 		void SetDebugVisual(bool _value) { mDebugVisual = _value; }
 
 		glm::vec3 GetContactPoint() { return mContactPoint; }
 
 		float GetForce() { return mForce; }
+
+		float GetDisplacement() { return mDisplacement; }
 
 		void SetSurfaceNormal(glm::vec3 _surfaceNormal) { mSurfaceNormal = _surfaceNormal; }
 		glm::vec3 GetSurfaceNormal() { return mSurfaceNormal; }
@@ -61,6 +69,7 @@ namespace JamesEngine
 		std::shared_ptr<Entity> mWheel;
 		std::shared_ptr<Entity> mCarBody;
 		std::shared_ptr<Entity> mAnchorPoint;
+		std::shared_ptr<Suspension> mOppositeAxelSuspension;
 
 		std::shared_ptr<Rigidbody> mCarRb;
 
@@ -68,13 +77,26 @@ namespace JamesEngine
 		glm::vec3 mContactPoint{ 0 };
 		glm::vec3 mSurfaceNormal = glm::vec3(0, 1, 0);
 		float mForce = 0.0f;
+		float mDisplacement = 0.0f;
+		float mCurrentLength = 0.0f;
 
 		float mStiffness = 500;
-		float mDamping = 50;
+
+		float mDampingThreshold = 0.25f; // Threshold for high-speed damping, m/s
+
+		float mReboundDampHighSpeed = 100;
+		float mReboundDampLowSpeed = 100;
+		float mBumpDampHighSpeed = 100;
+		float mBumpDampLowSpeed = 100;
+
+		float mBumpStopStiffness = 1000.0f;
+		float mBumpStopRange = 0.02f;
+
+		float mAntiRollBarStiffness = 1000.0f;
 
 		float mRestLength = 0.45f;
 		float mRideHeight = 0.07f;
-		float mSuspensionTravel = 0.15f;
+		float mSuspensionTravel = 0.12f;
 		float mTireRadius = 0.34f;
 
 		float mSteeringAngle = 0.0f;

@@ -206,7 +206,7 @@ namespace JamesEngine
 
         mGripUsage = glm::sqrt(FxRaw * FxRaw + FyRaw * FyRaw) / Fmax;
 
-		std::cout << GetEntity()->GetTag() << " Grip Usage: " << mGripUsage << std::endl;
+		//std::cout << GetEntity()->GetTag() << " Grip Usage: " << mGripUsage << std::endl;
 
         // Set tire screech audio based on slip conditions
         float tireScreechVolume = 0.0f;

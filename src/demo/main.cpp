@@ -697,7 +697,7 @@ int main()
 		frontTyreParams.brushLongStiffCoeff = 70;
 		frontTyreParams.brushLatStiffCoeff = 60;
 
-		frontTyreParams.peakFrictionCoefficient = 1.6f;
+		frontTyreParams.peakFrictionCoefficient = 1.8f;
 		frontTyreParams.tireRadius = 0.34f;
 		frontTyreParams.wheelMass = 25.f;
 		frontTyreParams.rollingResistance = 0.015f;
@@ -706,18 +706,30 @@ int main()
 		rearTyreParams.brushLongStiffCoeff = 70;
 		rearTyreParams.brushLatStiffCoeff = 60;
 
-		rearTyreParams.peakFrictionCoefficient = 1.6f;
+		rearTyreParams.peakFrictionCoefficient = 1.8f;
 		rearTyreParams.tireRadius = 0.34f;
 		rearTyreParams.wheelMass = 25.f;
 		rearTyreParams.rollingResistance = 0.015f;
 
 		float FStiffness = 143000;
-		float FDamping = 10000;
+		float FBumpLow = 7000;
+		float FBumpHigh = 9500;
+		float FReboundLow = 5000;
+		float FReboundHigh = 7000;
+		float FBumpStopStiffness = 100000;
+		float FBumpStopRange = 0.02f;
+		float FARBStiff = 30000;
 		float FRestLength = 0.45f;
 		float FRideHeightRatio = 0.053f;
 
 		float RStiffness = 95000;
-		float RDamping = 11000;
+		float RBumpLow = 6500;
+		float RBumpHigh = 9000;
+		float RReboundLow = 9000;
+		float RReboundHigh = 10000;
+		float RBumpStopStiffness = 100000;
+		float RBumpStopRange = 0.02f;
+		float RARBStiff = 35000;
 		float RRestLength = 0.5f;
 		float RRideHeightRatio = 0.078f;
 
@@ -971,7 +983,13 @@ int main()
 		FLWheelSuspension->SetCarBody(carBody);
 		FLWheelSuspension->SetAnchorPoint(FLWheelAnchor);
 		FLWheelSuspension->SetStiffness(FStiffness);
-		FLWheelSuspension->SetDamping(FDamping);
+		FLWheelSuspension->SetBumpDampLow(FBumpLow);
+		FLWheelSuspension->SetBumpDampHigh(FBumpHigh);
+		FLWheelSuspension->SetReboundDampLow(FReboundLow);
+		FLWheelSuspension->SetReboundDampHigh(FReboundHigh);
+		FLWheelSuspension->SetBumpStopStiffness(FBumpStopStiffness);
+		FLWheelSuspension->SetBumpStopRange(FBumpStopRange);
+		FLWheelSuspension->SetAntiRollBarStiffness(FARBStiff);
 		FLWheelSuspension->SetRestLength(FRestLength);
 		FLWheelSuspension->SetRideHeight(FRideHeightRatio);
 		std::shared_ptr<Tire> FLWheelTire = FLWheel->AddComponent<Tire>();
@@ -999,7 +1017,13 @@ int main()
 		FRWheelSuspension->SetCarBody(carBody);
 		FRWheelSuspension->SetAnchorPoint(FRWheelAnchor);
 		FRWheelSuspension->SetStiffness(FStiffness);
-		FRWheelSuspension->SetDamping(FDamping);
+		FRWheelSuspension->SetBumpDampLow(FBumpLow);
+		FRWheelSuspension->SetBumpDampHigh(FBumpHigh);
+		FRWheelSuspension->SetReboundDampLow(FReboundLow);
+		FRWheelSuspension->SetReboundDampHigh(FReboundHigh);
+		FRWheelSuspension->SetBumpStopStiffness(FBumpStopStiffness);
+		FRWheelSuspension->SetBumpStopRange(FBumpStopRange);
+		FRWheelSuspension->SetAntiRollBarStiffness(FARBStiff);
 		FRWheelSuspension->SetRestLength(FRestLength);
 		FRWheelSuspension->SetRideHeight(FRideHeightRatio);
 		std::shared_ptr<Tire> FRWheelTire = FRWheel->AddComponent<Tire>();
@@ -1027,7 +1051,13 @@ int main()
 		RLWheelSuspension->SetCarBody(carBody);
 		RLWheelSuspension->SetAnchorPoint(RLWheelAnchor);
 		RLWheelSuspension->SetStiffness(RStiffness);
-		RLWheelSuspension->SetDamping(RDamping);
+		RLWheelSuspension->SetBumpDampLow(RBumpLow);
+		RLWheelSuspension->SetBumpDampHigh(RBumpHigh);
+		RLWheelSuspension->SetReboundDampLow(RReboundLow);
+		RLWheelSuspension->SetReboundDampHigh(RReboundHigh);
+		RLWheelSuspension->SetBumpStopStiffness(RBumpStopStiffness);
+		RLWheelSuspension->SetBumpStopRange(RBumpStopRange);
+		RLWheelSuspension->SetAntiRollBarStiffness(RARBStiff);
 		RLWheelSuspension->SetRestLength(RRestLength);
 		RLWheelSuspension->SetRideHeight(RRideHeightRatio);
 		std::shared_ptr<Tire> RLWheelTire = RLWheel->AddComponent<Tire>();
@@ -1055,7 +1085,13 @@ int main()
 		RRWheelSuspension->SetCarBody(carBody);
 		RRWheelSuspension->SetAnchorPoint(RRWheelAnchor);
 		RRWheelSuspension->SetStiffness(RStiffness);
-		RRWheelSuspension->SetDamping(RDamping);
+		RRWheelSuspension->SetBumpDampLow(RBumpLow);
+		RRWheelSuspension->SetBumpDampHigh(RBumpHigh);
+		RRWheelSuspension->SetReboundDampLow(RReboundLow);
+		RRWheelSuspension->SetReboundDampHigh(RReboundHigh);
+		RRWheelSuspension->SetBumpStopStiffness(RBumpStopStiffness);
+		RRWheelSuspension->SetBumpStopRange(RBumpStopRange);
+		RRWheelSuspension->SetAntiRollBarStiffness(RARBStiff);
 		RRWheelSuspension->SetRestLength(RRestLength);
 		RRWheelSuspension->SetRideHeight(RRideHeightRatio);
 		std::shared_ptr<Tire> RRWheelTire = RRWheel->AddComponent<Tire>();
@@ -1064,6 +1100,11 @@ int main()
 		RRWheelTire->SetTireParams(rearTyreParams);
 		RRWheelTire->SetInitialRotationOffset(vec3(0, -90, 0));
 		RRWheel->AddComponent<printPosition>();
+
+		FLWheelSuspension->SetOppositeAxelSuspension(FRWheelSuspension);
+		FRWheelSuspension->SetOppositeAxelSuspension(FLWheelSuspension);
+		RLWheelSuspension->SetOppositeAxelSuspension(RRWheelSuspension);
+		RRWheelSuspension->SetOppositeAxelSuspension(RLWheelSuspension);
 
 		std::shared_ptr<CarController> carController = carBody->AddComponent<CarController>();
 		carController->rb = carBodyRB;

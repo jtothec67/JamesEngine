@@ -116,7 +116,7 @@ namespace JamesEngine
         }
     }
 
-    void Suspension::OnFixedTick()
+    void Suspension::OnEarlyFixedTick()
     {
         // Get anchor position and suspension direction
         glm::vec3 anchorPos = mAnchorPoint->GetComponent<Transform>()->GetPosition();
@@ -132,20 +132,28 @@ namespace JamesEngine
         mGroundContact = GetCore()->GetRaycastSystem()->Raycast(ray, hit);
 
         // Determine current suspension length
-        float currentLength;
         if (mGroundContact)
         {
-			mContactPoint = hit.point;
-			mSurfaceNormal = hit.normal;
-			currentLength = hit.distance - mTireRadius;
+            mContactPoint = hit.point;
+            mSurfaceNormal = hit.normal;
+            mCurrentLength = hit.distance - mTireRadius;
         }
         else
         {
-            currentLength = mRestLength;
+            mCurrentLength = mRestLength;
         }
 
-        // Set wheel position
-        glm::vec3 wheelPos = anchorPos + suspensionDir * currentLength;
+        float targetLength = glm::clamp(mRideHeight + mTireRadius, mRestLength - mSuspensionTravel, mRestLength);
+        mDisplacement = targetLength - mCurrentLength;
+    }
+
+    void Suspension::OnFixedTick()
+    {
+        glm::vec3 anchorPos = mAnchorPoint->GetComponent<Transform>()->GetPosition();
+        glm::vec3 suspensionDir = -glm::normalize(mAnchorPoint->GetComponent<Transform>()->GetUp());
+
+        // Update wheel position using previously calculated mCurrentLength
+        glm::vec3 wheelPos = anchorPos + suspensionDir * mCurrentLength;
         mWheel->GetComponent<Transform>()->SetPosition(wheelPos);
 
         // Exit early if no ground contact
@@ -158,22 +166,77 @@ namespace JamesEngine
         glm::vec3 pointVelocity = mCarRb->GetVelocityAtPoint(anchorPos);
         float relativeVelocity = glm::dot(pointVelocity, suspensionDir);
 
-        // Calculate displacement from target
-        float displacement = targetLength - currentLength;
-
-        // If the spring is fully extended, it can't apply force
+        // Apply spring force
         float springForce = 0.0f;
-        if (currentLength < mRestLength)
-            springForce = glm::max(0.0f, mStiffness * displacement);
 
-        float dampingForce = -mDamping * relativeVelocity;
+        if (mCurrentLength < mRestLength)  // Still within travel
+        {
+            springForce = glm::max(0.0f, mStiffness * mDisplacement);
+        }
+        else
+        {
+            float extensionOverrun = mCurrentLength - mRestLength;
+            if (extensionOverrun < mBumpStopRange)
+            {
+                float bumpCompression = mBumpStopRange - extensionOverrun;
+                springForce = mBumpStopStiffness * bumpCompression;
+            }
+            else
+            {
+                springForce = 0.0f; // Fully extended past bump stop range
+            }
+        }
+
+        if (mCurrentLength < mRestLength - mSuspensionTravel + mBumpStopRange)
+        {
+            float compressionDepth = (mRestLength - mSuspensionTravel + mBumpStopRange) - mCurrentLength;
+            springForce += mBumpStopStiffness * compressionDepth;
+        }
+
+        float bumpDamping, reboundDamping;
+
+        // Decide bump or rebound based on relativeVelocity
+        bool isRebound = (relativeVelocity > 0.0f);
+
+        // Choose low-speed or high-speed based on threshold
+        float absVel = std::abs(relativeVelocity);
+        bool isHighSpeed = (absVel > mDampingThreshold);
+
+        float dampingCoef = 0.0f;
+
+        if (isRebound)
+        {
+            dampingCoef = isHighSpeed ? mReboundDampHighSpeed : mReboundDampLowSpeed;
+        }
+        else
+        {
+            dampingCoef = isHighSpeed ? mBumpDampHighSpeed : mBumpDampLowSpeed;
+        }
+
+        float dampingForce = -dampingCoef * relativeVelocity;
+
         float totalMag = springForce - dampingForce;
 
         glm::vec3 totalForce = -suspensionDir * totalMag;
 
         // Apply force to car body
         mCarRb->ApplyForce(totalForce, anchorPos);
-        mForce = totalMag;
+
+        mForce = totalMag; // Stiffness + damping
+
+        // If anti-roll bar is active, include its contribution
+        if (mOppositeAxelSuspension)
+        {
+            float displacementDiff = mDisplacement - mOppositeAxelSuspension->GetDisplacement();
+            float antiRollForce = mAntiRollBarStiffness * displacementDiff;
+
+            glm::vec3 antiRollCorrection = -suspensionDir * antiRollForce;
+            mCarRb->ApplyForce(antiRollCorrection, anchorPos);
+
+            mForce += antiRollForce;
+        }
+
+		std::cout << GetEntity()->GetTag() << " Suspension Force: " << mForce << std::endl;
     }
 
     void Suspension::OnLateFixedTick()
