@@ -134,22 +134,18 @@ struct CarController : public Component
 	std::shared_ptr<Entity> rearDownforcePos;
 	std::shared_ptr<Entity> frontDownforcePos;
 
-	// Aerodynamic properties
-	float dragCoefficient = 0.65f;
-	float frontalArea = 1.9f; // m^2
-
 	// Steering parameters
 	float maxSteeringAngle = 25.f;
 	float wheelTurnRate = 30.f;
 
 	// Engine and transmission parameters
 	float enginePeakPowerkW = 550.f; // kW
-	float currentRPM = 7000;
+	float currentRPM = 0;
 	float maxRPM = 8000;
 	float idleRPM = 1000;
 	int numGears = 6;
 	int currentGear = 1;
-	float gearRatios[6] = { 3, 2.25, 1.75, 1.35, 1.1, 0.9 };
+	float gearRatios[6] = { 3, 2.25, 1.75, 1.35, 1.1, 0.9 }; // TEST IN ACC, DRIVE AT SAME RPM IN EACH GEAR AND SEE SPEEDS TO WORK OUT GEAR RATIO!!
 	float finalDrive = 3.7f;
 	float drivetrainEfficiency = 0.8f;
 
@@ -172,9 +168,13 @@ struct CarController : public Component
 	float mBrakeInput = 0.f;
 	float mSteerInput = 0.f;
 
+	// Aerodynamic properties
+	float dragCoefficient = 0.7f;
+	float frontalArea = 1.9f; // m^2
+
 	// Downforce settings at reference speed
-	float rearDownforceAt200 = 1500.0f; // N at 200 km/h
-	float frontDownforceAt200 = 900.0f; // N at 200 km/h
+	float rearDownforceAt200 = 5300.0f; // N at 200 km/h
+	float frontDownforceAt200 = 3500.0f; // N at 200 km/h
 	float referenceSpeed = 200.0f / 3.6f; // m/s
 
 	// Engine audio
@@ -694,32 +694,32 @@ int main()
 	{
 
 		TireParams frontTyreParams{};
-		frontTyreParams.brushLongStiffCoeff = 70;
-		frontTyreParams.brushLatStiffCoeff = 60;
+		frontTyreParams.brushLongStiffCoeff = 140;
+		frontTyreParams.brushLatStiffCoeff = 110;
 
-		frontTyreParams.peakFrictionCoefficient = 1.8f;
+		frontTyreParams.peakFrictionCoefficient = 1.6f;
 		frontTyreParams.tireRadius = 0.34f;
 		frontTyreParams.wheelMass = 25.f;
 		frontTyreParams.rollingResistance = 0.015f;
 
 		TireParams rearTyreParams{};
-		rearTyreParams.brushLongStiffCoeff = 70;
-		rearTyreParams.brushLatStiffCoeff = 60;
+		rearTyreParams.brushLongStiffCoeff = 140;
+		rearTyreParams.brushLatStiffCoeff = 110;
 
-		rearTyreParams.peakFrictionCoefficient = 1.8f;
+		rearTyreParams.peakFrictionCoefficient = 1.6f;
 		rearTyreParams.tireRadius = 0.34f;
 		rearTyreParams.wheelMass = 25.f;
 		rearTyreParams.rollingResistance = 0.015f;
 
-		float FStiffness = 143000;
+		/*float FStiffness = 143000;
 		float FBumpLow = 7000;
 		float FBumpHigh = 9500;
 		float FReboundLow = 5000;
 		float FReboundHigh = 7000;
 		float FBumpStopStiffness = 100000;
-		float FBumpStopRange = 0.02f;
+		float FBumpStopRange = 0.015f;
 		float FARBStiff = 30000;
-		float FRestLength = 0.45f;
+		float FRestLength = 0.43f;
 		float FRideHeightRatio = 0.053f;
 
 		float RStiffness = 95000;
@@ -728,10 +728,32 @@ int main()
 		float RReboundLow = 9000;
 		float RReboundHigh = 10000;
 		float RBumpStopStiffness = 100000;
-		float RBumpStopRange = 0.02f;
+		float RBumpStopRange = 0.015f;
 		float RARBStiff = 35000;
-		float RRestLength = 0.5f;
-		float RRideHeightRatio = 0.078f;
+		float RRestLength = 0.45f;
+		float RRideHeightRatio = 0.078f;*/
+
+		float FStiffness = 140000;
+		float FBumpLow = 6000;        // Slightly higher to resist steady aero compression
+		float FBumpHigh = 11000;      // Firm to limit dive and reduce travel from downforce
+		float FReboundLow = 5500;     // Reduced rebound to prevent slow recoil and lag
+		float FReboundHigh = 8000;    // Lower than before to soften extension
+		float FBumpStopStiffness = 160000;
+		float FBumpStopRange = 0.015f;
+		float FARBStiff = 35000;
+		float FRestLength = 0.42f;
+		float FRideHeightRatio = 0.052f;
+
+		float RStiffness = 105000;
+		float RBumpLow = 5500;
+		float RBumpHigh = 9000;
+		float RReboundLow = 5000;     // Reduced like the front to balance spring recovery
+		float RReboundHigh = 10000;
+		float RBumpStopStiffness = 160000;
+		float RBumpStopRange = 0.015f;
+		float RARBStiff = 32000;
+		float RRestLength = 0.44f;
+		float RRideHeightRatio = 0.072f;
 
 		core->GetSkybox()->SetTexture(core->GetResources()->Load<SkyboxTexture>("skyboxes/sky"));
 

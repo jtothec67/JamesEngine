@@ -143,7 +143,7 @@ namespace JamesEngine
             mCurrentLength = mRestLength;
         }
 
-        float targetLength = glm::clamp(mRideHeight + mTireRadius, mRestLength - mSuspensionTravel, mRestLength);
+        float targetLength = glm::clamp(mRideHeight + mTireRadius, 0.0f, mRestLength);
         mDisplacement = targetLength - mCurrentLength;
     }
 
@@ -160,7 +160,7 @@ namespace JamesEngine
         if (!mGroundContact)
             return;
 
-        float targetLength = glm::clamp(mRideHeight + mTireRadius, mRestLength - mSuspensionTravel, mRestLength);
+        float targetLength = glm::clamp(mRideHeight + mTireRadius, 0.0f, mRestLength);
 
         // Get velocity of anchor point projected along suspension direction
         glm::vec3 pointVelocity = mCarRb->GetVelocityAtPoint(anchorPos);
@@ -169,41 +169,36 @@ namespace JamesEngine
         // Apply spring force
         float springForce = 0.0f;
 
-        if (mCurrentLength < mRestLength)  // Still within travel
+        // Regular spring force within normal range
+        if (mCurrentLength <= mRestLength && mCurrentLength >= 0.0f)
         {
             springForce = glm::max(0.0f, mStiffness * mDisplacement);
         }
-        else
+
+        // Bump stop (bottoming out)
+        if (mCurrentLength < mBumpStopRange)
+        {
+            float compressionDepth = mBumpStopRange - mCurrentLength;
+            springForce += mBumpStopStiffness * compressionDepth;
+        }
+
+        // Bump stop (extension limit)
+        if (mCurrentLength > mRestLength)
         {
             float extensionOverrun = mCurrentLength - mRestLength;
             if (extensionOverrun < mBumpStopRange)
             {
                 float bumpCompression = mBumpStopRange - extensionOverrun;
-                springForce = mBumpStopStiffness * bumpCompression;
-            }
-            else
-            {
-                springForce = 0.0f; // Fully extended past bump stop range
+                springForce += mBumpStopStiffness * bumpCompression;
             }
         }
 
-        if (mCurrentLength < mRestLength - mSuspensionTravel + mBumpStopRange)
-        {
-            float compressionDepth = (mRestLength - mSuspensionTravel + mBumpStopRange) - mCurrentLength;
-            springForce += mBumpStopStiffness * compressionDepth;
-        }
-
-        float bumpDamping, reboundDamping;
-
-        // Decide bump or rebound based on relativeVelocity
+        // Damping logic
         bool isRebound = (relativeVelocity > 0.0f);
-
-        // Choose low-speed or high-speed based on threshold
         float absVel = std::abs(relativeVelocity);
         bool isHighSpeed = (absVel > mDampingThreshold);
 
         float dampingCoef = 0.0f;
-
         if (isRebound)
         {
             dampingCoef = isHighSpeed ? mReboundDampHighSpeed : mReboundDampLowSpeed;
@@ -236,7 +231,7 @@ namespace JamesEngine
             mForce += antiRollForce;
         }
 
-		std::cout << GetEntity()->GetTag() << " Suspension Force: " << mForce << std::endl;
+		//std::cout << GetEntity()->GetTag() << " Suspension Force: " << mForce << std::endl;
     }
 
     void Suspension::OnLateFixedTick()

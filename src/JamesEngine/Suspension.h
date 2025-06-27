@@ -46,8 +46,6 @@ namespace JamesEngine
 
 		void SetSteeringAngle(float _steeringAngle) { mSteeringAngle = _steeringAngle; }
 
-		void SetSuspensionTravel(float _suspensionTravel) { mSuspensionTravel = _suspensionTravel; }
-
 		void SetTireRadius(float _wheelRadius) { mTireRadius = _wheelRadius; }
 
 		void SetRestLength(float _restLength) { mRestLength = _restLength; }
@@ -96,7 +94,6 @@ namespace JamesEngine
 
 		float mRestLength = 0.45f;
 		float mRideHeight = 0.07f;
-		float mSuspensionTravel = 0.12f;
 		float mTireRadius = 0.34f;
 
 		float mSteeringAngle = 0.0f;
