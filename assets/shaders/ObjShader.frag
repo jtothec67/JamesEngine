@@ -15,6 +15,9 @@ uniform vec3 u_LightPositions[MAX_LIGHTS];
 uniform vec3 u_LightColors[MAX_LIGHTS];
 uniform float u_LightStrengths[MAX_LIGHTS];
 
+uniform vec3 u_DirLightDirection;
+uniform vec3 u_DirLightColor;
+
 out vec4 FragColor;
 
 void main()
@@ -37,6 +40,16 @@ void main()
 
         lighting += diffuse + specular;
     }
+
+    vec3 dirLightDir = normalize(-u_DirLightDirection);
+    float diff = max(dot(N, dirLightDir), 0.0);
+    vec3 diffuse = u_DirLightColor * diff;
+
+    vec3 reflectDir = reflect(-dirLightDir, N);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 16);
+    vec3 specular = spec * u_DirLightColor * u_SpecStrength;
+
+    lighting += diffuse + specular;
 
     FragColor = vec4(lighting, 1) * tex;
 }

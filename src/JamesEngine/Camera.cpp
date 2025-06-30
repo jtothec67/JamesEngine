@@ -14,9 +14,20 @@ namespace JamesEngine
 	{
 		int winWidth, winHeight;
 		GetEntity()->GetCore()->GetWindow()->GetWindowSize(winWidth, winHeight);
-		glm::mat4 projection = glm::perspective(glm::radians(mFov), (float)winWidth / (float)winHeight, mNearClip, mFarClip);
+		float aspect = (float)winWidth / (float)winHeight;
 
-		return projection;
+		if (mType == CameraType::Perspective)
+		{
+			return glm::perspective(glm::radians(mFov), aspect, mNearClip, mFarClip);
+		}
+		else
+		{
+			return glm::ortho(
+				-mOrthographicSize.x, mOrthographicSize.x,
+				-mOrthographicSize.y, mOrthographicSize.y,
+				mNearClip, mFarClip
+			);
+		}
 	}
 
 	glm::mat4 Camera::GetViewMatrix()

@@ -44,10 +44,20 @@ public:
 		}
 	}
 
+	void SetDirectionalLightDirection(glm::vec3 _direction) { mDirectionalLightDirection = glm::normalize(_direction); }
+	glm::vec3 GetDirectionalLightDirection() { return mDirectionalLightDirection; }
+
+	void SetDirectionalLightColour(glm::vec3 _colour) { mDirectionalLightColour = _colour; }
+	glm::vec3 GetDirectionalLightColour() { return mDirectionalLightColour; }
+
 	void SetAmbient(glm::vec3 _ambient) { mAmbient = _ambient; }
 	glm::vec3 GetAmbient() { return mAmbient; }
 
 private:
 	std::vector<std::shared_ptr<Light>> mLights;
+
+	glm::vec3 mDirectionalLightDirection = glm::vec3(0.f, -1.f, 0.f);
+	glm::vec3 mDirectionalLightColour = glm::vec3(1.f, 1.f, 1.f);
+
 	glm::vec3 mAmbient = glm::vec3(1.f, 1.f, 1.f);
 };

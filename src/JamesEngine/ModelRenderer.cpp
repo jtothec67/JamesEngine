@@ -67,6 +67,9 @@ namespace JamesEngine
 
 		mShader->mShader->uniform("u_SpecStrength", mSpecularStrength);
 
+		mShader->mShader->uniform("u_DirLightDirection", core->GetLightManager()->GetDirectionalLightDirection());
+		mShader->mShader->uniform("u_DirLightColor", core->GetLightManager()->GetDirectionalLightColour());
+
 		std::vector<Renderer::Texture*> rawTextures;
 		for (const auto& tex : mTextures)
 		{

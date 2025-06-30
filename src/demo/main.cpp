@@ -343,8 +343,8 @@ struct CarController : public Component
 		// Keyboard brake: apply brake torque to all wheels
 		if (GetKeyboard()->IsKey(SDLK_s))
 		{
-			float frontBrakeTorque = brakeTorqueCapacity * brakeBias;
-			float rearBrakeTorque = brakeTorqueCapacity * (1.0f - brakeBias);
+			float frontBrakeTorque = (brakeTorqueCapacity * brakeBias) / 2;
+			float rearBrakeTorque = (brakeTorqueCapacity * (1.0f - brakeBias)) / 2;
 
 			FLWheelTire->AddBrakeTorque(frontBrakeTorque);
 			FRWheelTire->AddBrakeTorque(frontBrakeTorque);
@@ -757,8 +757,8 @@ int main()
 
 		core->GetSkybox()->SetTexture(core->GetResources()->Load<SkyboxTexture>("skyboxes/sky"));
 
-		core->GetLightManager()->AddLight("light1", vec3(0, 20000, 0), vec3(1, 1, 1), 1.f);
-		core->GetLightManager()->SetAmbient(vec3(0.4f));
+		core->GetLightManager()->SetDirectionalLightDirection(glm::vec3(0.5f, -1.0f, 0.5f));
+		core->GetLightManager()->SetAmbient(vec3(0.3f));
 
 		// Cameras
 		std::shared_ptr<Entity> freeCamEntity = core->AddEntity();

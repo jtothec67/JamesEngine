@@ -4,10 +4,17 @@
 
 namespace Renderer
 {
+
+	enum class RenderTextureType
+	{
+		ColourAndDepth,
+		Depth,
+	};
+
 	class RenderTexture
 	{
 	public:
-		RenderTexture(int _width, int _height);
+		RenderTexture(int _width, int _height, RenderTextureType _type = RenderTextureType::ColourAndDepth);
 		~RenderTexture();
 
 		void bind();
