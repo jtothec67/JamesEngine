@@ -14,6 +14,7 @@ namespace Renderer
 	class RenderTexture
 	{
 	public:
+		RenderTexture() {}
 		RenderTexture(int _width, int _height, RenderTextureType _type = RenderTextureType::ColourAndDepth);
 		~RenderTexture();
 
@@ -33,5 +34,7 @@ namespace Renderer
 
 		int m_width;
 		int m_height;
+
+		RenderTextureType m_type = RenderTextureType::ColourAndDepth;
 	};
 }

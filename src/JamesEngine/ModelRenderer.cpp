@@ -20,6 +20,7 @@ namespace JamesEngine
 	void ModelRenderer::OnInitialize()
 	{
 		mShader = GetEntity()->GetCore()->GetResources()->Load<Shader>("shaders/ObjShader");
+		mDepthShader = GetEntity()->GetCore()->GetResources()->Load<Shader>("shaders/DepthOnly");
 	}
 
 	void ModelRenderer::OnRender()
@@ -70,6 +71,13 @@ namespace JamesEngine
 		mShader->mShader->uniform("u_DirLightDirection", core->GetLightManager()->GetDirectionalLightDirection());
 		mShader->mShader->uniform("u_DirLightColor", core->GetLightManager()->GetDirectionalLightColour());
 
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, core->GetLightManager()->GetDirectionalLightShadowMap()->getTextureId());
+		//glBindTexture(GL_TEXTURE_2D, core->GetResources()->Load<Texture>("images/mouse")->mTexture->id());
+
+		mShader->mShader->uniform("u_ShadowMap", 3);
+		mShader->mShader->uniform("u_LightSpaceMatrix", core->GetLightSpaceMatrix());
+
 		std::vector<Renderer::Texture*> rawTextures;
 		for (const auto& tex : mTextures)
 		{
@@ -78,6 +86,37 @@ namespace JamesEngine
 
 		// Call the updated draw function with support for multi-materials
 		mShader->mShader->draw(mModel->mModel.get(), rawTextures);
+	}
+
+	void ModelRenderer::OnShadowRender()
+	{
+		if (!mModel)
+			return;
+
+		glm::mat4 entityModel = GetEntity()->GetComponent<Transform>()->GetModel();
+
+		glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(mRotationOffset.x), glm::vec3(1, 0, 0)) *
+			glm::rotate(glm::mat4(1.0f), glm::radians(mRotationOffset.y), glm::vec3(0, 1, 0)) *
+			glm::rotate(glm::mat4(1.0f), glm::radians(mRotationOffset.z), glm::vec3(0, 0, 1));
+		glm::mat4 offsetMatrix = glm::translate(glm::mat4(1.0f), mPositionOffset) * rotationMatrix;
+
+		glm::mat4 model = entityModel * offsetMatrix;
+
+		mDepthShader->mShader->uniform("u_Model", model);
+
+		mDepthShader->mShader->uniform("u_LightSpaceMatrix", GetEntity()->GetCore()->GetLightSpaceMatrix());
+		mDepthShader->mShader->uniform("u_AlphaCutoff", 0.5f);
+		mDepthShader->mShader->uniform("u_UseAlphaCutoff", 1);
+
+
+		std::vector<Renderer::Texture*> rawTextures;
+		for (const auto& tex : mTextures)
+		{
+			rawTextures.push_back(tex->mTexture.get());
+		}
+
+		// Call the updated draw function with support for multi-materials
+		mDepthShader->mShader->draw(mModel->mModel.get(), rawTextures);
 	}
 
 }

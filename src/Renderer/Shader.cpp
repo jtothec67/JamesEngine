@@ -272,6 +272,17 @@ namespace Renderer
 		glUseProgram(0);
 	}
 
+	void Shader::draw(Mesh* _mesh, GLuint _texId)
+	{
+		glUseProgram(id());
+		glBindVertexArray(_mesh->id());
+		glBindTexture(GL_TEXTURE_2D, _texId);
+		glUniform1i(glGetUniformLocation(id(), "u_Texture"), 0);
+		glDrawArrays(GL_TRIANGLES, 0, _mesh->vertex_count());
+		glBindVertexArray(0);
+		glUseProgram(0);
+	}
+
 	void Shader::draw(Mesh& _mesh, GLuint _texId)
 	{
 		glUseProgram(id());

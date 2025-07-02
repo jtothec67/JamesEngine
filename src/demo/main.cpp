@@ -104,6 +104,8 @@ struct StartFinishLine : public Component
 		GetGUI()->Text(vec2(width - 200, height - 50), 40, vec3(0, 0, 0), "Last lap: \n" + lastLapTimeString, GetCore()->GetResources()->Load<Font>("fonts/munro"));
 
 		GetGUI()->Text(vec2(width - 200, height - 200), 40, vec3(0, 0, 0), "Best lap: \n" + bestLapTimeString, GetCore()->GetResources()->Load<Font>("fonts/munro"));
+
+		GetGUI()->Image(vec2(width - 200, height - 300), vec2(100, 100), GetCore()->GetResources()->Load<Texture>("images/mouse"));
 	}
 
 	std::string FormatTime(float time)

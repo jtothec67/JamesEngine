@@ -136,6 +136,11 @@ namespace JamesEngine
 		OnRender();
 	}
 
+	void Component::ShadowRender()
+	{
+		OnShadowRender();
+	}
+
 	void Component::GUI()
 	{
 		OnGUI();

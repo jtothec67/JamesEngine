@@ -9,6 +9,7 @@ namespace Renderer
 		: m_fboId(0)
 		, m_texId(0)
 		, m_rboId(0)
+		, m_type(_type)
 	{
 		m_width = _width;
 		m_height = _height;
@@ -35,6 +36,7 @@ namespace Renderer
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 			float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 			glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
 
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_texId, 0);
 			glDrawBuffer(GL_NONE);
@@ -89,9 +91,18 @@ namespace Renderer
 	{
 		bind();
 
-		glClearColor(1.0f, 1.0f, 0.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		if (m_type == RenderTextureType::Depth)
+		{
+			glClearDepth(1.0f);
+			glClear(GL_DEPTH_BUFFER_BIT);
+		}
+		else
+		{
+			glClearColor(1.0f, 1.0f, 0.0f, 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		}
 
 		unbind();
 	}
+
 }

@@ -15,6 +15,7 @@ namespace JamesEngine
 	public:
 		void OnInitialize();
 		void OnRender();
+		void OnShadowRender();
 
 		void SetModel(std::shared_ptr<Model> _model) { mModel = _model; }
 		void AddTexture(std::shared_ptr<Texture> _texture) { mTextures.push_back(_texture); }
@@ -38,6 +39,8 @@ namespace JamesEngine
 
 		glm::vec3 mPositionOffset{ 0 };
 		glm::vec3 mRotationOffset{ 0 };
+
+		std::shared_ptr<Shader> mDepthShader;
 	};
 
 }

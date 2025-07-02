@@ -1,5 +1,7 @@
 #pragma once
 
+#include <glm/glm.hpp>
+
 #include <iostream>
 
 #include <string>
@@ -92,6 +94,7 @@ namespace JamesEngine
 		void OnFixedTick();
 		void OnLateFixedTick();
 		void OnRender();
+		void OnShadowRender();
 		void OnGUI();
 	};
 

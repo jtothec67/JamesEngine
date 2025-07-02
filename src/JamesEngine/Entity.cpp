@@ -60,6 +60,14 @@ namespace JamesEngine
 		}
 	}
 
+	void Entity::OnShadowRender()
+	{
+		for (size_t ci = 0; ci < mComponents.size(); ++ci)
+		{
+			mComponents.at(ci)->ShadowRender();
+		}
+	}
+
 	void Entity::OnGUI()
 	{
 		for (size_t ci = 0; ci < mComponents.size(); ++ci)

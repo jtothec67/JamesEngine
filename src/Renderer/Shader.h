@@ -33,6 +33,7 @@ namespace Renderer
 		void draw(Model* _model, Texture* _tex);
 		void draw(Mesh* _mesh, Texture* _tex);
 		void draw(Mesh& _mesh, Texture& _tex);
+		void draw(Mesh* _mesh, GLuint _texId);
 		void draw(Mesh& _mesh, GLuint _texId);
 		void draw(Model& _model, Texture& _tex);
 		void draw(Model& _model, GLuint _texId);

@@ -95,6 +95,9 @@ namespace JamesEngine
 		mShader->uniform("u_View", glm::mat4(1.0f));
 
 		mShader->draw(mRect.get(), _texture->mTexture.get());
+
+		// Replaces all images with the shadow map of the directional light (keeping in case of future debugging)
+		//mShader->draw(mRect.get(), mCore.lock()->GetLightManager()->GetDirectionalLightShadowMap()->getTextureId());
 	}
 
     void GUI::Text(glm::vec2 _position, float _size, glm::vec3 _colour, std::string _text, std::shared_ptr<Font> _font)

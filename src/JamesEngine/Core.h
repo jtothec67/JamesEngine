@@ -141,6 +141,8 @@ namespace JamesEngine
 
 		float FixedDeltaTime() { return mFixedDeltaTime; }
 
+		glm::mat4& GetLightSpaceMatrix() { return mLightSpaceMatrix; }
+
 	private:
 		std::shared_ptr<Window> mWindow;
 		std::shared_ptr<Audio> mAudio;
@@ -152,6 +154,9 @@ namespace JamesEngine
 		std::shared_ptr<Resources> mResources;
 		std::vector<std::shared_ptr<Entity>> mEntities;
 		std::weak_ptr<Core> mSelf;
+
+		void RenderScene();
+		void RenderGUI();
 
 		bool mIsRunning = true;
 
@@ -166,6 +171,8 @@ namespace JamesEngine
 		bool mDeltaTimeZero = true;
 		int mDeltaTimeZeroCounter = 0;
 		int mNumDeltaTimeZeros = 2;
+
+		glm::mat4 mLightSpaceMatrix;
 	};
 
 }

@@ -72,6 +72,7 @@ namespace JamesEngine
 		/**
 		 * @brief Called After OnRender().
 		 */
+		virtual void OnShadowRender() {}
 		virtual void OnGUI() { }
 		/**
 		 * @brief Called when the entity the component is attatched to is destroyed.
@@ -97,6 +98,7 @@ namespace JamesEngine
 		void FixedTick();
 		void LateFixedTick();
 		void Render();
+		void ShadowRender();
 		void GUI();
 		void Destroy();
 		void Alive();

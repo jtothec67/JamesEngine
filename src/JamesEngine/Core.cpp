@@ -34,18 +34,24 @@ namespace JamesEngine
 	{
 		Timer mDeltaTimer;
 
+		mLightManager->InitShadowMap();
+		Renderer::RenderTexture* shadowMap = mLightManager->GetDirectionalLightShadowMap();
+
+		shadowMap->clear();
+
 		while (mIsRunning)
 		{
 			mDeltaTime = mDeltaTimer.Stop();
 
 			//std::cout << "FPS: " << 1.0f / mDeltaTime << std::endl;
 
-			mDeltaTime = mDeltaTime * mTimeScale;
+			mDeltaTime *= mTimeScale;
 
 			//std::cout << "deltaTime: " << mDeltaTime << std::endl;
 
 			mDeltaTimer.Start();
 
+			// 0 delta time (useful for loading a large model, takes a while so no long delta time)
 			if (mDeltaTimeZero)
 			{
 				mDeltaTime = 0.0f;
@@ -58,6 +64,7 @@ namespace JamesEngine
 					mDeltaTimeZero = false;
 			}
 
+			// Handle input events
 			mInput->Update();
 			
 			SDL_Event event = {};
@@ -73,11 +80,13 @@ namespace JamesEngine
 				}
 			}
 
+			// Run tick on all entities
 			for (size_t ei = 0; ei < mEntities.size(); ++ei)
 			{
 				mEntities[ei]->OnTick();
 			}
 
+			// Fixed time step logic
 			mFixedTimeAccumulator += mDeltaTime;
 
 			if (mFixedTimeAccumulator > mFixedDeltaTime * 3) // Allow max 3 fixed updates per frame
@@ -107,6 +116,7 @@ namespace JamesEngine
 				mFixedTimeAccumulator -= mFixedDeltaTime;
 			}
 
+			// Delete entities that have been destroyed this frame
 			for (size_t ei = 0; ei < mEntities.size(); ei++)
 			{
 				if (mEntities.at(ei)->mAlive == false)
@@ -116,30 +126,103 @@ namespace JamesEngine
 				}
 			}
 
+			// Clear the raycast cache (currently holds all colliders in current scene)
 			mRaycastSystem->ClearCache();
 
-			mWindow->Update();
+			// Render the scene and GUI
+			RenderScene();
+			RenderGUI();
 
-			mWindow->ClearWindow();
-
-			mSkybox->RenderSkybox();
-
-			for (size_t ei = 0; ei < mEntities.size(); ++ei)
-			{
-				mEntities[ei]->OnRender();
-			}
-
-			glDisable(GL_DEPTH_TEST);
-
-			for (size_t ei = 0; ei < mEntities.size(); ++ei)
-			{
-				mEntities[ei]->OnGUI();
-			}
-
-			glEnable(GL_DEPTH_TEST);
-
+			// Present the rendered frame
 			mWindow->SwapWindows();
 		}
+	}
+
+	void Core::RenderScene()
+	{
+		// Prepare the shadow map for rendering
+		glm::vec3 camPos = GetCamera()->GetPosition();
+		glm::vec3 camForward = GetCamera()->GetEntity()->GetComponent<Transform>()->GetForward();
+
+		glm::vec2 orthoSize = mLightManager->GetOrthoShadowMapSize();
+		float nearPlane = mLightManager->GetDirectionalLightNearPlane();
+		float farPlane = mLightManager->GetDirectionalLightFarPlane();
+
+		// Project the forward vector onto the XZ plane (remove vertical component)
+		glm::vec3 flatForward = glm::normalize(glm::vec3(-camForward.x, 0.0f, -camForward.z));
+
+		// Scene center is now ahead of camera, so more of camera's view is in the shadow map
+		glm::vec3 sceneCenter = camPos + flatForward * orthoSize.x/1.25f;
+
+		glm::vec3 lightDir = glm::normalize(mLightManager->GetDirectionalLightDirection());
+		// Calculate light position, centered around the camera, positioned in direction of light half the far view plane away
+		glm::vec3 lightPos = sceneCenter - lightDir * farPlane/2.f;
+
+		// Look at the camera
+		glm::mat4 lightView = glm::lookAt(lightPos, sceneCenter, glm::vec3(0, 1, 0));
+
+		glm::mat4 lightProjection = glm::ortho(
+			-orthoSize.x, orthoSize.x,
+			-orthoSize.y, orthoSize.y,
+			nearPlane, farPlane
+		);
+
+		// Store the light space matrix for shadow mapping rendering
+		mLightSpaceMatrix = lightProjection * lightView;
+
+		// Draw the scene on to the shadow map
+		Renderer::RenderTexture* shadowMap = mLightManager->GetDirectionalLightShadowMap();
+
+		// Clear from last frame
+		shadowMap->clear();
+
+		shadowMap->bind();
+		glViewport(0, 0, shadowMap->getWidth(), shadowMap->getHeight());
+
+		glDepthFunc(GL_LESS);
+		glDepthMask(GL_TRUE);
+
+		glDisable(GL_CULL_FACE);
+		glDisable(GL_BLEND);
+		glDisable(GL_MULTISAMPLE);
+		glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+
+		for (size_t ei = 0; ei < mEntities.size(); ++ei)
+		{
+			// Special render to use the depth only shader and upload appropriate uniforms
+			mEntities[ei]->OnShadowRender();
+		}
+
+		shadowMap->unbind();
+
+		glEnable(GL_CULL_FACE);
+		glEnable(GL_BLEND);
+		glEnable(GL_MULTISAMPLE);
+		glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+
+		// Prepare window for rendering
+		mWindow->Update();
+		mWindow->ClearWindow();
+
+		// Normal rendering of the scene
+		mSkybox->RenderSkybox();
+
+		for (size_t ei = 0; ei < mEntities.size(); ++ei)
+		{
+			mEntities[ei]->OnRender();
+		}
+	}
+
+	void Core::RenderGUI()
+	{
+		glDisable(GL_DEPTH_TEST);
+
+		for (size_t ei = 0; ei < mEntities.size(); ++ei)
+		{
+			mEntities[ei]->OnGUI();
+		}
+
+		glEnable(GL_DEPTH_TEST);
 	}
 
 	std::shared_ptr<Entity> Core::AddEntity()
