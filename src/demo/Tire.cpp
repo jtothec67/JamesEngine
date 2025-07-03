@@ -1,13 +1,6 @@
 #include "Tire.h"
 
-#include "Transform.h"
-#include "Core.h"
-#include "Entity.h"
-#include "Rigidbody.h"
 #include "Suspension.h"
-#include "ModelRenderer.h"
-#include "AudioSource.h"
-#include "Resources.h"
 
 namespace JamesEngine
 {
@@ -110,7 +103,7 @@ namespace JamesEngine
 			denominator = 0.001f;
         float slipRatio = (Vx - wheelCircumferentialSpeed) / denominator;
 
-        float VxClamped = std::max(std::fabs(Vx), 0.5f);
+        float VxClamped = std::max(std::fabs(Vx), 0.1f);
         float slipAngle = std::atan2(Vy, VxClamped);
 
         // Compute vertical load from suspension compression and weight transfer

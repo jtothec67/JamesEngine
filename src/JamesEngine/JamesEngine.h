@@ -24,8 +24,6 @@
 #include "Font.h"
 #include "Skybox.h"
 #include "LightManager.h"
-#include "Suspension.h"
-#include "Tire.h"
 
 using namespace glm;
 

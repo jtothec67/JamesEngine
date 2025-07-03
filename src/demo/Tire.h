@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Component.h"
+#include "JamesEngine/JamesEngine.h"
 
 namespace JamesEngine
 {

@@ -109,12 +109,6 @@ add_library(JamesEngine
 	src/JamesEngine/LightManager.h
 	src/JamesEngine/LightManager.cpp
 
-	src/JamesEngine/Suspension.h
-	src/JamesEngine/Suspension.cpp
-
-	src/JamesEngine/Tire.h
-	src/JamesEngine/Tire.cpp
-
 	src/JamesEngine/RaycastSystem.h
 	src/JamesEngine/RaycastSystem.cpp
 )
@@ -144,6 +138,12 @@ target_link_libraries(Renderer SDL2 OpenGL32 glew32 freetype)
 
 add_executable(demo
 	src/demo/main.cpp
+	
+	src/demo/Suspension.h
+	src/demo/Suspension.cpp
+
+	src/demo/Tire.h
+	src/demo/Tire.cpp
 )
 
 target_link_libraries(demo JamesEngine)

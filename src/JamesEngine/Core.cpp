@@ -152,11 +152,11 @@ namespace JamesEngine
 		glm::vec3 flatForward = glm::normalize(glm::vec3(-camForward.x, 0.0f, -camForward.z));
 
 		// Scene center is now ahead of camera, so more of camera's view is in the shadow map
-		glm::vec3 sceneCenter = camPos + flatForward * orthoSize.x/1.25f;
+		glm::vec3 sceneCenter = camPos + flatForward * (orthoSize.x / 1.25f);
 
 		glm::vec3 lightDir = glm::normalize(mLightManager->GetDirectionalLightDirection());
 		// Calculate light position, centered around the camera, positioned in direction of light half the far view plane away
-		glm::vec3 lightPos = sceneCenter - lightDir * farPlane/2.f;
+		glm::vec3 lightPos = sceneCenter - lightDir * (farPlane / 2.f);
 
 		// Look at the camera
 		glm::mat4 lightView = glm::lookAt(lightPos, sceneCenter, glm::vec3(0, 1, 0));
