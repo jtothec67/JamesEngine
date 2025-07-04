@@ -18,14 +18,21 @@ struct Light
 	float strength;
 };
 
+struct ShadowCascade
+{
+	glm::vec2 orthoSize;
+	glm::ivec2 resolution;
+	float nearPlane;
+	float farPlane;
+	float splitDepthStart;
+	float splitDepthEnd;
+	std::shared_ptr<Renderer::RenderTexture> renderTexture;
+	glm::mat4 lightSpaceMatrix;
+};
+
 class LightManager
 {
 public:
-	void InitShadowMap()
-	{
-		mDirectionalLightShadowMap = std::make_unique<Renderer::RenderTexture>(mShadowMapSize.x, mShadowMapSize.y, Renderer::RenderTextureType::Depth);
-	}
-
 	std::vector<std::shared_ptr<Light>> GetLights() { return mLights; }
 
 	void AddLight(std::string _name, glm::vec3 _position, glm::vec3 _colour, float _strength)
@@ -60,28 +67,42 @@ public:
 	void SetDirectionalLightColour(glm::vec3 _colour) { mDirectionalLightColour = _colour; }
 	glm::vec3 GetDirectionalLightColour() { return mDirectionalLightColour; }
 
-	void SetOrthoShadowMapSize(glm::vec2 _size) { mOrthoShadowMapSize = _size; }
-	glm::vec2 GetOrthoShadowMapSize() { return mOrthoShadowMapSize; }
+	void AddShadowCascade(glm::vec2 orthoSize, glm::ivec2 resolution, float nearPlane, float farPlane, float splitDepthStart, float splitDepthEnd)
+	{
+		ShadowCascade cascade;
+		cascade.orthoSize = orthoSize;
+		cascade.resolution = resolution;
+		cascade.nearPlane = nearPlane;
+		cascade.farPlane = farPlane;
+		cascade.splitDepthStart = splitDepthStart;
+		cascade.splitDepthEnd = splitDepthEnd;
+		cascade.renderTexture = std::make_shared<Renderer::RenderTexture>(resolution.x, resolution.y, Renderer::RenderTextureType::Depth);
+		mCascades.push_back(cascade);
+	}
 
-	void SetDirectionalLightNearPlane(float _nearPlane) { mDirectionalLightNearPlane = _nearPlane; }
-	float GetDirectionalLightNearPlane() { return mDirectionalLightNearPlane; }
+	void ClearShadowCascades()
+	{
+		mCascades.clear();
+	}
 
-	void SetDirectionalLightFarPlane(float _farPlane) { mDirectionalLightFarPlane = _farPlane; }
-	float GetDirectionalLightFarPlane() { return mDirectionalLightFarPlane; }
+	const std::vector<ShadowCascade>& GetShadowCascades() const { return mCascades; }
+	std::vector<ShadowCascade>& GetShadowCascades() { return mCascades; } // Allow non-const access for updating matrices
 
-	Renderer::RenderTexture* GetDirectionalLightShadowMap() { return mDirectionalLightShadowMap.get(); }
+	void SetupDefault3Cascades()
+	{
+		ClearShadowCascades();
+		AddShadowCascade({ 10.f, 10.f }, { 3500, 3500 }, 0.1f, 100.0f, 0, 30);
+		AddShadowCascade({ 60.f, 60.f }, { 3499, 3499 }, 0.1f, 100.0f, 30, 60);
+		AddShadowCascade({ 150.f, 150.f }, { 3498, 3498 }, 0.1f, 100.0f, 60, 120);
+	}
+
 
 private:
 	std::vector<std::shared_ptr<Light>> mLights;
-
 	glm::vec3 mAmbient = glm::vec3(1.f, 1.f, 1.f);
 
 	glm::vec3 mDirectionalLightDirection = glm::vec3(0.f, -1.f, 0.f);
 	glm::vec3 mDirectionalLightColour = glm::vec3(1.f, 1.f, 1.f);
-	glm::vec2 mOrthoShadowMapSize = glm::vec2(100.f, 100.f);
-	glm::ivec2 mShadowMapSize = glm::ivec2(10000, 10000);
-	float mDirectionalLightNearPlane = 1.f;
-	float mDirectionalLightFarPlane = 100.f;
 
-	std::unique_ptr<Renderer::RenderTexture> mDirectionalLightShadowMap;
+	std::vector<ShadowCascade> mCascades;
 };

@@ -183,7 +183,16 @@ namespace Renderer
 		glUseProgram(0);
 	}
 
-	void Shader::uniform(const std::string& _name, std::vector<glm::vec3> value)
+	void Shader::uniform(const std::string& _name, const std::vector<glm::vec2>& value)
+	{
+		// Find uniform locations
+		GLint loc = glGetUniformLocation(id(), _name.c_str());
+		glUseProgram(id());
+		glUniform2fv(loc, value.size(), glm::value_ptr(value[0]));
+		glUseProgram(0);
+	}
+
+	void Shader::uniform(const std::string& _name, const std::vector<glm::vec3>& value)
 	{
 		// Find uniform locations
 		GLint loc = glGetUniformLocation(id(), _name.c_str());
@@ -191,6 +200,35 @@ namespace Renderer
 		glUniform3fv(loc, value.size(), glm::value_ptr(value[0]));
 		glUseProgram(0);
 	}
+
+	void Shader::uniform(const std::string& _name, const std::vector<glm::mat4>& values)
+	{
+		GLint loc = glGetUniformLocation(id(), _name.c_str());
+		glUseProgram(id());
+		glUniformMatrix4fv(loc, static_cast<GLsizei>(values.size()), GL_FALSE, glm::value_ptr(values[0]));
+		glUseProgram(0);
+	}
+
+	void Shader::uniform(const std::string& name, const std::vector<std::shared_ptr<Renderer::RenderTexture>>& textures, int startingTextureUnit)
+	{
+		glUseProgram(id());
+
+		for (size_t i = 0; i < textures.size(); ++i)
+		{
+			int texUnit = startingTextureUnit + static_cast<int>(i);
+
+			glActiveTexture(GL_TEXTURE0 + texUnit);
+			glBindTexture(GL_TEXTURE_2D, textures[i]->getTextureId());
+
+			std::string arrayName = name + "[" + std::to_string(i) + "]";
+			GLint loc = glGetUniformLocation(id(), arrayName.c_str());
+			glUniform1i(loc, texUnit);
+		}
+
+		glActiveTexture(GL_TEXTURE0);
+		glUseProgram(0);
+	}
+
 
 	void Shader::draw(Model* _model, std::vector<Texture*>& _textures)
 	{

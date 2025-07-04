@@ -136,9 +136,9 @@ namespace JamesEngine
 		OnRender();
 	}
 
-	void Component::ShadowRender()
+	void Component::ShadowRender(const glm::mat4& _lightSpaceMatrix)
 	{
-		OnShadowRender();
+		OnShadowRender(_lightSpaceMatrix);
 	}
 
 	void Component::GUI()

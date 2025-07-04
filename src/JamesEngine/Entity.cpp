@@ -60,11 +60,11 @@ namespace JamesEngine
 		}
 	}
 
-	void Entity::OnShadowRender()
+	void Entity::OnShadowRender(const glm::mat4& _lightSpaceMatrix)
 	{
 		for (size_t ci = 0; ci < mComponents.size(); ++ci)
 		{
-			mComponents.at(ci)->ShadowRender();
+			mComponents.at(ci)->ShadowRender(_lightSpaceMatrix);
 		}
 	}
 

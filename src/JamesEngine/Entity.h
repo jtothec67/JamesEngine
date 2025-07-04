@@ -94,7 +94,7 @@ namespace JamesEngine
 		void OnFixedTick();
 		void OnLateFixedTick();
 		void OnRender();
-		void OnShadowRender();
+		void OnShadowRender(const glm::mat4& _lightSpaceMatrix);
 		void OnGUI();
 	};
 

@@ -10,6 +10,9 @@
 
 #include <iostream>
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/string_cast.hpp>
+
 namespace JamesEngine
 {
 
@@ -33,11 +36,6 @@ namespace JamesEngine
 	void Core::Run()
 	{
 		Timer mDeltaTimer;
-
-		mLightManager->InitShadowMap();
-		Renderer::RenderTexture* shadowMap = mLightManager->GetDirectionalLightShadowMap();
-
-		shadowMap->clear();
 
 		while (mIsRunning)
 		{
@@ -140,60 +138,47 @@ namespace JamesEngine
 
 	void Core::RenderScene()
 	{
-		// Prepare the shadow map for rendering
-		glm::vec3 camPos = GetCamera()->GetPosition();
-		glm::vec3 camForward = GetCamera()->GetEntity()->GetComponent<Transform>()->GetForward();
-
-		glm::vec2 orthoSize = mLightManager->GetOrthoShadowMapSize();
-		float nearPlane = mLightManager->GetDirectionalLightNearPlane();
-		float farPlane = mLightManager->GetDirectionalLightFarPlane();
-
-		// Project the forward vector onto the XZ plane (remove vertical component)
-		glm::vec3 flatForward = glm::normalize(glm::vec3(-camForward.x, 0.0f, -camForward.z));
-
-		// Scene center is now ahead of camera, so more of camera's view is in the shadow map
-		glm::vec3 sceneCenter = camPos + flatForward * (orthoSize.x / 1.25f);
-
-		glm::vec3 lightDir = glm::normalize(mLightManager->GetDirectionalLightDirection());
-		// Calculate light position, centered around the camera, positioned in direction of light half the far view plane away
-		glm::vec3 lightPos = sceneCenter - lightDir * (farPlane / 2.f);
-
-		// Look at the camera
-		glm::mat4 lightView = glm::lookAt(lightPos, sceneCenter, glm::vec3(0, 1, 0));
-
-		glm::mat4 lightProjection = glm::ortho(
-			-orthoSize.x, orthoSize.x,
-			-orthoSize.y, orthoSize.y,
-			nearPlane, farPlane
-		);
-
-		// Store the light space matrix for shadow mapping rendering
-		mLightSpaceMatrix = lightProjection * lightView;
-
-		// Draw the scene on to the shadow map
-		Renderer::RenderTexture* shadowMap = mLightManager->GetDirectionalLightShadowMap();
-
-		// Clear from last frame
-		shadowMap->clear();
-
-		shadowMap->bind();
-		glViewport(0, 0, shadowMap->getWidth(), shadowMap->getHeight());
-
-		glDepthFunc(GL_LESS);
-		glDepthMask(GL_TRUE);
-
 		glDisable(GL_CULL_FACE);
 		glDisable(GL_BLEND);
 		glDisable(GL_MULTISAMPLE);
 		glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
 
-		for (size_t ei = 0; ei < mEntities.size(); ++ei)
-		{
-			// Special render to use the depth only shader and upload appropriate uniforms
-			mEntities[ei]->OnShadowRender();
-		}
+		glm::vec3 camPos = GetCamera()->GetPosition();
+		glm::vec3 camForward = GetCamera()->GetEntity()->GetComponent<Transform>()->GetForward();
+		glm::vec3 flatForward = glm::normalize(glm::vec3(-camForward.x, 0.0f, -camForward.z));
 
-		shadowMap->unbind();
+		for (ShadowCascade& cascade : mLightManager->GetShadowCascades())
+		{
+			glm::vec2 orthoSize = cascade.orthoSize;
+			float nearPlane = cascade.nearPlane;
+			float farPlane = cascade.farPlane;
+
+			glm::vec3 sceneCenter = camPos + flatForward * (orthoSize.x * 1);
+
+			glm::vec3 lightDir = glm::normalize(mLightManager->GetDirectionalLightDirection());
+			glm::vec3 lightPos = sceneCenter - lightDir * (farPlane / 2.f);
+
+			glm::mat4 lightView = glm::lookAt(lightPos, sceneCenter, glm::vec3(0, 1, 0));
+
+			glm::mat4 lightProjection = glm::ortho(
+				-orthoSize.x, orthoSize.x,
+				-orthoSize.y, orthoSize.y,
+				nearPlane, farPlane
+			);
+
+			cascade.lightSpaceMatrix = lightProjection * lightView;
+
+			cascade.renderTexture->clear();
+			cascade.renderTexture->bind();
+			glViewport(0, 0, cascade.renderTexture->getWidth(), cascade.renderTexture->getHeight());
+
+			for (size_t ei = 0; ei < mEntities.size(); ++ei)
+			{
+				mEntities[ei]->OnShadowRender(cascade.lightSpaceMatrix);
+			}
+
+			cascade.renderTexture->unbind();
+		}
 
 		glEnable(GL_CULL_FACE);
 		glEnable(GL_BLEND);

@@ -48,6 +48,9 @@ namespace JamesEngine
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
 
+		glDepthFunc(GL_LESS);
+		glDepthMask(GL_TRUE);
+
 		glClearColor(mClearColour.r, mClearColour.g, mClearColour.b, 1.f);
 	}
 

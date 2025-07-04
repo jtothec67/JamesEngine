@@ -15,7 +15,7 @@ namespace JamesEngine
 	public:
 		void OnInitialize();
 		void OnRender();
-		void OnShadowRender();
+		void OnShadowRender(const glm::mat4& _lightSpaceMatrix);
 
 		void SetModel(std::shared_ptr<Model> _model) { mModel = _model; }
 		void AddTexture(std::shared_ptr<Texture> _texture) { mTextures.push_back(_texture); }

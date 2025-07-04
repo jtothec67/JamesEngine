@@ -22,6 +22,9 @@ namespace JamesEngine
 		void SetNearClip(float _nearClip) { mNearClip = _nearClip; }
 		void SetFarClip(float _farClip) { mFarClip = _farClip; }
 
+		float GetNearClip() { return mNearClip; }
+		float GetFarClip() { return mFarClip; }
+
 		void SetFov(float _fov) { mFov = _fov; }
 
 		void SetOrthographicSize(glm::vec2 _size) { mOrthographicSize = _size; }

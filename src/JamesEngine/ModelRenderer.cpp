@@ -14,6 +14,9 @@
 #include <iostream>
 #include <exception>
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/string_cast.hpp>
+
 namespace JamesEngine
 {
 
@@ -71,24 +74,38 @@ namespace JamesEngine
 		mShader->mShader->uniform("u_DirLightDirection", core->GetLightManager()->GetDirectionalLightDirection());
 		mShader->mShader->uniform("u_DirLightColor", core->GetLightManager()->GetDirectionalLightColour());
 
-		glActiveTexture(GL_TEXTURE3);
-		glBindTexture(GL_TEXTURE_2D, core->GetLightManager()->GetDirectionalLightShadowMap()->getTextureId());
-		//glBindTexture(GL_TEXTURE_2D, core->GetResources()->Load<Texture>("images/mouse")->mTexture->id());
+		std::vector<std::shared_ptr<Renderer::RenderTexture>> shadowMaps;
+		shadowMaps.reserve(core->GetLightManager()->GetShadowCascades().size());
+		std::vector<glm::mat4> shadowMatrices;
+		shadowMatrices.reserve(core->GetLightManager()->GetShadowCascades().size());
+		std::vector<glm::vec2> cascadeSplits;
+		cascadeSplits.reserve(core->GetLightManager()->GetShadowCascades().size());
 
-		mShader->mShader->uniform("u_ShadowMap", 3);
-		mShader->mShader->uniform("u_LightSpaceMatrix", core->GetLightSpaceMatrix());
+		for (const ShadowCascade& cascade : core->GetLightManager()->GetShadowCascades())
+		{
+			shadowMaps.emplace_back(cascade.renderTexture);
+			shadowMatrices.emplace_back(cascade.lightSpaceMatrix);
+			cascadeSplits.emplace_back(glm::vec2(cascade.splitDepthStart, cascade.splitDepthEnd));
+		}
+
+		mShader->mShader->uniform("u_ShadowMaps", shadowMaps, 3);
+		mShader->mShader->uniform("u_LightSpaceMatrices", shadowMatrices);
+		mShader->mShader->uniform("u_CascadeSplits", cascadeSplits);
+
+		//mShader->mShader->uniform("u_View", camera->GetViewMatrix());
 
 		std::vector<Renderer::Texture*> rawTextures;
+		rawTextures.reserve(mTextures.size());
 		for (const auto& tex : mTextures)
 		{
-			rawTextures.push_back(tex->mTexture.get());
+			rawTextures.emplace_back(tex->mTexture.get());
 		}
 
 		// Call the updated draw function with support for multi-materials
 		mShader->mShader->draw(mModel->mModel.get(), rawTextures);
 	}
 
-	void ModelRenderer::OnShadowRender()
+	void ModelRenderer::OnShadowRender(const glm::mat4& _lightSpaceMatrix)
 	{
 		if (!mModel)
 			return;
@@ -104,15 +121,16 @@ namespace JamesEngine
 
 		mDepthShader->mShader->uniform("u_Model", model);
 
-		mDepthShader->mShader->uniform("u_LightSpaceMatrix", GetEntity()->GetCore()->GetLightSpaceMatrix());
+		mDepthShader->mShader->uniform("u_LightSpaceMatrix", _lightSpaceMatrix);
 		mDepthShader->mShader->uniform("u_AlphaCutoff", 0.5f);
 		mDepthShader->mShader->uniform("u_UseAlphaCutoff", 1);
 
 
 		std::vector<Renderer::Texture*> rawTextures;
+		rawTextures.reserve(mTextures.size());
 		for (const auto& tex : mTextures)
 		{
-			rawTextures.push_back(tex->mTexture.get());
+			rawTextures.emplace_back(tex->mTexture.get());
 		}
 
 		// Call the updated draw function with support for multi-materials

@@ -762,6 +762,7 @@ int main()
 
 		core->GetLightManager()->SetDirectionalLightDirection(glm::vec3(0.5f, -1.0f, 0.5f));
 		core->GetLightManager()->SetAmbient(vec3(0.3f));
+		core->GetLightManager()->SetupDefault3Cascades();
 
 		// Cameras
 		std::shared_ptr<Entity> freeCamEntity = core->AddEntity();
