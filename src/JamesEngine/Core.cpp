@@ -39,6 +39,7 @@ namespace JamesEngine
 
 		while (mIsRunning)
 		{
+			ScopedTimer timer("Core::Run");
 			mDeltaTime = mDeltaTimer.Stop();
 
 			//std::cout << "FPS: " << 1.0f / mDeltaTime << std::endl;
@@ -62,56 +63,66 @@ namespace JamesEngine
 					mDeltaTimeZero = false;
 			}
 
-			// Handle input events
-			mInput->Update();
-			
-			SDL_Event event = {};
-			while (SDL_PollEvent(&event))
 			{
-				if (event.type == SDL_QUIT)
+				ScopedTimer timer("Core::HandleInputs");
+				// Handle input events
+				mInput->Update();
+
+				SDL_Event event = {};
+				while (SDL_PollEvent(&event))
 				{
-					mIsRunning = false;
-				}
-				else
-				{
-					mInput->HandleInput(event);
+					if (event.type == SDL_QUIT)
+					{
+						mIsRunning = false;
+					}
+					else
+					{
+						mInput->HandleInput(event);
+					}
 				}
 			}
 
-			// Run tick on all entities
-			for (size_t ei = 0; ei < mEntities.size(); ++ei)
 			{
-				mEntities[ei]->OnTick();
+				ScopedTimer timer("Core::Tick");
+				// Run tick on all entities
+				for (size_t ei = 0; ei < mEntities.size(); ++ei)
+				{
+					mEntities[ei]->OnTick();
+				}
 			}
 
-			// Fixed time step logic
-			mFixedTimeAccumulator += mDeltaTime;
-
-			if (mFixedTimeAccumulator > mFixedDeltaTime * 3) // Allow max 3 fixed updates per frame
-				mFixedTimeAccumulator = mFixedDeltaTime * 3;
-
-			int numFixedUpdates = 0;
-
-			while (mFixedTimeAccumulator >= mFixedDeltaTime)
 			{
-				for (size_t ei = 0; ei < mEntities.size(); ++ei)
+				ScopedTimer timer("Core::FixedTick");
+
+				// Fixed time step logic
+				mFixedTimeAccumulator += mDeltaTime;
+
+				if (mFixedTimeAccumulator > mFixedDeltaTime * 3) // Allow max 3 fixed updates per frame
+					mFixedTimeAccumulator = mFixedDeltaTime * 3;
+
+				int numFixedUpdates = 0;
+
+				while (mFixedTimeAccumulator >= mFixedDeltaTime)
 				{
-					mEntities[ei]->OnEarlyFixedTick();
+					for (size_t ei = 0; ei < mEntities.size(); ++ei)
+					{
+						mEntities[ei]->OnEarlyFixedTick();
+					}
+
+					for (size_t ei = 0; ei < mEntities.size(); ++ei)
+					{
+						mEntities[ei]->OnFixedTick();
+					}
+
+					for (size_t ei = 0; ei < mEntities.size(); ++ei)
+					{
+						mEntities[ei]->OnLateFixedTick();
+					}
+
+					numFixedUpdates++;
+
+					mFixedTimeAccumulator -= mFixedDeltaTime;
 				}
-
-				for (size_t ei = 0; ei < mEntities.size(); ++ei)
-				{
-					mEntities[ei]->OnFixedTick();
-				}
-
-				for (size_t ei = 0; ei < mEntities.size(); ++ei)
-				{
-					mEntities[ei]->OnLateFixedTick();
-				}
-
-				numFixedUpdates++;
-
-				mFixedTimeAccumulator -= mFixedDeltaTime;
 			}
 
 			// Delete entities that have been destroyed this frame
@@ -128,16 +139,20 @@ namespace JamesEngine
 			mRaycastSystem->ClearCache();
 
 			// Render the scene and GUI
-			RenderScene();
-			RenderGUI();
+			{
+				ScopedTimer timer("Core::RenderScene");
+				RenderScene();
+				RenderGUI();
 
-			// Present the rendered frame
-			mWindow->SwapWindows();
+				// Present the rendered frame
+				mWindow->SwapWindows();
+			}
 		}
 	}
 
 	void Core::RenderScene()
 	{
+		ScopedTimer timer("Core::InternalRenderScene");
 		glDisable(GL_CULL_FACE);
 		glDisable(GL_BLEND);
 		glDisable(GL_MULTISAMPLE);
@@ -149,11 +164,12 @@ namespace JamesEngine
 
 		for (ShadowCascade& cascade : mLightManager->GetShadowCascades())
 		{
+			ScopedTimer timerCascade("Core::RenderScene::ShadowCascade");
 			glm::vec2 orthoSize = cascade.orthoSize;
 			float nearPlane = cascade.nearPlane;
 			float farPlane = cascade.farPlane;
 
-			glm::vec3 sceneCenter = camPos + flatForward * (orthoSize.x * 1);
+			glm::vec3 sceneCenter = camPos + flatForward * (orthoSize.x * 1.f);
 
 			glm::vec3 lightDir = glm::normalize(mLightManager->GetDirectionalLightDirection());
 			glm::vec3 lightPos = sceneCenter - lightDir * (farPlane / 2.f);
@@ -179,6 +195,8 @@ namespace JamesEngine
 
 			cascade.renderTexture->unbind();
 		}
+
+		ScopedTimer sceneTimer("Core::Final render to screen");
 
 		glEnable(GL_CULL_FACE);
 		glEnable(GL_BLEND);

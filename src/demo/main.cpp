@@ -160,7 +160,7 @@ struct CarController : public Component
 	bool lastInputController = false;
 
 	// Steering and pedal deadzones and limits
-	float mSteerDeadzone = 0.1f;
+	float mSteerDeadzone = 0.13f;
 	float mThrottleMaxInput = 0.62f;
 	float mThrottleDeadZone = 0.05f;
 	float mBrakeMaxInput = 0.77f;

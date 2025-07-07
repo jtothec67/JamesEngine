@@ -59,7 +59,7 @@ float ShadowCalculation(vec3 fragWorldPos, vec3 normal, vec3 lightDir)
     if (bestCascade == -1)
         return 0.0; // Not in any cascade bounds - fully lit
 
-    float bias = max(0.005 * (1.0 - dot(normal, lightDir)), 0.0005);
+    float bias = max(0.005 * (1.0 - dot(normal, lightDir)), 0.0025);
     float shadow = 0.0;
 
     vec2 texelSizeVec = 1.0 / textureSize(u_ShadowMaps[bestCascade], 0);

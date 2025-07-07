@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <iostream>
 
 class Timer
 {
@@ -21,4 +22,21 @@ private:
     std::chrono::steady_clock::time_point mTempTimeStamp;
 
     bool mRunning = false;
+};
+
+class ScopedTimer
+{
+public:
+	ScopedTimer(const char* _name) : mName(_name)
+	{
+		mTimer.Start();
+	}
+	~ScopedTimer()
+	{
+		float elapsed = mTimer.GetElapsedMilliseconds();
+		std::cout << "ScopedTimer [" << mName << "] took " << elapsed << " mililseconds." << std::endl;
+	}
+private:
+	const char* mName;
+	Timer mTimer;
 };

@@ -91,9 +91,12 @@ public:
 	void SetupDefault3Cascades()
 	{
 		ClearShadowCascades();
-		AddShadowCascade({ 10.f, 10.f }, { 3500, 3500 }, 0.1f, 100.0f, 0, 30);
-		AddShadowCascade({ 60.f, 60.f }, { 3499, 3499 }, 0.1f, 100.0f, 30, 60);
-		AddShadowCascade({ 150.f, 150.f }, { 3498, 3498 }, 0.1f, 100.0f, 60, 120);
+		AddShadowCascade({ 15.f, 15.f }, { 7500, 7500 }, 0.1f, 100.0f, 0, 30);
+		AddShadowCascade({ 75.f, 75.f }, { 7499, 7499 }, 0.1f, 100.0f, 30, 60);
+		AddShadowCascade({ 175.f, 175.f }, { 3000, 3000 }, 0.1f, 100.0f, 60, 120);
+		/*AddShadowCascade({ 10.f, 10.f }, { 50, 50 }, 0.1f, 100.0f, 0, 30);
+		AddShadowCascade({ 60.f, 60.f }, { 50, 50 }, 0.1f, 100.0f, 30, 60);
+		AddShadowCascade({ 150.f, 150.f }, { 50, 50 }, 0.1f, 100.0f, 60, 120);*/
 	}
 
 
