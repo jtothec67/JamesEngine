@@ -24,8 +24,6 @@ struct ShadowCascade
 	glm::ivec2 resolution;
 	float nearPlane;
 	float farPlane;
-	float splitDepthStart;
-	float splitDepthEnd;
 	std::shared_ptr<Renderer::RenderTexture> renderTexture;
 	glm::mat4 lightSpaceMatrix;
 };
@@ -67,15 +65,13 @@ public:
 	void SetDirectionalLightColour(glm::vec3 _colour) { mDirectionalLightColour = _colour; }
 	glm::vec3 GetDirectionalLightColour() { return mDirectionalLightColour; }
 
-	void AddShadowCascade(glm::vec2 orthoSize, glm::ivec2 resolution, float nearPlane, float farPlane, float splitDepthStart, float splitDepthEnd)
+	void AddShadowCascade(glm::vec2 orthoSize, glm::ivec2 resolution, float nearPlane, float farPlane)
 	{
 		ShadowCascade cascade;
 		cascade.orthoSize = orthoSize;
 		cascade.resolution = resolution;
 		cascade.nearPlane = nearPlane;
 		cascade.farPlane = farPlane;
-		cascade.splitDepthStart = splitDepthStart;
-		cascade.splitDepthEnd = splitDepthEnd;
 		cascade.renderTexture = std::make_shared<Renderer::RenderTexture>(resolution.x, resolution.y, Renderer::RenderTextureType::Depth);
 		mCascades.push_back(cascade);
 	}
@@ -86,17 +82,14 @@ public:
 	}
 
 	const std::vector<ShadowCascade>& GetShadowCascades() const { return mCascades; }
-	std::vector<ShadowCascade>& GetShadowCascades() { return mCascades; } // Allow non-const access for updating matrices
+	std::vector<ShadowCascade>& GetShadowCascades() { return mCascades; }
 
 	void SetupDefault3Cascades()
 	{
 		ClearShadowCascades();
-		AddShadowCascade({ 15.f, 15.f }, { 7500, 7500 }, 0.1f, 100.0f, 0, 30);
-		AddShadowCascade({ 75.f, 75.f }, { 7499, 7499 }, 0.1f, 100.0f, 30, 60);
-		AddShadowCascade({ 175.f, 175.f }, { 3000, 3000 }, 0.1f, 100.0f, 60, 120);
-		/*AddShadowCascade({ 10.f, 10.f }, { 50, 50 }, 0.1f, 100.0f, 0, 30);
-		AddShadowCascade({ 60.f, 60.f }, { 50, 50 }, 0.1f, 100.0f, 30, 60);
-		AddShadowCascade({ 150.f, 150.f }, { 50, 50 }, 0.1f, 100.0f, 60, 120);*/
+		AddShadowCascade({ 2.5f, 2.5f }, { 4000, 4000 }, 0.1f, 100.0f);
+		AddShadowCascade({ 40.f, 40.f }, { 7500, 7500 }, 0.1f, 300.0f);
+		AddShadowCascade({ 200.f, 200.f }, { 3000, 3000 }, 0.1f, 300.0f);
 	}
 
 

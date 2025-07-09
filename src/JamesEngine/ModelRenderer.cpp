@@ -78,19 +78,15 @@ namespace JamesEngine
 		shadowMaps.reserve(core->GetLightManager()->GetShadowCascades().size());
 		std::vector<glm::mat4> shadowMatrices;
 		shadowMatrices.reserve(core->GetLightManager()->GetShadowCascades().size());
-		std::vector<glm::vec2> cascadeSplits;
-		cascadeSplits.reserve(core->GetLightManager()->GetShadowCascades().size());
 
 		for (const ShadowCascade& cascade : core->GetLightManager()->GetShadowCascades())
 		{
 			shadowMaps.emplace_back(cascade.renderTexture);
 			shadowMatrices.emplace_back(cascade.lightSpaceMatrix);
-			cascadeSplits.emplace_back(glm::vec2(cascade.splitDepthStart, cascade.splitDepthEnd));
 		}
 
 		mShader->mShader->uniform("u_ShadowMaps", shadowMaps, 3);
 		mShader->mShader->uniform("u_LightSpaceMatrices", shadowMatrices);
-		mShader->mShader->uniform("u_CascadeSplits", cascadeSplits);
 
 		//mShader->mShader->uniform("u_View", camera->GetViewMatrix());
 

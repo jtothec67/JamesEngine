@@ -107,6 +107,9 @@ struct StartFinishLine : public Component
 		GetGUI()->Text(vec2(width - 200, height - 50), 40, vec3(0, 0, 0), "Last lap: \n" + lastLapTimeString, GetCore()->GetResources()->Load<Font>("fonts/munro"));
 
 		GetGUI()->Text(vec2(width - 200, height - 200), 40, vec3(0, 0, 0), "Best lap: \n" + bestLapTimeString, GetCore()->GetResources()->Load<Font>("fonts/munro"));
+
+		// For shadow map debugging
+		//GetGUI()->Image(vec2(width-100, height-100), vec2(200, 200), GetCore()->GetResources()->Load<Texture>("images/mouse"));
 	}
 
 	std::string FormatTime(float time)

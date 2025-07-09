@@ -39,7 +39,7 @@ namespace JamesEngine
 
 		while (mIsRunning)
 		{
-			ScopedTimer timer("Core::Run");
+			//ScopedTimer timer("Core::Run");
 			mDeltaTime = mDeltaTimer.Stop();
 
 			//std::cout << "FPS: " << 1.0f / mDeltaTime << std::endl;
@@ -64,7 +64,7 @@ namespace JamesEngine
 			}
 
 			{
-				ScopedTimer timer("Core::HandleInputs");
+				//ScopedTimer timer("Core::HandleInputs");
 				// Handle input events
 				mInput->Update();
 
@@ -83,7 +83,7 @@ namespace JamesEngine
 			}
 
 			{
-				ScopedTimer timer("Core::Tick");
+				//ScopedTimer timer("Core::Tick");
 				// Run tick on all entities
 				for (size_t ei = 0; ei < mEntities.size(); ++ei)
 				{
@@ -92,7 +92,7 @@ namespace JamesEngine
 			}
 
 			{
-				ScopedTimer timer("Core::FixedTick");
+				//ScopedTimer timer("Core::FixedTick");
 
 				// Fixed time step logic
 				mFixedTimeAccumulator += mDeltaTime;
@@ -140,7 +140,7 @@ namespace JamesEngine
 
 			// Render the scene and GUI
 			{
-				ScopedTimer timer("Core::RenderScene");
+				//ScopedTimer timer("Core::RenderScene");
 				RenderScene();
 				RenderGUI();
 
@@ -152,56 +152,61 @@ namespace JamesEngine
 
 	void Core::RenderScene()
 	{
-		ScopedTimer timer("Core::InternalRenderScene");
-		glDisable(GL_CULL_FACE);
-		glDisable(GL_BLEND);
-		glDisable(GL_MULTISAMPLE);
-		glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+		//ScopedTimer timer("Core::InternalRenderScene");
 
-		glm::vec3 camPos = GetCamera()->GetPosition();
-		glm::vec3 camForward = GetCamera()->GetEntity()->GetComponent<Transform>()->GetForward();
-		glm::vec3 flatForward = glm::normalize(glm::vec3(-camForward.x, 0.0f, -camForward.z));
-
-		for (ShadowCascade& cascade : mLightManager->GetShadowCascades())
+		if (!mLightManager->GetShadowCascades().empty())
 		{
-			ScopedTimer timerCascade("Core::RenderScene::ShadowCascade");
-			glm::vec2 orthoSize = cascade.orthoSize;
-			float nearPlane = cascade.nearPlane;
-			float farPlane = cascade.farPlane;
+			// Render shadow maps
+			glDisable(GL_CULL_FACE);
+			glDisable(GL_BLEND);
+			glDisable(GL_MULTISAMPLE);
+			glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
 
-			glm::vec3 sceneCenter = camPos + flatForward * (orthoSize.x * 1.f);
+			glm::vec3 camPos = GetCamera()->GetPosition();
+			glm::vec3 camForward = GetCamera()->GetEntity()->GetComponent<Transform>()->GetForward();
+			glm::vec3 flatForward = glm::normalize(glm::vec3(-camForward.x, 0.0f, -camForward.z));
 
-			glm::vec3 lightDir = glm::normalize(mLightManager->GetDirectionalLightDirection());
-			glm::vec3 lightPos = sceneCenter - lightDir * (farPlane / 2.f);
-
-			glm::mat4 lightView = glm::lookAt(lightPos, sceneCenter, glm::vec3(0, 1, 0));
-
-			glm::mat4 lightProjection = glm::ortho(
-				-orthoSize.x, orthoSize.x,
-				-orthoSize.y, orthoSize.y,
-				nearPlane, farPlane
-			);
-
-			cascade.lightSpaceMatrix = lightProjection * lightView;
-
-			cascade.renderTexture->clear();
-			cascade.renderTexture->bind();
-			glViewport(0, 0, cascade.renderTexture->getWidth(), cascade.renderTexture->getHeight());
-
-			for (size_t ei = 0; ei < mEntities.size(); ++ei)
+			for (ShadowCascade& cascade : mLightManager->GetShadowCascades())
 			{
-				mEntities[ei]->OnShadowRender(cascade.lightSpaceMatrix);
+				//ScopedTimer timerCascade("Core::RenderScene::ShadowCascade");
+				glm::vec2 orthoSize = cascade.orthoSize;
+				float nearPlane = cascade.nearPlane;
+				float farPlane = cascade.farPlane;
+
+				glm::vec3 sceneCenter = camPos + flatForward * (orthoSize.x * 1.f);
+
+				glm::vec3 lightDir = glm::normalize(mLightManager->GetDirectionalLightDirection());
+				glm::vec3 lightPos = sceneCenter - lightDir * (farPlane / 2.f);
+
+				glm::mat4 lightView = glm::lookAt(lightPos, sceneCenter, glm::vec3(0, 1, 0));
+
+				glm::mat4 lightProjection = glm::ortho(
+					-orthoSize.x, orthoSize.x,
+					-orthoSize.y, orthoSize.y,
+					nearPlane, farPlane
+				);
+
+				cascade.lightSpaceMatrix = lightProjection * lightView;
+
+				cascade.renderTexture->clear();
+				cascade.renderTexture->bind();
+				glViewport(0, 0, cascade.renderTexture->getWidth(), cascade.renderTexture->getHeight());
+
+				for (size_t ei = 0; ei < mEntities.size(); ++ei)
+				{
+					mEntities[ei]->OnShadowRender(cascade.lightSpaceMatrix);
+				}
+
+				cascade.renderTexture->unbind();
 			}
 
-			cascade.renderTexture->unbind();
+			//ScopedTimer sceneTimer("Core::Final render to screen");
+
+			glEnable(GL_CULL_FACE);
+			glEnable(GL_BLEND);
+			glEnable(GL_MULTISAMPLE);
+			glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
 		}
-
-		ScopedTimer sceneTimer("Core::Final render to screen");
-
-		glEnable(GL_CULL_FACE);
-		glEnable(GL_BLEND);
-		glEnable(GL_MULTISAMPLE);
-		glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
 
 		// Prepare window for rendering
 		mWindow->Update();

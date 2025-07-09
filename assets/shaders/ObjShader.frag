@@ -28,7 +28,7 @@ out vec4 FragColor;
 float ShadowCalculation(vec3 fragWorldPos, vec3 normal, vec3 lightDir)
 {
     int bestCascade = -1;
-    float bestTexelSize = 1e10;
+    float bestWorldTexelSize = 1e10;
 
     vec3 bestProjCoords;
     float bestCurrentDepth = 0.0;
@@ -45,11 +45,21 @@ float ShadowCalculation(vec3 fragWorldPos, vec3 normal, vec3 lightDir)
             projCoords.y >= 0.0 && projCoords.y <= 1.0 &&
             projCoords.z >= 0.0 && projCoords.z <= 1.0)
         {
-            float texelSize = 1.0 / float(textureSize(u_ShadowMaps[i], 0).x); // Assume square
-            if (texelSize < bestTexelSize)
+            ivec2 res = textureSize(u_ShadowMaps[i], 0);
+
+            // Estimate world units per texel using scale of light space matrix
+            // This assumes uniform scale in x and y in ortho projection
+            float scaleX = length(vec3(u_LightSpaceMatrices[i][0][0],
+                                       u_LightSpaceMatrices[i][1][0],
+                                       u_LightSpaceMatrices[i][2][0]));
+            float orthoWidth = 1.0 / scaleX;
+
+            float worldTexelSize = (orthoWidth * 2.0) / float(res.x); // Full width in world units / resolution
+
+            if (worldTexelSize < bestWorldTexelSize)
             {
                 bestCascade = i;
-                bestTexelSize = texelSize;
+                bestWorldTexelSize = worldTexelSize;
                 bestProjCoords = projCoords;
                 bestCurrentDepth = projCoords.z;
             }
@@ -59,7 +69,7 @@ float ShadowCalculation(vec3 fragWorldPos, vec3 normal, vec3 lightDir)
     if (bestCascade == -1)
         return 0.0; // Not in any cascade bounds - fully lit
 
-    float bias = max(0.005 * (1.0 - dot(normal, lightDir)), 0.0025);
+    float bias = max(0.003 * (1.0 - dot(normal, lightDir)), 0.0005);
     float shadow = 0.0;
 
     vec2 texelSizeVec = 1.0 / textureSize(u_ShadowMaps[bestCascade], 0);
@@ -75,6 +85,8 @@ float ShadowCalculation(vec3 fragWorldPos, vec3 normal, vec3 lightDir)
         }
     }
     shadow /= 9.0;
+
+    shadow = pow(shadow, 3.0);
 
     return shadow;
 }
