@@ -33,6 +33,19 @@ namespace JamesEngine
 		return rtn;
 	}
 
+	void Core::SetLoadingScreen(std::shared_ptr<Texture> _texture)
+	{
+		mWindow->Update();
+		mWindow->ClearWindow();
+
+		int width, height;
+		mWindow->GetWindowSize(width, height);
+
+		mGUI->Image(glm::vec2(width/2, height/2), glm::vec2(width, height), _texture);
+
+		mWindow->SwapWindows();
+	}
+
 	void Core::Run()
 	{
 		Timer mDeltaTimer;

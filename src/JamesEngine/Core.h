@@ -32,6 +32,8 @@ namespace JamesEngine
 		 */
 		static std::shared_ptr<Core> Initialize(glm::ivec2 _windowSize);
 
+		void SetLoadingScreen(std::shared_ptr<Texture> _texture);
+
 		/**
 		 * @brief Runs the main loop of the engine.
 		 */

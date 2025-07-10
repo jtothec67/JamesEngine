@@ -180,7 +180,7 @@ struct CarController : public Component
 
 	// Downforce settings at reference speed
 	float rearDownforceAt200 = 5300.0f; // N at 200 km/h
-	float frontDownforceAt200 = 3500.0f; // N at 200 km/h
+	float frontDownforceAt200 = 4000.0f; // N at 200 km/h
 	float referenceSpeed = 200.0f / 3.6f; // m/s
 
 	// Engine audio
@@ -621,6 +621,15 @@ struct CarController : public Component
 				}
 			}
 			GetGUI()->Text(vec2(((width / 2)) + 225 + 50, height - (height / 4) * 3), 75, vec3(0, 0, 0), ">", GetCore()->GetResources()->Load<Font>("fonts/munro"));
+			
+			if (GetGUI()->Button(vec2(width - 200, 150), vec2(300, 150), GetCore()->GetResources()->Load<Texture>("images/white")))
+			{
+				if (GetMouse()->IsButtonDown(SDL_BUTTON_LEFT))
+				{
+					GetCore()->End();
+				}
+			}
+			GetGUI()->Text(vec2(width - 200, 150), 50, vec3(0, 0, 0), "CLOSE\nGAME", GetCore()->GetResources()->Load<Font>("fonts/munro"));
 		}
 	}
 };
@@ -694,6 +703,7 @@ struct printPosition : Component
 int main()
 {
 	std::shared_ptr<Core> core = Core::Initialize(ivec2(1920, 1080));
+	core->SetLoadingScreen(core->GetResources()->Load<Texture>("images/loading"));
 	core->SetTimeScale(1.f);
 
 	// Scope to ensure the entities aren't being held in main if they're destroyed

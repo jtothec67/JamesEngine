@@ -146,4 +146,10 @@ add_executable(demo
 	src/demo/Tire.cpp
 )
 
+option(HIDE_CONSOLE "Build without console window" OFF)
+
+if(WIN32 AND HIDE_CONSOLE)
+    set_target_properties(demo PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
+endif()
+
 target_link_libraries(demo JamesEngine)

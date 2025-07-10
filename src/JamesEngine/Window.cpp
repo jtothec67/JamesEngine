@@ -20,8 +20,7 @@ namespace JamesEngine
 		mRaw = SDL_CreateWindow("Racing Game 3",
 			SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 			mWidth, mHeight,
-			SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
-
+			SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN_DESKTOP);
 
 		mContext = SDL_GL_CreateContext(mRaw);
 
