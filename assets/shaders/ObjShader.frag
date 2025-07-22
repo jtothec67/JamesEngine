@@ -2,6 +2,7 @@
 
 #define MAX_LIGHTS 10
 #define NUM_CASCADES 4
+#define NUM_PREBAKED 4
 
 uniform sampler2D u_Texture;
 in vec2 v_TexCoord;
@@ -23,69 +24,97 @@ uniform vec3 u_DirLightColor;
 uniform sampler2D u_ShadowMaps[NUM_CASCADES];
 uniform mat4 u_LightSpaceMatrices[NUM_CASCADES];
 
+uniform sampler2D u_PreBakedShadowMaps[NUM_PREBAKED];
+uniform mat4 u_PreBakedLightSpaceMatrices[NUM_PREBAKED];
+
 out vec4 FragColor;
 
 float ShadowCalculation(vec3 fragWorldPos, vec3 normal, vec3 lightDir)
 {
+    if (NUM_CASCADES + NUM_PREBAKED == 0)
+        return 0.0;
+
     int bestCascade = -1;
-    float bestWorldTexelSize = 1e10;
+    int bestPrebaked = -1;
 
-    vec3 bestProjCoords;
-    float bestCurrentDepth = 0.0;
+    vec3 cascadeProjCoords;
+    vec3 prebakedProjCoords;
 
-    // Loop through all cascades to find valid ones
+    float cascadeDepth = 0.0;
+    float prebakedDepth = 0.0;
+
+    float bias = max(0.003 * (1.0 - dot(normal, lightDir)), 0.0005);
+
+    // Check prebaked
+    for (int i = 0; i < NUM_PREBAKED; ++i)
+    {
+        vec4 lightSpacePos = u_PreBakedLightSpaceMatrices[i] * vec4(fragWorldPos, 1.0);
+        vec3 projCoords = lightSpacePos.xyz / lightSpacePos.w;
+        projCoords = projCoords * 0.5 + 0.5;
+
+        if (projCoords.x >= 0.0 && projCoords.x <= 1.0 &&
+            projCoords.y >= 0.0 && projCoords.y <= 1.0 &&
+            projCoords.z >= 0.0 && projCoords.z <= 1.0)
+        {
+            bestPrebaked = i;
+            prebakedProjCoords = projCoords;
+            prebakedDepth = projCoords.z;
+            break;
+        }
+    }
+
+    // Check cascades
     for (int i = 0; i < NUM_CASCADES; ++i)
     {
         vec4 lightSpacePos = u_LightSpaceMatrices[i] * vec4(fragWorldPos, 1.0);
         vec3 projCoords = lightSpacePos.xyz / lightSpacePos.w;
         projCoords = projCoords * 0.5 + 0.5;
 
-        // Is the fragment inside this cascade's shadow map?
         if (projCoords.x >= 0.0 && projCoords.x <= 1.0 &&
             projCoords.y >= 0.0 && projCoords.y <= 1.0 &&
             projCoords.z >= 0.0 && projCoords.z <= 1.0)
         {
-            ivec2 res = textureSize(u_ShadowMaps[i], 0);
+            bestCascade = i;
+            cascadeProjCoords = projCoords;
+            cascadeDepth = projCoords.z;
+            break;
+        }
+    }
 
-            // Estimate world units per texel using scale of light space matrix
-            // This assumes uniform scale in x and y in ortho projection
-            float scaleX = length(vec3(u_LightSpaceMatrices[i][0][0],
-                                       u_LightSpaceMatrices[i][1][0],
-                                       u_LightSpaceMatrices[i][2][0]));
-            float orthoWidth = 1.0 / scaleX;
+    float shadowCascade = 0.0;
+    float shadowPrebaked = 0.0;
 
-            float worldTexelSize = (orthoWidth * 2.0) / float(res.x); // Full width in world units / resolution
-
-            if (worldTexelSize < bestWorldTexelSize)
+    if (bestCascade != -1)
+    {
+        vec2 texelSize = 1.0 / textureSize(u_ShadowMaps[bestCascade], 0);
+        for (int x = -1; x <= 1; ++x)
+        {
+            for (int y = -1; y <= 1; ++y)
             {
-                bestCascade = i;
-                bestWorldTexelSize = worldTexelSize;
-                bestProjCoords = projCoords;
-                bestCurrentDepth = projCoords.z;
+                vec2 offset = vec2(x, y) * texelSize;
+                float pcfDepth = texture(u_ShadowMaps[bestCascade], cascadeProjCoords.xy + offset).r;
+                shadowCascade += cascadeDepth - bias > pcfDepth ? 1.0 : 0.0;
             }
         }
+        shadowCascade /= 9.0;
     }
 
-    if (bestCascade == -1)
-        return 0.0; // Not in any cascade bounds - fully lit
-
-    float bias = max(0.003 * (1.0 - dot(normal, lightDir)), 0.0005);
-    float shadow = 0.0;
-
-    vec2 texelSizeVec = 1.0 / textureSize(u_ShadowMaps[bestCascade], 0);
-
-    // 3x3 PCF
-    for (int x = -1; x <= 1; ++x)
+    if (bestPrebaked != -1)
     {
-        for (int y = -1; y <= 1; ++y)
+        vec2 texelSize = 1.0 / textureSize(u_PreBakedShadowMaps[bestPrebaked], 0);
+        for (int x = -1; x <= 1; ++x)
         {
-            vec2 offset = vec2(x, y) * texelSizeVec;
-            float pcfDepth = texture(u_ShadowMaps[bestCascade], bestProjCoords.xy + offset).r;
-            shadow += bestCurrentDepth - bias > pcfDepth ? 1.0 : 0.0;
+            for (int y = -1; y <= 1; ++y)
+            {
+                vec2 offset = vec2(x, y) * texelSize;
+                float pcfDepth = texture(u_PreBakedShadowMaps[bestPrebaked], prebakedProjCoords.xy + offset).r;
+                shadowPrebaked += prebakedDepth - bias > pcfDepth ? 1.0 : 0.0;
+            }
         }
+        shadowPrebaked /= 9.0;
     }
-    shadow /= 9.0;
 
+    float shadow = max(shadowCascade, shadowPrebaked);
     shadow = pow(shadow, 3.0);
 
     return shadow;

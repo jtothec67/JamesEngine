@@ -12,6 +12,7 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/string_cast.hpp>
+#include "Shader.h"
 
 namespace JamesEngine
 {
@@ -167,6 +168,27 @@ namespace JamesEngine
 	{
 		//ScopedTimer timer("Core::InternalRenderScene");
 
+		if (!mLightManager->ArePreBakedShadowsUploaded())
+		{
+			std::vector<std::shared_ptr<Renderer::RenderTexture>> preBakedShadowMaps;
+			preBakedShadowMaps.reserve(mLightManager->GetPreBakedShadowMaps().size());
+			std::vector<glm::mat4> preBakedShadowMatrices;
+			preBakedShadowMatrices.reserve(mLightManager->GetPreBakedShadowMaps().size());
+
+			for (const PreBakedShadowMap& shadowMap : mLightManager->GetPreBakedShadowMaps())
+			{
+				preBakedShadowMaps.emplace_back(shadowMap.renderTexture);
+				preBakedShadowMatrices.emplace_back(shadowMap.lightSpaceMatrix);
+			}
+
+			mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_PreBakedShadowMaps", preBakedShadowMaps, 10);
+			mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_PreBakedLightSpaceMatrices", preBakedShadowMatrices);
+
+			mLightManager->SetPreBakedShadowsUploaded(true);
+
+			std::cout << "Pre-baked shadows uploaded to shader" << std::endl;
+		}
+
 		if (!mLightManager->GetShadowCascades().empty())
 		{
 			// Render shadow maps
@@ -198,6 +220,28 @@ namespace JamesEngine
 					-orthoSize.y, orthoSize.y,
 					nearPlane, farPlane
 				);
+
+				// 3. Compute light-space matrix
+				glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+
+				// 4. Snap scene center to texel grid
+				// Estimate world units per texel
+				float shadowMapResolution = static_cast<float>(cascade.resolution.x);
+				float texelSize = (orthoSize.x * 2.0f) / shadowMapResolution;
+
+				// Transform origin into light space
+				glm::vec4 originLS = lightSpaceMatrix * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+
+				// Snap to nearest texel
+				originLS.x = texelSize * std::round(originLS.x / texelSize);
+				originLS.y = texelSize * std::round(originLS.y / texelSize);
+
+				// Calculate offset between original and snapped origin
+				glm::vec3 offset = glm::vec3(originLS.x, originLS.y, 0.0f) - glm::vec3(lightSpaceMatrix[3]);
+
+				// Apply offset to light projection matrix
+				lightProjection[3][0] += offset.x;
+				lightProjection[3][1] += offset.y;
 
 				cascade.lightSpaceMatrix = lightProjection * lightView;
 

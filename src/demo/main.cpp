@@ -60,6 +60,8 @@ struct StartFinishLine : public Component
 	float bestLapTime = 0.f;
 	std::string bestLapTimeString = "0:00.000";
 
+	bool showDebug = false;
+
 	void OnTick()
 	{
 		if (onALap)
@@ -95,6 +97,11 @@ struct StartFinishLine : public Component
 			lapTime = 0.f;
 			onALap = true;
 		}
+
+		if(GetInput()->GetKeyboard()->IsKey(SDLK_d))
+		{
+			showDebug = !showDebug;
+		}
 	}
 
 	void OnGUI()
@@ -109,7 +116,7 @@ struct StartFinishLine : public Component
 		GetGUI()->Text(vec2(width - 200, height - 200), 40, vec3(0, 0, 0), "Best lap: \n" + bestLapTimeString, GetCore()->GetResources()->Load<Font>("fonts/munro"));
 
 		// For shadow map debugging
-		//GetGUI()->Image(vec2(width-100, height-100), vec2(200, 200), GetCore()->GetResources()->Load<Texture>("images/mouse"));
+		//GetGUI()->Image(vec2(width-300, height-300), vec2(600, 600), GetCore()->GetResources()->Load<Texture>("images/mouse"));
 	}
 
 	std::string FormatTime(float time)
@@ -163,10 +170,10 @@ struct CarController : public Component
 	bool lastInputController = false;
 
 	// Steering and pedal deadzones and limits
-	float mSteerDeadzone = 0.13f;
+	float mSteerDeadzone = 0.15f;
 	float mThrottleMaxInput = 0.62f;
 	float mThrottleDeadZone = 0.05f;
-	float mBrakeMaxInput = 0.77f;
+	float mBrakeMaxInput = 0.75f;
 	float mBrakeDeadZone = 0.05f;
 
 	// Current input values
@@ -781,7 +788,8 @@ int main()
 		std::shared_ptr<Entity> freeCamEntity = core->AddEntity();
 		std::shared_ptr<Camera> freeCam = freeCamEntity->AddComponent<Camera>();
 		freeCam->SetPriority(10);
-		freeCamEntity->GetComponent<Transform>()->SetPosition(vec3(647.479, -65.4695, -252.504));
+		//freeCamEntity->GetComponent<Transform>()->SetPosition(vec3(647.479, -65.4695, -252.504));
+		freeCamEntity->GetComponent<Transform>()->SetPosition(vec3(0.000000, -65.000000, 0.000000));
 		freeCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		freeCamEntity->AddComponent<freelookCamController>();
 
@@ -893,7 +901,7 @@ int main()
 		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/trees"));
 		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/fences"));
 		trackMR->SetSpecularStrength(0.f);
-		//trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/fences"));
+		trackMR->SetPreBakeShadows(true);
 		std::shared_ptr<ModelCollider> trackCollider = track->AddComponent<ModelCollider>();
 		trackCollider->SetModel(core->GetResources()->Load<Model>("models/Imola/Source/Imola6"));
 		trackCollider->SetDebugVisual(false);

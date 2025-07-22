@@ -14,6 +14,7 @@ namespace JamesEngine
 	{
 	public:
 		void OnInitialize();
+		void OnAlive();
 		void OnRender();
 		void OnShadowRender(const glm::mat4& _lightSpaceMatrix);
 
@@ -29,6 +30,12 @@ namespace JamesEngine
 		void SetRotationOffset(glm::vec3 _offset) { mRotationOffset = _offset; }
 		glm::vec3 GetRotationOffset() { return mRotationOffset; }
 
+        void SetAlphaCutoff(float _cutoff) { mAlphaCutoff = glm::clamp(_cutoff, 0.f, 1.f); }
+		float GetAlphaCutoff() { return mAlphaCutoff; }
+
+		void SetPreBakeShadows(bool _preBake) { mPreBakeShadows = _preBake; }
+		bool GetPreBakeShadows() { return mPreBakeShadows; }
+
 	private:
 		std::shared_ptr<Model> mModel = nullptr;
 		std::shared_ptr<Shader> mShader = nullptr;
@@ -41,6 +48,12 @@ namespace JamesEngine
 		glm::vec3 mRotationOffset{ 0 };
 
 		std::shared_ptr<Shader> mDepthShader;
+
+		float mAlphaCutoff = 0.5f;
+
+		bool mPreBakeShadows = false;
+		glm::vec3 mCustomCenter{ 0, -65, 0 }; // Used for pre-baked shadows, if the model is not centered at the origin
+		glm::ivec2 mCustomShadowMapSize{ 2000, 1500 }; // Custom shadow map size for pre-baked shadows
 	};
 
 }

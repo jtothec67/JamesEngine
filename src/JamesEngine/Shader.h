@@ -17,6 +17,7 @@ namespace JamesEngine
 
 	private:
 		friend class ModelRenderer;
+		friend class Core;
 
 		std::shared_ptr<Renderer::Shader> mShader;
 	};
