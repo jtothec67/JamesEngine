@@ -54,6 +54,7 @@ namespace JamesEngine
 		bool mPreBakeShadows = false;
 		glm::vec3 mCustomCenter{ 0, -65, 0 }; // Used for pre-baked shadows, if the model is not centered at the origin
 		glm::ivec2 mCustomShadowMapSize{ 2000, 1500 }; // Custom shadow map size for pre-baked shadows
+		bool mSplitPrebakedShadowMap = true;
 	};
 
 }

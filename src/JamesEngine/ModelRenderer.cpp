@@ -33,107 +33,201 @@ namespace JamesEngine
 		if (!mPreBakeShadows || !mModel)
 			return;
 
-		// Prebake a shadow map for static models
-		glDisable(GL_CULL_FACE);
-		glDisable(GL_BLEND);
-		glDisable(GL_MULTISAMPLE);
-		glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+		if (!mSplitPrebakedShadowMap)
+		{
+			// Prebake a shadow map for static models
+			glDisable(GL_CULL_FACE);
+			glDisable(GL_BLEND);
+			glDisable(GL_MULTISAMPLE);
+			glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
 
-		//glm::vec2 fullOrthoSize = glm::vec2(mModel->mModel->get_width(), mModel->mModel->get_length());
-		//glm::vec2 halfOrthoSize = fullOrthoSize * 0.5f;
+			glm::vec2 orthoSize;
 
-		//float nearPlane = 1.0f;
-		//float farPlane = 1000.0f;
+			if (mCustomShadowMapSize.x <= 0 || mCustomShadowMapSize.y <= 0)
+				orthoSize = glm::vec2(mModel->mModel->get_width() / 2, mModel->mModel->get_length() / 2);
+			else
+				orthoSize = glm::vec2(mCustomShadowMapSize.x / 2, mCustomShadowMapSize.y / 2);
 
-		//glm::vec3 lightDir = glm::normalize(GetCore()->GetLightManager()->GetDirectionalLightDirection());
+			float nearPlane = 0.1f;
+			float farPlane = 1000.f;
 
-		//// Loop over 2x2 tiles
-		//for (int y = 0; y < 1; ++y)
-		//{
-		//	for (int x = 0; x < 1; ++x)
-		//	{
-		//		// Offset to cover one tile
-		//		glm::vec2 tileOffset = glm::vec2(
-		//			(x - 0.5f) * halfOrthoSize.x * 2.0f,
-		//			(y - 0.5f) * halfOrthoSize.y * 2.0f
-		//		);
+			glm::vec3 sceneCenter = GetPosition() + mPositionOffset + mCustomCenter;
 
-		//		// Compute scene center for this tile
-		//		glm::vec3 sceneCenter = mPositionOffset + glm::vec3(tileOffset.x, -65.0f, tileOffset.y);
+			glm::vec3 lightDir = glm::normalize(GetCore()->GetLightManager()->GetDirectionalLightDirection());
+			glm::vec3 lightPos = sceneCenter - lightDir * (farPlane / 2.f);
 
-		//		glm::vec3 lightPos = sceneCenter - lightDir * (farPlane / 2.0f);
-		//		glm::mat4 lightView = glm::lookAt(lightPos, sceneCenter, glm::vec3(0, 1, 0));
+			glm::mat4 lightView = glm::lookAt(lightPos, sceneCenter, glm::vec3(0, 1, 0));
 
-		//		glm::mat4 lightProjection = glm::ortho(
-		//			-halfOrthoSize.x, halfOrthoSize.x,
-		//			-halfOrthoSize.y, halfOrthoSize.y,
-		//			nearPlane, farPlane
-		//		);
+			glm::mat4 lightProjection = glm::ortho(
+				-orthoSize.x, orthoSize.x,
+				-orthoSize.y, orthoSize.y,
+				nearPlane, farPlane
+			);
 
-		//		glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+			// Compute light-space matrix
+			glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 
-		//		auto renderTexture = std::make_shared<Renderer::RenderTexture>(32768/2, 32768/2, Renderer::RenderTextureType::Depth);
+			// Get maximum texture size for render textures
+			GLint maxTextureSize = 0;
+			glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize);
 
-		//		renderTexture->clear();
-		//		renderTexture->bind();
-		//		glViewport(0, 0, renderTexture->getWidth(), renderTexture->getHeight());
+			float vram = GetCore()->GetWindow()->GetVRAMGB();
+			vram = 6;
 
-		//		mPreBakeShadows = false;
-		//		OnShadowRender(lightSpaceMatrix);
-		//		mPreBakeShadows = true;
+			// Reference point: 8GB VRAM = 16K textures (for 1 map) or 8K (for 4 maps)
+			float referenceVRAM = 8.0f;
+			float referenceSize = 16384.0f;
 
-		//		renderTexture->unbind();
+			// Calculate raw size with square root scaling (better than linear)
+			// Square root scaling gives better distribution across VRAM sizes
+			float scaleFactor = sqrt(vram / referenceVRAM);
+			float rawSize = referenceSize * scaleFactor;
 
-		//		GetCore()->GetLightManager()->AddPreBakedShadowMap(renderTexture, lightSpaceMatrix);
-		//	}
-		//}
+			// Find nearest power of 2 (required for optimal texture performance)
+			int powerOf2 = 1;
+			while (powerOf2 * 2 <= rawSize)
+				powerOf2 *= 2;
 
-		glm::vec2 orthoSize;
+			// Enforce minimum and maximum limits
+			int minSize = 1024; // Minimum quality threshold
 
-		if (mCustomShadowMapSize.x <= 0 || mCustomShadowMapSize.y <= 0)
-			orthoSize = glm::vec2(mModel->mModel->get_width() / 2, mModel->mModel->get_length() / 2);
+			maxTextureSize = std::min(std::max(powerOf2, minSize), maxTextureSize);
+
+			std::shared_ptr<Renderer::RenderTexture> renderTexture = std::make_shared<Renderer::RenderTexture>(maxTextureSize, maxTextureSize, Renderer::RenderTextureType::Depth);
+
+			renderTexture->clear();
+			renderTexture->bind();
+			glViewport(0, 0, renderTexture->getWidth(), renderTexture->getHeight());
+
+			mPreBakeShadows = false; // Disable pre-baking shadows after the first bake
+
+			OnShadowRender(lightSpaceMatrix);
+
+			mPreBakeShadows = true; // Re-enable pre-baking shadows for future renders
+
+			renderTexture->unbind();
+
+			glEnable(GL_CULL_FACE);
+			glEnable(GL_BLEND);
+			glEnable(GL_MULTISAMPLE);
+			glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+
+			GetCore()->GetLightManager()->AddPreBakedShadowMap(renderTexture, lightSpaceMatrix);
+
+			std::cout << "Pre-baked shadow map for " << GetEntity()->GetTag() << " with a texture size of " << maxTextureSize << std::endl;
+		}
 		else
-			orthoSize = glm::vec2(mCustomShadowMapSize.x / 2, mCustomShadowMapSize.y / 2);
+		{
+			std::cout << "Pre-baking shadows in 4 quadrants for " << GetEntity()->GetTag() << std::endl;
 
-		float nearPlane = 0.1f;
-		float farPlane = 1000.f;
+			// Prebake shadow maps for static models
+			glDisable(GL_CULL_FACE);
+			glDisable(GL_BLEND);
+			glDisable(GL_MULTISAMPLE);
+			glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
 
-		glm::vec3 sceneCenter = GetPosition() + mPositionOffset + mCustomCenter;
+			glm::vec2 fullOrthoSize;
 
-		glm::vec3 lightDir = glm::normalize(GetCore()->GetLightManager()->GetDirectionalLightDirection());
-		glm::vec3 lightPos = sceneCenter - lightDir * (farPlane / 2.f);
+			if (mCustomShadowMapSize.x <= 0 || mCustomShadowMapSize.y <= 0)
+				fullOrthoSize = glm::vec2(mModel->mModel->get_width() / 2, mModel->mModel->get_length() / 2);
+			else
+				fullOrthoSize = glm::vec2(mCustomShadowMapSize.x , mCustomShadowMapSize.y );
 
-		glm::mat4 lightView = glm::lookAt(lightPos, sceneCenter, glm::vec3(0, 1, 0));
+			// Calculate quadrant-specific parameters
+			glm::vec2 quadrantOrthoSize = fullOrthoSize / 2.0f;
+			float nearPlane = 0.1f;
+			float farPlane = 1000.f;
+			glm::vec3 sceneCenter = GetPosition() + mPositionOffset + mCustomCenter;
+			glm::vec3 lightDir = glm::normalize(GetCore()->GetLightManager()->GetDirectionalLightDirection());
 
-		glm::mat4 lightProjection = glm::ortho(
-			-orthoSize.x, orthoSize.x,
-			-orthoSize.y, orthoSize.y,
-			nearPlane, farPlane
-		);
+			// Get maximum texture size for render textures
+			GLint maxTextureSize = 0;
+			glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize);
 
-		// 3. Compute light-space matrix
-		glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+			float vram = GetCore()->GetWindow()->GetVRAMGB();
+			vram = 6;
 
-		std::shared_ptr<Renderer::RenderTexture> renderTexture = std::make_shared<Renderer::RenderTexture>(32768, 32768, Renderer::RenderTextureType::Depth);
+			// Reference point: 8GB VRAM = 16K textures (for 1 map) or 8K (for 4 maps)
+			float referenceVRAM = 8.0f;
+			float referenceSize = 16384.0f;
 
-		renderTexture->clear();
-		renderTexture->bind();
-		glViewport(0, 0, renderTexture->getWidth(), renderTexture->getHeight());
+			// Calculate raw size with square root scaling (better than linear)
+			// Square root scaling gives better distribution across VRAM sizes
+			float scaleFactor = sqrt(vram / referenceVRAM);
+			float rawSize = referenceSize * scaleFactor;
 
-		mPreBakeShadows = false; // Disable pre-baking shadows after the first bake
+			// Find nearest power of 2 (required for optimal texture performance)
+			int powerOf2 = 1;
+			while (powerOf2 * 2 <= rawSize)
+				powerOf2 *= 2;
 
-		OnShadowRender(lightSpaceMatrix);
+			// Enforce minimum and maximum limits
+			int minSize = 1024; // Minimum quality threshold
 
-		mPreBakeShadows = true; // Re-enable pre-baking shadows for future renders
+			maxTextureSize = std::min(std::max(powerOf2, minSize), maxTextureSize);
 
-		renderTexture->unbind();
+			// Quadrant offsets (centered on each quarter of the model)
+			glm::vec2 quadrantOffsets[4] = {
+				glm::vec2(-quadrantOrthoSize.x, -quadrantOrthoSize.y),  // Bottom-left
+				glm::vec2(quadrantOrthoSize.x, -quadrantOrthoSize.y),  // Bottom-right
+				glm::vec2(-quadrantOrthoSize.x,  quadrantOrthoSize.y),  // Top-left
+				glm::vec2(quadrantOrthoSize.x,  quadrantOrthoSize.y)   // Top-right
+			};
 
-		glEnable(GL_CULL_FACE);
-		glEnable(GL_BLEND);
-		glEnable(GL_MULTISAMPLE);
-		glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+			// Create 4 shadow maps, one for each quadrant
+			for (int i = 0; i < 4; i++)
+			{
+				// Calculate center point with overlap (25% overlap between adjacent quadrants)
+				float overlapFactor = 0.75f; // Controls how much each quadrant extends toward the center (lower = more overlap)
+				glm::vec3 quadrantCenter = sceneCenter + glm::vec3(quadrantOffsets[i].x * overlapFactor, 0.0f, quadrantOffsets[i].y * overlapFactor);
 
-		GetCore()->GetLightManager()->AddPreBakedShadowMap(renderTexture, lightSpaceMatrix);
+
+				// Calculate light position and view matrix for this quadrant
+				glm::vec3 lightPos = quadrantCenter - lightDir * (farPlane / 2.f);
+				glm::mat4 lightView = glm::lookAt(lightPos, quadrantCenter, glm::vec3(0, 1, 0));
+
+				// Create projection matrix for this quadrant
+				glm::mat4 lightProjection = glm::ortho(
+					-quadrantOrthoSize.x, quadrantOrthoSize.x,
+					-quadrantOrthoSize.y, quadrantOrthoSize.y,
+					nearPlane, farPlane
+				);
+
+				// Compute light-space matrix
+				glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+
+				// Create render texture for this quadrant
+				std::shared_ptr<Renderer::RenderTexture> renderTexture =
+					std::make_shared<Renderer::RenderTexture>(maxTextureSize, maxTextureSize, Renderer::RenderTextureType::Depth);
+
+				renderTexture->clear();
+				renderTexture->bind();
+				glViewport(0, 0, renderTexture->getWidth(), renderTexture->getHeight());
+
+				mPreBakeShadows = false; // Disable pre-baking shadows during render
+
+				// Render shadows for this quadrant
+				OnShadowRender(lightSpaceMatrix);
+
+				std::cout << "Pre-baked shadow map for quadrant " << i << " with a texture size of " << maxTextureSize << std::endl;
+
+				mPreBakeShadows = true; // Re-enable for future renders
+
+				renderTexture->unbind();
+
+				// Add this shadow map to the light manager
+				GetCore()->GetLightManager()->AddPreBakedShadowMap(renderTexture, lightSpaceMatrix);
+
+				glFlush();
+				glFinish();
+			}
+
+			// Restore GL state
+			glEnable(GL_CULL_FACE);
+			glEnable(GL_BLEND);
+			glEnable(GL_MULTISAMPLE);
+			glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+		}
 	}
 
 	void ModelRenderer::OnRender()

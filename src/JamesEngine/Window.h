@@ -37,6 +37,8 @@ namespace JamesEngine
 
 		void SetWindowTitle(std::string _title) { SDL_SetWindowTitle(mRaw, _title.c_str()); }
 
+		float GetVRAMGB() const { return mVRAMGB; }
+
 	private:
 		SDL_Window* mRaw;
 
@@ -48,6 +50,8 @@ namespace JamesEngine
 		glm::vec3 mClearColour = glm::vec3(1.0f, 0.0f, 0.0f);
 
 		bool mVSync = false;
+
+		float mVRAMGB = 0.0f;
 
 		Window(const Window& _copy);
 		Window& operator*(const Window& _assign);

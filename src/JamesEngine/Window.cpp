@@ -51,6 +51,47 @@ namespace JamesEngine
 		glDepthMask(GL_TRUE);
 
 		glClearColor(mClearColour.r, mClearColour.g, mClearColour.b, 1.f);
+
+		size_t availableMemoryKB = 0;
+		bool supported = false;
+
+		// Try NVIDIA extension
+		if (glewIsExtensionSupported("GL_NVX_gpu_memory_info"))
+		{
+			GLint availableKB = 0;
+			glGetIntegerv(GL_GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX, &availableKB);
+			availableMemoryKB = static_cast<size_t>(availableKB);
+			supported = true;
+			std::cout << "NVIDIA GPU available memory: " << (availableMemoryKB / 1024) << " MB" << std::endl;
+			mVRAMGB = static_cast<float>(availableMemoryKB) / (1024 * 1024);
+		}
+		// Try AMD extension
+		else if (glewIsExtensionSupported("GL_ATI_meminfo"))
+		{
+			GLint info[4];
+			glGetIntegerv(GL_VBO_FREE_MEMORY_ATI, info);
+			availableMemoryKB = static_cast<size_t>(info[0]);
+			supported = true;
+			std::cout << "AMD GPU available memory: " << (availableMemoryKB / 1024) << " MB" << std::endl;
+			mVRAMGB = static_cast<float>(availableMemoryKB) / (1024 * 1024);
+		}
+
+		// Fallback - use conservative estimate based on max texture size
+		if (!supported)
+		{
+			GLint maxTextureSize = 0;
+			glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize);
+
+			// Conservative estimate - assume at least enough for a few large textures
+			// This is very approximate but better than nothing
+			size_t estimatedMemoryMB = (maxTextureSize >= 16384) ? 8192 :
+				(maxTextureSize >= 8192) ? 4096 :
+				(maxTextureSize >= 4096) ? 2048 : 1024;
+
+			availableMemoryKB = estimatedMemoryMB * 1024;
+			std::cout << "GPU memory could not be directly queried. Estimated: " << estimatedMemoryMB << " MB" << std::endl;
+			mVRAMGB = static_cast<float>(availableMemoryKB) / (1024 * 1024);
+		}
 	}
 
 	Window::~Window()
