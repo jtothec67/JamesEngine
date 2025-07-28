@@ -145,7 +145,6 @@ namespace JamesEngine
 			glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize);
 
 			float vram = GetCore()->GetWindow()->GetVRAMGB();
-			vram = 6;
 
 			// Reference point: 8GB VRAM = 16K textures (for 1 map) or 8K (for 4 maps)
 			float referenceVRAM = 8.0f;

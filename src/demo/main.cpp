@@ -3,6 +3,9 @@
 #include "Tire.h"
 #include "Suspension.h"
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/norm.hpp>
+
 #include <iostream>
 #include <iomanip>
 
@@ -60,17 +63,95 @@ struct StartFinishLine : public Component
 	float bestLapTime = 0.f;
 	std::string bestLapTimeString = "0:00.000";
 
-	bool showDebug = false;
+	float recordSamplesEvery = 0.25f;
+
+	struct sample
+	{
+		float timestamp;
+		glm::vec3 position;
+	};
+
+	std::vector<sample> currentLapSamples;
+	std::vector<sample> fastestLapSamples;
+
+	float currentDelta = 0.f;
+	std::string currentDeltaString = "00.000";
+
+	float sampleTimer = 0.f;
+
+	int lastSampleIndex = 0;
+
+	std::shared_ptr<Entity> car;
+
+	void ResetCar()
+	{
+		onALap = false;
+		lapTime = 0.f;
+
+		currentLapSamples.clear();
+		currentDelta = 0.f;
+	}
 
 	void OnTick()
 	{
-		if (onALap)
-		{
-			lapTime += GetCore()->DeltaTime();
-		}
-		else
+		if (!onALap)
 		{
 			lapTime = 0.f;
+			return;
+		}
+
+		lapTime += GetCore()->DeltaTime();
+
+		sampleTimer += GetCore()->DeltaTime();
+		if (sampleTimer >= recordSamplesEvery)
+		{
+			sampleTimer = 0.f;
+			sample s;
+			s.timestamp = lapTime;
+			s.position = car->GetComponent<Transform>()->GetPosition();
+			currentLapSamples.push_back(s);
+
+			if (!fastestLapSamples.empty())
+			{
+				glm::vec3 currentPos = car->GetComponent<Transform>()->GetPosition();
+
+				float bestT = 0.0f;
+				float minDistSq = std::numeric_limits<float>::max();
+				float interpolatedTime = 0.0f;
+
+				// Clamp starting index to valid range
+				int start = glm::clamp(lastSampleIndex - 2, 0, static_cast<int>(fastestLapSamples.size()) - 2);
+				int end = glm::min(start + 10, static_cast<int>(fastestLapSamples.size()) - 2); // Look ahead a few samples
+
+				for (int i = start; i <= end; ++i)
+				{
+					const sample& a = fastestLapSamples[i];
+					const sample& b = fastestLapSamples[i + 1];
+
+					// Direction vector of the segment
+					glm::vec3 seg = b.position - a.position;
+					glm::vec3 toCar = currentPos - a.position;
+
+					float segLenSq = glm::dot(seg, seg);
+					if (segLenSq == 0.0f) continue; // Skip zero-length segments
+
+					// Project point onto the segment (clamp between 0 and 1)
+					float t = glm::clamp(glm::dot(toCar, seg) / segLenSq, 0.0f, 1.0f);
+
+					glm::vec3 projPoint = a.position + t * seg;
+					float distSq = glm::distance2(currentPos, projPoint);
+
+					if (distSq < minDistSq)
+					{
+						minDistSq = distSq;
+						bestT = t;
+						interpolatedTime = glm::mix(a.timestamp, b.timestamp, t);
+						lastSampleIndex = i;
+					}
+				}
+
+				currentDelta = lapTime - interpolatedTime;
+			}
 		}
 	}
 
@@ -79,28 +160,33 @@ struct StartFinishLine : public Component
 		if (_collidedEntity->GetTag() != "carBody")
 			return;
 
+		// 2 second cool down so we only start lap once, can get rid after adding sectors
 		if (onALap && lapTime > 2)
 		{
 			lastLapTime = lapTime;
-			lastLapTimeString = FormatTime(lastLapTime);
+			lastLapTimeString = FormatLapTime(lastLapTime);
 
 			if (lapTime < bestLapTime || bestLapTime == 0)
 			{
 				bestLapTime = lastLapTime;
-				bestLapTimeString = FormatTime(bestLapTime);
+				bestLapTimeString = FormatLapTime(bestLapTime);
+
+				fastestLapSamples = currentLapSamples; // Store the fastest lap samples
 			}
 
 			lapTime = 0.f;
+
+			currentLapSamples.clear();
+			lastSampleIndex = 0;
 		}
 		else
 		{
 			lapTime = 0.f;
 			onALap = true;
-		}
 
-		if(GetInput()->GetKeyboard()->IsKey(SDLK_d))
-		{
-			showDebug = !showDebug;
+			// Predict how many samples we will take in a lap, reserve space for efficiency
+			currentLapSamples.reserve(110 / recordSamplesEvery);
+			fastestLapSamples.reserve(110 / recordSamplesEvery);
 		}
 	}
 
@@ -109,7 +195,17 @@ struct StartFinishLine : public Component
 		int width, height;
 		GetCore()->GetWindow()->GetWindowSize(width, height);
 
-		GetGUI()->Text(vec2(width / 2, height - 50), 50, vec3(0, 0, 0), FormatTime(lapTime), GetCore()->GetResources()->Load<Font>("fonts/munro"));
+		GetGUI()->Text(vec2(width / 2, height - 50), 50, vec3(0, 0, 0), FormatLapTime(lapTime), GetCore()->GetResources()->Load<Font>("fonts/munro"));
+
+		glm::vec3 deltaColour;
+		if (currentDelta == 0.0f)
+			deltaColour = vec3(0, 0, 0); // Black
+		else if (currentDelta < 0.0f)
+			deltaColour = vec3(0, 1, 0); // Green
+		else
+			deltaColour = vec3(1, 0, 0); // Red
+
+		GetGUI()->Text(vec2(width / 2, height - 100), 40, deltaColour, FormatDeltaTime(currentDelta), GetCore()->GetResources()->Load<Font>("fonts/munro"));
 
 		GetGUI()->Text(vec2(width - 200, height - 50), 40, vec3(0, 0, 0), "Last lap: \n" + lastLapTimeString, GetCore()->GetResources()->Load<Font>("fonts/munro"));
 
@@ -119,7 +215,7 @@ struct StartFinishLine : public Component
 		//GetGUI()->Image(vec2(width-300, height-300), vec2(600, 600), GetCore()->GetResources()->Load<Texture>("images/mouse"));
 	}
 
-	std::string FormatTime(float time)
+	std::string FormatLapTime(float time)
 	{
 		int minutes = static_cast<int>(time) / 60;
 		int seconds = static_cast<int>(time) % 60;
@@ -129,6 +225,17 @@ struct StartFinishLine : public Component
 			<< std::setw(2) << std::setfill('0') << seconds << "."
 			<< std::setw(3) << std::setfill('0') << milliseconds;
 		return formattedTime.str();
+	}
+
+	std::string FormatDeltaTime(float delta)
+	{
+		char sign = (delta < 0.0f) ? '-' : '+';
+		float absTime = std::fabs(delta);
+
+		std::ostringstream stream;
+		stream << sign << std::fixed << std::setprecision(3) << absTime;
+
+		return stream.str();
 	}
 };
 
@@ -305,7 +412,7 @@ struct CarController : public Component
 			RLWheelTire->SetWheelAngularVelocity(0);
 			RRWheelTire->SetWheelAngularVelocity(0);
 
-			GetCore()->FindComponent<StartFinishLine>()->onALap = false;
+			GetCore()->FindComponent<StartFinishLine>()->ResetCar(); 
 		}
 	}
 
@@ -961,11 +1068,13 @@ int main()
 		carBodyCollider->SetPositionOffset(vec3(0, 0.37, 0.22));
 		std::shared_ptr<Rigidbody> carBodyRB = carBody->AddComponent<Rigidbody>();
 		carBodyRB->SetMass(1230);
-		//carBodyRB->AddForce(vec3(12300000, 0, 0));
+
 		cockpitCamEntity->GetComponent<Transform>()->SetParent(carBody);
 		bonnetCamEntity->GetComponent<Transform>()->SetParent(carBody);
 		chaseCamEntity->GetComponent<Transform>()->SetParent(carBody);
 		wheelCamEntity->GetComponent<Transform>()->SetParent(carBody);
+
+		startFinishLineComponent->car = carBody;
 
 		std::shared_ptr<Entity> rearDownForcePos = core->AddEntity();
 		rearDownForcePos->SetTag("rear downforce pos");
