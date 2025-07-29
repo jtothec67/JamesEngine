@@ -120,8 +120,8 @@ struct StartFinishLine : public Component
 				float interpolatedTime = 0.0f;
 
 				// Clamp starting index to valid range
-				int start = glm::clamp(lastSampleIndex - 2, 0, static_cast<int>(fastestLapSamples.size()) - 2);
-				int end = glm::min(start + 10, static_cast<int>(fastestLapSamples.size()) - 2); // Look ahead a few samples
+				int start = glm::clamp(lastSampleIndex - 2, 0, (int)(fastestLapSamples.size()) - 2);
+				int end = glm::min(start + 10, (int)(fastestLapSamples.size()) - 2); // Look ahead a few samples
 
 				for (int i = start; i <= end; ++i)
 				{
@@ -269,6 +269,9 @@ struct CarController : public Component
 	float finalDrive = 3.7f;
 	float drivetrainEfficiency = 0.8f;
 
+	float clutchEngagement = 1.0f; // 0 = fully disengaged, 1 = fully engaged
+	bool autoClutchEnabled = true;
+
 	// Brake torques
 	float brakeTorqueCapacity = 15000.f;
 	float brakeBias = 0.56f; // 60% front, 40% rear
@@ -308,6 +311,8 @@ struct CarController : public Component
 		engineAudioSource->SetLooping(true);
 	}
 
+	bool clutchReadyToLaunch = true;
+
 	void OnTick()
 	{
 		// SDL_CONTROLLER_AXIS_LEFTX is the left stick X axis, -1 left to 1 right
@@ -317,11 +322,25 @@ struct CarController : public Component
 		// SDL_CONTROLLER_AXIS_TRIGGERLEFT is the left trigger, 0 to 1
 		// Same for RIGHT
 
+		if (!autoClutchEnabled)
+		{
+			if (GetInput()->GetController()->IsButton(SDL_CONTROLLER_BUTTON_DPAD_DOWN))
+			{
+				clutchEngagement = 0.0f; // Disengage clutch when down on dpad
+			}
+			else
+			{
+				clutchEngagement = 1.0f; // Engage clutch when not down on dpad
+			}
+		}
+
 		// Upshift
 		if (GetInput()->GetController()->IsButtonDown(SDL_CONTROLLER_BUTTON_X) || GetKeyboard()->IsKeyDown(SDLK_p)) // Square on playstation
 		{
 			currentGear++;
 			currentGear = glm::clamp(currentGear, 1, numGears);
+
+			if (autoClutchEnabled) clutchEngagement = 0.0f;
 		}
 
 		//Downshift
@@ -329,14 +348,110 @@ struct CarController : public Component
 		{
 			currentGear--;
 			currentGear = glm::clamp(currentGear, 1, numGears);
+
+			if (autoClutchEnabled) clutchEngagement = 0.0f;
 		}
+
+		if (autoClutchEnabled)
+		{
+			// Re-engage clutch over 0.25s
+			clutchEngagement += GetCore()->DeltaTime() * 10.0f;
+			clutchEngagement = glm::clamp(clutchEngagement, 0.0f, 1.0f);
+		}
+		//else
+			//clutchEngagement = 1.0f - GetInput()->GetClutchTrigger(); // Assuming 0 = pressed, 1 = released
 
 		// Calculate current engine RPM
 		float wheelAngularVelocity = (RRWheelTire->GetWheelAngularVelocity() + RLWheelTire->GetWheelAngularVelocity()) / 2;
 		float wheelRPM = glm::degrees(wheelAngularVelocity) / 6.0f;
 
-		currentRPM = wheelRPM * gearRatios[currentGear - 1] * finalDrive;
+		/*currentRPM = wheelRPM * gearRatios[currentGear - 1] * finalDrive;
+		currentRPM = glm::clamp(currentRPM, idleRPM, maxRPM);*/
+
+		float targetRPM = wheelRPM * gearRatios[currentGear - 1] * finalDrive;
+
+		if (autoClutchEnabled)
+		{
+			static enum class LaunchState { PreLaunch, Hold, Release } launchState = LaunchState::PreLaunch;
+
+			const float launchRPM = 6000.0f;
+			const float idleStallRPM = idleRPM + 500.0f;
+			const float bitePoint = 0.3f;
+			const float releaseRate = 2.0f; // seconds to go 0.3->1
+			const float throttleThreshold = 0.1f;
+			const float releaseRPM = 4000.0f; // RPM to start releasing clutch
+
+			bool throttlePressed = mThrottleInput > throttleThreshold;
+			bool reachedLaunchRPM = currentRPM >= launchRPM;
+			bool stalled = currentRPM < idleStallRPM;
+			bool wheelRPMOK = targetRPM >= releaseRPM;
+
+			// Transition state
+			switch (launchState) {
+			case LaunchState::PreLaunch:
+				if (reachedLaunchRPM && throttlePressed)
+					launchState = LaunchState::Hold;
+				break;
+			case LaunchState::Hold:
+				if (wheelRPMOK)
+					launchState = LaunchState::Release;
+				break;
+			case LaunchState::Release:
+				// optional reset
+				if (!throttlePressed && currentRPM < idleStallRPM + 100.0f)
+					launchState = LaunchState::PreLaunch;
+				break;
+			}
+
+			// Behavior
+			if (stalled)
+				clutchEngagement = 0.0f;
+			else if (!throttlePressed)
+				clutchEngagement = 1.0f;
+			else
+			{
+				switch (launchState) {
+				case LaunchState::PreLaunch:
+					clutchEngagement = 0.0f;
+					break;
+				case LaunchState::Hold:
+					clutchEngagement = bitePoint;
+					break;
+				case LaunchState::Release:
+					clutchEngagement += releaseRate * GetCore()->DeltaTime();
+					break;
+				}
+			}
+			clutchEngagement = glm::clamp(clutchEngagement, 0.0f, 1.0f);
+		}
+
+
+		float revRate = 12000.0f;
+		float throttle = glm::clamp(mThrottleInput - 0.1f, 0.0f, 1.0f);
+
+		float decayRate = 3000.0f;
+
+		float freeRevRPM;
+		if (throttle > 0.0f)
+			freeRevRPM = currentRPM + throttle * revRate * GetCore()->DeltaTime();
+		else
+			freeRevRPM = currentRPM - decayRate * GetCore()->DeltaTime(); // Let RPM fall back to idle
+
+		// Calculate driven RPM blend target
+		float drivenRPM = glm::mix(currentRPM, targetRPM, GetCore()->DeltaTime() * 10.0f);
+
+		// Blend between free-rev and driven based on clutch
+		float blend = glm::clamp(clutchEngagement, 0.0f, 1.0f);
+		currentRPM = glm::mix(freeRevRPM, drivenRPM, blend);
+
+		// Clamp result
 		currentRPM = glm::clamp(currentRPM, idleRPM, maxRPM);
+
+
+		// Clamp RPM to protect torque calc
+		currentRPM = glm::clamp(currentRPM, idleRPM, maxRPM);
+
+		std::cout << "Clutch engagement: " << clutchEngagement << std::endl;
 
 		// Change engine pitch based on RPM
 		float minPitch = 0.5f;
@@ -452,6 +567,7 @@ struct CarController : public Component
 
 			// Convert engine torque to wheel torque
 			float wheelTorque = engineTorque * gearRatios[currentGear - 1] * finalDrive * drivetrainEfficiency;
+			wheelTorque *= clutchEngagement;
 
 			RLWheelTire->AddDriveTorque(wheelTorque / 2);
 			RRWheelTire->AddDriveTorque(wheelTorque / 2);
@@ -510,12 +626,12 @@ struct CarController : public Component
 			float engineTorque = (actualPowerKW * 9550.0f) / currentRPM;
 			engineTorque *= throttleTrigger;
 
-			// First-gear torque boost at low RPM
-			if (currentGear == 1 && currentRPM < 6000.0f)
-			{
-				float boost = glm::smoothstep(1000.0f, 6000.0f, currentRPM);
-				engineTorque *= glm::mix(5.f, 1.f, boost);
-			}
+			//// First-gear torque boost at low RPM
+			//if (currentGear == 1 && currentRPM < 6000.0f)
+			//{
+			//	float boost = glm::smoothstep(1000.0f, 6000.0f, currentRPM);
+			//	engineTorque *= glm::mix(5.f, 1.f, boost);
+			//}
 
 			// Prevent torque beyond redline
 			if (currentRPM >= maxRPM)
@@ -523,6 +639,17 @@ struct CarController : public Component
 
 			// Convert engine torque to wheel torque
 			float wheelTorque = engineTorque * gearRatios[currentGear - 1] * finalDrive * drivetrainEfficiency;
+
+			float clutchTorqueFactor = 0.0f;
+			if (clutchEngagement < 0.2f)
+				clutchTorqueFactor = 0.0f;
+			else if (clutchEngagement < 0.3f)
+				clutchTorqueFactor = (clutchEngagement - 0.2f) / 0.1f * 0.9f; // 0 -> 0.9
+			else
+				clutchTorqueFactor = 0.9f + ((clutchEngagement - 0.3f) / 0.7f) * 0.1f; // 0.9 -> 1.0
+
+			wheelTorque *= clutchTorqueFactor;
+
 
 			// Apply wheel torque (/2 split between 2 wheels)
 			RLWheelTire->AddDriveTorque(wheelTorque / 2);

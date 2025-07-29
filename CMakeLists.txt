@@ -144,6 +144,9 @@ add_executable(demo
 
 	src/demo/Tire.h
 	src/demo/Tire.cpp
+
+	src/demo/Engine.h
+	src/demo/Engine.cpp
 )
 
 option(HIDE_CONSOLE "Build without console window" OFF)
