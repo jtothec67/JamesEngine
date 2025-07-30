@@ -260,6 +260,25 @@ struct CarController : public Component
 
 	// Engine and transmission parameters
 	float enginePeakPowerkW = 550.f; // kW
+	std::vector<std::pair<float, float>> torqueCurve = {
+	{1000, 250.0f},
+	{1500, 400.0f},
+	{2000, 500.0f},
+	{2500, 600.0f},
+	{3000, 620.0f},
+	{3500, 630.0f},
+	{4000, 640.0f},
+	{4500, 645.0f},
+	{4800, 650.0f},  // Peak torque
+	{5000, 645.0f},
+	{5500, 630.0f},
+	{6000, 610.0f},
+	{6500, 580.0f},
+	{7000, 540.0f},
+	{7500, 480.0f},
+	{8000, 400.0f},
+	{8500, 300.0f}  // Redline
+	};
 	float currentRPM = 0;
 	float maxRPM = 8000;
 	float idleRPM = 1000;
@@ -270,7 +289,10 @@ struct CarController : public Component
 	float drivetrainEfficiency = 0.8f;
 
 	float clutchEngagement = 1.0f; // 0 = fully disengaged, 1 = fully engaged
+	float bitePointStart = 0.35f; // Minimum engagement to prevent stalling
+	float bitePointEnd = 0.65f; // Maximum engagement
 	bool autoClutchEnabled = true;
+	enum class LaunchState { PreLaunch, Hold, Release } launchState = LaunchState::PreLaunch;
 
 	// Brake torques
 	float brakeTorqueCapacity = 15000.f;
@@ -292,8 +314,8 @@ struct CarController : public Component
 	float mSteerInput = 0.f;
 
 	// Aerodynamic properties
-	float dragCoefficient = 0.7f;
-	float frontalArea = 1.9f; // m^2
+	float dragCoefficient = 0.475f;
+	float frontalArea = 1.8f; // m^2
 
 	// Downforce settings at reference speed
 	float rearDownforceAt200 = 5300.0f; // N at 200 km/h
@@ -358,46 +380,38 @@ struct CarController : public Component
 			clutchEngagement += GetCore()->DeltaTime() * 10.0f;
 			clutchEngagement = glm::clamp(clutchEngagement, 0.0f, 1.0f);
 		}
-		//else
-			//clutchEngagement = 1.0f - GetInput()->GetClutchTrigger(); // Assuming 0 = pressed, 1 = released
 
 		// Calculate current engine RPM
 		float wheelAngularVelocity = (RRWheelTire->GetWheelAngularVelocity() + RLWheelTire->GetWheelAngularVelocity()) / 2;
 		float wheelRPM = glm::degrees(wheelAngularVelocity) / 6.0f;
 
-		/*currentRPM = wheelRPM * gearRatios[currentGear - 1] * finalDrive;
-		currentRPM = glm::clamp(currentRPM, idleRPM, maxRPM);*/
-
 		float targetRPM = wheelRPM * gearRatios[currentGear - 1] * finalDrive;
 
+		// Clutch behaviour for launching
 		if (autoClutchEnabled)
 		{
-			static enum class LaunchState { PreLaunch, Hold, Release } launchState = LaunchState::PreLaunch;
-
-			const float launchRPM = 6000.0f;
 			const float idleStallRPM = idleRPM + 500.0f;
-			const float bitePoint = 0.3f;
-			const float releaseRate = 2.0f; // seconds to go 0.3->1
-			const float throttleThreshold = 0.1f;
-			const float releaseRPM = 4000.0f; // RPM to start releasing clutch
+			const float bitePoint = 0.5f;
+			const float releaseStartRPM = 2000.0f;
+			const float releaseEndRPM = 3000.0f;
+			const float throttleThreshold = 0.05f;
 
 			bool throttlePressed = mThrottleInput > throttleThreshold;
-			bool reachedLaunchRPM = currentRPM >= launchRPM;
 			bool stalled = currentRPM < idleStallRPM;
-			bool wheelRPMOK = targetRPM >= releaseRPM;
 
-			// Transition state
-			switch (launchState) {
+			// Transition logic
+			switch (launchState)
+			{
 			case LaunchState::PreLaunch:
-				if (reachedLaunchRPM && throttlePressed)
+				if (throttlePressed)
 					launchState = LaunchState::Hold;
 				break;
 			case LaunchState::Hold:
-				if (wheelRPMOK)
+				if (targetRPM >= releaseStartRPM)
 					launchState = LaunchState::Release;
 				break;
 			case LaunchState::Release:
-				// optional reset
+				// Reset condition
 				if (!throttlePressed && currentRPM < idleStallRPM + 100.0f)
 					launchState = LaunchState::PreLaunch;
 				break;
@@ -405,66 +419,35 @@ struct CarController : public Component
 
 			// Behavior
 			if (stalled)
-				clutchEngagement = 0.0f;
+			{
+				clutchEngagement = 0.0f; // Anti-stall
+			}
 			else if (!throttlePressed)
-				clutchEngagement = 1.0f;
+			{
+				clutchEngagement = 1.0f; // Fully engaged when not launching
+			}
 			else
 			{
-				switch (launchState) {
+				switch (launchState)
+				{
 				case LaunchState::PreLaunch:
 					clutchEngagement = 0.0f;
 					break;
+
 				case LaunchState::Hold:
-					clutchEngagement = bitePoint;
+					// Gradually increase clutch up to bite point
+					clutchEngagement = glm::min(clutchEngagement + GetCore()->DeltaTime() * 2.0f, bitePoint);
 					break;
+
 				case LaunchState::Release:
-					clutchEngagement += releaseRate * GetCore()->DeltaTime();
+					// Linearly release from bitePoint to full engagement as targetRPM rises from 1500–2000
+					float t = glm::clamp((targetRPM - releaseStartRPM) / (releaseEndRPM - releaseStartRPM), 0.0f, 1.0f);
+					clutchEngagement = glm::mix(bitePoint, 1.0f, t);
 					break;
 				}
 			}
+
 			clutchEngagement = glm::clamp(clutchEngagement, 0.0f, 1.0f);
-		}
-
-
-		float revRate = 12000.0f;
-		float throttle = glm::clamp(mThrottleInput - 0.1f, 0.0f, 1.0f);
-
-		float decayRate = 3000.0f;
-
-		float freeRevRPM;
-		if (throttle > 0.0f)
-			freeRevRPM = currentRPM + throttle * revRate * GetCore()->DeltaTime();
-		else
-			freeRevRPM = currentRPM - decayRate * GetCore()->DeltaTime(); // Let RPM fall back to idle
-
-		// Calculate driven RPM blend target
-		float drivenRPM = glm::mix(currentRPM, targetRPM, GetCore()->DeltaTime() * 10.0f);
-
-		// Blend between free-rev and driven based on clutch
-		float blend = glm::clamp(clutchEngagement, 0.0f, 1.0f);
-		currentRPM = glm::mix(freeRevRPM, drivenRPM, blend);
-
-		// Clamp result
-		currentRPM = glm::clamp(currentRPM, idleRPM, maxRPM);
-
-
-		// Clamp RPM to protect torque calc
-		currentRPM = glm::clamp(currentRPM, idleRPM, maxRPM);
-
-		std::cout << "Clutch engagement: " << clutchEngagement << std::endl;
-
-		// Change engine pitch based on RPM
-		float minPitch = 0.5f;
-		float maxPitch = 1.3f;
-		if (currentRPM < 6000)
-		{
-			float t = (currentRPM - idleRPM) / (6000 - idleRPM);
-			engineAudioSource->SetPitch(minPitch + t * (1.0f - minPitch));
-		}
-		else
-		{
-			float t = (currentRPM - 6000) / (maxRPM - 6000);
-			engineAudioSource->SetPitch(1.0f + t * (maxPitch - 1.0f));
 		}
 
 		// Steer left keyboard
@@ -514,6 +497,105 @@ struct CarController : public Component
 			lastInputController = true;
 		}
 
+		if (GetKeyboard()->IsKey(SDLK_s))
+			mBrakeInput = 1.0f;
+		else
+			mBrakeInput = 0.0f;
+
+		// Controller brake trigger with deadzone remapping
+		mBrakeInput = GetInput()->GetController()->GetAxis(SDL_CONTROLLER_AXIS_TRIGGERLEFT);
+		if (mBrakeInput < mBrakeDeadZone)
+			mBrakeInput = 0.0f;
+		else
+		{
+			if (mBrakeInput > mBrakeMaxInput)
+				mBrakeInput = 1.0f;
+			else
+				mBrakeInput = (mBrakeInput - mBrakeDeadZone) / (mBrakeMaxInput - mBrakeDeadZone);
+		}
+
+		//// Controller brake trigger with deadzone remapping
+		//clutchEngagement = GetInput()->GetController()->GetAxis(SDL_CONTROLLER_AXIS_TRIGGERLEFT);
+		//if (clutchEngagement < mBrakeDeadZone)
+		//	clutchEngagement = 1.0f;
+		//else
+		//{
+		//	if (clutchEngagement > mBrakeMaxInput)
+		//		clutchEngagement = 0.0f;
+		//	else
+		//		clutchEngagement = 1 - (clutchEngagement - mBrakeDeadZone) / (mBrakeMaxInput - mBrakeDeadZone);
+		//}
+
+		if (GetKeyboard()->IsKey(SDLK_w))
+			mThrottleInput = 1.0f;
+		else
+			mThrottleInput = 0.0f;
+
+		// Controller throttle trigger with deadzone remapping
+		mThrottleInput = GetInput()->GetController()->GetAxis(SDL_CONTROLLER_AXIS_TRIGGERRIGHT);
+		if (mThrottleInput < mThrottleDeadZone)
+			mThrottleInput = 0.f;
+		else
+		{
+			if (mThrottleInput > mThrottleMaxInput)
+				mThrottleInput = 1.0f;
+			else
+				mThrottleInput = (mThrottleInput - mThrottleDeadZone) / (mThrottleMaxInput - mThrottleDeadZone);
+		}
+
+		float revRate = 12000.0f;
+		float throttle = glm::clamp(mThrottleInput - 0.1f, 0.0f, 1.0f);
+		float decayRate = 3000.0f;
+
+		// Simulate free-rev RPM (clutch fully disengaged)
+		float freeRevRPM = currentRPM;
+		if (throttle > 0.0f)
+			freeRevRPM += throttle * revRate * GetCore()->DeltaTime();
+		else
+			freeRevRPM -= decayRate * GetCore()->DeltaTime();
+
+		// Clamp freeRevRPM to protect from over/underflow
+		freeRevRPM = glm::clamp(freeRevRPM, idleRPM, maxRPM);
+
+		// Simulate driven RPM (clutch fully engaged)
+		float drivenRPM = glm::mix(currentRPM, targetRPM, GetCore()->DeltaTime() * 10.0f);
+
+		// === Use clutchTorqueFactor as the blend factor ===
+		// Define clutch bite point behavior (reuse this for both RPM and torque)
+		float clutchTorqueFactor = 0.0f;
+		if (clutchEngagement < bitePointStart)
+			clutchTorqueFactor = 0.0f;
+		else if (clutchEngagement < bitePointEnd)
+			clutchTorqueFactor = (clutchEngagement - bitePointStart) / 0.3f; // linear ramp
+		else
+			clutchTorqueFactor = 1.0f;
+
+		// Blend current RPM
+		currentRPM = glm::mix(freeRevRPM, drivenRPM, clutchTorqueFactor);
+
+		// Clamp result
+		currentRPM = glm::clamp(currentRPM, idleRPM, maxRPM);
+
+		// Set engine volume to 0 when in menu
+		if (!inMenu)
+			engineAudioSource->SetGain(1);
+		else
+			engineAudioSource->SetGain(0);
+
+		// Change engine pitch based on RPM
+		float minPitch = 0.5f;
+		float maxPitch = 1.3f;
+		if (currentRPM < 6000)
+		{
+			float t = (currentRPM - idleRPM) / (6000 - idleRPM);
+			engineAudioSource->SetPitch(minPitch + t * (1.0f - minPitch));
+		}
+		else
+		{
+			float t = (currentRPM - 6000) / (maxRPM - 6000);
+			engineAudioSource->SetPitch(1.0f + t * (maxPitch - 1.0f));
+		}
+
 		// Reset car
 		if (GetKeyboard()->IsKey(SDLK_SPACE))
 		{
@@ -543,131 +625,73 @@ struct CarController : public Component
 
 		// Apply controller rumble based on average slip
 		GetInput()->GetController()->SetRumble((lowFreq / 4) - 0.5f, 0, GetCore()->FixedDeltaTime());
+	
+		float engineTorque = 0.0f;
 
-		// Keyboard throttle: compute power curve and apply drive torque
-		if (GetKeyboard()->IsKey(SDLK_w))
+		if (currentRPM <= torqueCurve.front().first)
+			engineTorque = torqueCurve.front().second;
+		else if (currentRPM >= torqueCurve.back().first)
+			engineTorque = torqueCurve.back().second;
+		else
 		{
-			// Normalized power shape (0.0 to 1.0 across RPM)
-			float rpmNorm = glm::clamp((currentRPM - idleRPM) / (maxRPM - idleRPM), 0.0f, 1.0f);
-			// Power curve shape (cubic ease-in)
-			float powerFraction = glm::clamp((rpmNorm * rpmNorm) * (3.0f - 2.0f * rpmNorm), 0.027f, 1.0f);
-			float actualPowerKW = enginePeakPowerkW * powerFraction;
-			float engineTorque = (actualPowerKW * 9550.0f) / currentRPM;
-
-			// First-gear torque boost at low RPM
-			if (currentGear == 1 && currentRPM < 6000.0f)
+			for (size_t i = 0; i < torqueCurve.size() - 1; ++i)
 			{
-				float boost = glm::smoothstep(1000.0f, 6000.0f, currentRPM);
-				engineTorque *= glm::mix(5.f, 1.f, boost);
+				float rpm1 = torqueCurve[i].first;
+				float torque1 = torqueCurve[i].second;
+				float rpm2 = torqueCurve[i + 1].first;
+				float torque2 = torqueCurve[i + 1].second;
+
+				if (currentRPM >= rpm1 && currentRPM <= rpm2)
+				{
+					float t = (currentRPM - rpm1) / (rpm2 - rpm1);
+					engineTorque = glm::mix(torque1, torque2, t);
+					break;
+				}
 			}
+		}
 
-			// Prevent torque beyond redline
-			if (currentRPM >= maxRPM)
-				engineTorque = 0.0f;
+		engineTorque *= mThrottleInput;
 
-			// Convert engine torque to wheel torque
-			float wheelTorque = engineTorque * gearRatios[currentGear - 1] * finalDrive * drivetrainEfficiency;
-			wheelTorque *= clutchEngagement;
+		// Prevent torque beyond redline
+		if (currentRPM >= maxRPM)
+			engineTorque = 0.0f;
 
-			RLWheelTire->AddDriveTorque(wheelTorque / 2);
-			RRWheelTire->AddDriveTorque(wheelTorque / 2);
-			mThrottleInput = 1;
+
+		// Convert engine torque to wheel torque
+		float wheelTorque = engineTorque * gearRatios[currentGear - 1] * finalDrive * drivetrainEfficiency;
+
+		// Define clutch bite point behavior
+		float clutchTorqueFactor = 0.0f;
+
+		if (clutchEngagement < bitePointStart)
+			clutchTorqueFactor = 0.0f;
+		else if (clutchEngagement < bitePointEnd)
+		{
+			// Linear torque ramp between bite points
+			float t = (clutchEngagement - bitePointStart) / 0.3f;
+			clutchTorqueFactor = glm::clamp(t, 0.0f, 1.0f);
 		}
 		else
-			mThrottleInput = 0;
+			clutchTorqueFactor = 1.0f;
 
-		// Keyboard brake: apply brake torque to all wheels
-		if (GetKeyboard()->IsKey(SDLK_s))
-		{
-			float frontBrakeTorque = (brakeTorqueCapacity * brakeBias) / 2;
-			float rearBrakeTorque = (brakeTorqueCapacity * (1.0f - brakeBias)) / 2;
-
-			FLWheelTire->AddBrakeTorque(frontBrakeTorque);
-			FRWheelTire->AddBrakeTorque(frontBrakeTorque);
-			RLWheelTire->AddBrakeTorque(rearBrakeTorque);
-			RRWheelTire->AddBrakeTorque(rearBrakeTorque);
-			mBrakeInput = 1;
-		}
-		else
-			mBrakeInput = 0;
-
-		// Controller throttle trigger with deadzone remapping
-		float throttleTrigger = GetInput()->GetController()->GetAxis(SDL_CONTROLLER_AXIS_TRIGGERRIGHT);
-		if (throttleTrigger < mThrottleDeadZone)
-			throttleTrigger = 0.f;
-		else
-		{
-			if (throttleTrigger > mThrottleMaxInput)
-				throttleTrigger = 1.0f;
-			else
-				throttleTrigger = (throttleTrigger - mThrottleDeadZone) / (mThrottleMaxInput - mThrottleDeadZone);
-		}
-
-		// Controller brake trigger with deadzone remapping
-		float brakeTrigger = GetInput()->GetController()->GetAxis(SDL_CONTROLLER_AXIS_TRIGGERLEFT);
-		if (brakeTrigger < mBrakeDeadZone)
-			brakeTrigger = 0.0f;
-		else
-		{
-			if (brakeTrigger > mBrakeMaxInput)
-				brakeTrigger = 1.0f;
-			else
-				brakeTrigger = (brakeTrigger - mBrakeDeadZone) / (mBrakeMaxInput - mBrakeDeadZone);
-		}
-
-		// Mixed input: apply drive and brake when no keyboard input
-		if (!GetKeyboard()->IsKey(SDLK_w) && !GetKeyboard()->IsKey(SDLK_s))
-		{
-			// Normalized power shape (0.0 to 1.0 across RPM)
-			float rpmNorm = glm::clamp((currentRPM - idleRPM) / (maxRPM - idleRPM), 0.0f, 1.0f);
-			// Power curve shape (cubic ease-in)
-			float powerFraction = glm::clamp((rpmNorm * rpmNorm) * (3.0f - 2.0f * rpmNorm), 0.027f, 1.0f);
-			float actualPowerKW = enginePeakPowerkW * powerFraction;
-			float engineTorque = (actualPowerKW * 9550.0f) / currentRPM;
-			engineTorque *= throttleTrigger;
-
-			//// First-gear torque boost at low RPM
-			//if (currentGear == 1 && currentRPM < 6000.0f)
-			//{
-			//	float boost = glm::smoothstep(1000.0f, 6000.0f, currentRPM);
-			//	engineTorque *= glm::mix(5.f, 1.f, boost);
-			//}
-
-			// Prevent torque beyond redline
-			if (currentRPM >= maxRPM)
-				engineTorque = 0.0f;
-
-			// Convert engine torque to wheel torque
-			float wheelTorque = engineTorque * gearRatios[currentGear - 1] * finalDrive * drivetrainEfficiency;
-
-			float clutchTorqueFactor = 0.0f;
-			if (clutchEngagement < 0.2f)
-				clutchTorqueFactor = 0.0f;
-			else if (clutchEngagement < 0.3f)
-				clutchTorqueFactor = (clutchEngagement - 0.2f) / 0.1f * 0.9f; // 0 -> 0.9
-			else
-				clutchTorqueFactor = 0.9f + ((clutchEngagement - 0.3f) / 0.7f) * 0.1f; // 0.9 -> 1.0
-
-			wheelTorque *= clutchTorqueFactor;
+		wheelTorque *= clutchTorqueFactor;
 
 
-			// Apply wheel torque (/2 split between 2 wheels)
-			RLWheelTire->AddDriveTorque(wheelTorque / 2);
-			RRWheelTire->AddDriveTorque(wheelTorque / 2);
-			mThrottleInput = throttleTrigger;
+		// Apply wheel torque (/2 split between 2 wheels)
+		RLWheelTire->AddDriveTorque(wheelTorque / 2);
+		RRWheelTire->AddDriveTorque(wheelTorque / 2);
 
-			float totalBrakeTorque = brakeTorqueCapacity * brakeTrigger;
+		float totalBrakeTorque = brakeTorqueCapacity * mBrakeInput;
 
-			float frontBrakeTorque = (totalBrakeTorque * brakeBias) / 2;
-			float rearBrakeTorque = (totalBrakeTorque * (1.0f - brakeBias)) / 2;
+		float frontBrakeTorque = (totalBrakeTorque * brakeBias) / 2;
+		float rearBrakeTorque = (totalBrakeTorque * (1.0f - brakeBias)) / 2;
 
-			// Apply brake torque
-			FLWheelTire->AddBrakeTorque(frontBrakeTorque);
-			FRWheelTire->AddBrakeTorque(frontBrakeTorque);
-			RLWheelTire->AddBrakeTorque(rearBrakeTorque);
-			RRWheelTire->AddBrakeTorque(rearBrakeTorque);
-			mBrakeInput = brakeTrigger;
-		}
+		// Apply brake torque
+		FLWheelTire->AddBrakeTorque(frontBrakeTorque);
+		FRWheelTire->AddBrakeTorque(frontBrakeTorque);
+		RLWheelTire->AddBrakeTorque(rearBrakeTorque);
+		RRWheelTire->AddBrakeTorque(rearBrakeTorque);
+		
 
 		// Add downforce
 		glm::vec3 forward = GetEntity()->GetComponent<Transform>()->GetForward();
@@ -731,6 +755,7 @@ struct CarController : public Component
 
 		GetGUI()->BlendImage(vec2(150, 175), vec2(200, 75), GetCore()->GetResources()->Load<Texture>("images/white"), GetCore()->GetResources()->Load<Texture>("images/green"), mThrottleInput);
 		GetGUI()->BlendImage(vec2(150, 75), vec2(200, 75), GetCore()->GetResources()->Load<Texture>("images/white"), GetCore()->GetResources()->Load<Texture>("images/red"), mBrakeInput);
+		GetGUI()->BlendImage(vec2(150, 20), vec2(200, 20), GetCore()->GetResources()->Load<Texture>("images/white"), GetCore()->GetResources()->Load<Texture>("images/lightBlue"), 1-clutchEngagement);
 
 		if (mSteerInput > 0)
 			GetGUI()->BlendImage(vec2((width / 2) - 750 / 4, 25), vec2(750 / 2, 25), GetCore()->GetResources()->Load<Texture>("images/black"), GetCore()->GetResources()->Load<Texture>("images/white"), 1 - (mSteerInput / maxSteeringAngle));
@@ -951,8 +976,8 @@ int main()
 	{
 
 		TireParams frontTyreParams{};
-		frontTyreParams.brushLongStiffCoeff = 140;
-		frontTyreParams.brushLatStiffCoeff = 110;
+		frontTyreParams.brushLongStiffCoeff = 80;
+		frontTyreParams.brushLatStiffCoeff = 100;
 
 		frontTyreParams.peakFrictionCoefficient = 1.6f;
 		frontTyreParams.tireRadius = 0.34f;
@@ -960,8 +985,8 @@ int main()
 		frontTyreParams.rollingResistance = 0.015f;
 
 		TireParams rearTyreParams{};
-		rearTyreParams.brushLongStiffCoeff = 140;
-		rearTyreParams.brushLatStiffCoeff = 110;
+		rearTyreParams.brushLongStiffCoeff = 80;
+		rearTyreParams.brushLatStiffCoeff = 100;
 
 		rearTyreParams.peakFrictionCoefficient = 1.6f;
 		rearTyreParams.tireRadius = 0.34f;
