@@ -24,6 +24,10 @@ namespace JamesEngine
 		void BlendImage(glm::vec2 _position, glm::vec2 _size, std::shared_ptr<Texture> _texture1, std::shared_ptr<Texture> _texture2, float _blendFactor);
 
 	private:
+		friend class Core;
+		void PreUploadGlobalStaticUniformsUI();
+		void UploadGlobalUniformsUI();
+
 		std::shared_ptr<Renderer::Shader> mShader = std::make_shared<Renderer::Shader>("../assets/shaders/GUIShader.vert", "../assets/shaders/GUIShader.frag");
 		std::shared_ptr<Renderer::Mesh> mRect = std::make_shared<Renderer::Mesh>();
 

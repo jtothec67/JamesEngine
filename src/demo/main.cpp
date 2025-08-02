@@ -977,7 +977,7 @@ int main()
 
 		TireParams frontTyreParams{};
 		frontTyreParams.brushLongStiffCoeff = 80;
-		frontTyreParams.brushLatStiffCoeff = 100;
+		frontTyreParams.brushLatStiffCoeff = 110;
 
 		frontTyreParams.peakFrictionCoefficient = 1.6f;
 		frontTyreParams.tireRadius = 0.34f;
@@ -986,7 +986,7 @@ int main()
 
 		TireParams rearTyreParams{};
 		rearTyreParams.brushLongStiffCoeff = 80;
-		rearTyreParams.brushLatStiffCoeff = 100;
+		rearTyreParams.brushLatStiffCoeff = 110;
 
 		rearTyreParams.peakFrictionCoefficient = 1.6f;
 		rearTyreParams.tireRadius = 0.34f;
@@ -1244,33 +1244,21 @@ int main()
 		FLWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(0.856, 0.38, 1.6));
 		FLWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.01, 0.01, 0.01));
 		FLWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
-		std::shared_ptr<ModelRenderer> FLWheelAnchorMR = FLWheelAnchor->AddComponent<ModelRenderer>();
-		FLWheelAnchorMR->SetModel(core->GetResources()->Load<Model>("shapes/sphere"));
-		FLWheelAnchorMR->AddTexture(core->GetResources()->Load<Texture>("images/cat"));
 
 		std::shared_ptr<Entity> FRWheelAnchor = core->AddEntity();
 		FRWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(-0.856, 0.38, 1.6));
 		FRWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.01, 0.01, 0.01));
 		FRWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
-		std::shared_ptr<ModelRenderer> FRWheelAnchorMR = FRWheelAnchor->AddComponent<ModelRenderer>();
-		FRWheelAnchorMR->SetModel(core->GetResources()->Load<Model>("shapes/sphere"));
-		FRWheelAnchorMR->AddTexture(core->GetResources()->Load<Texture>("images/cat"));
 
 		std::shared_ptr<Entity> RLWheelAnchor = core->AddEntity();
 		RLWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(0.863, 0.38, -1.027));
 		RLWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.01, 0.01, 0.01));
 		RLWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
-		std::shared_ptr<ModelRenderer> RLWheelAnchorMR = RLWheelAnchor->AddComponent<ModelRenderer>();
-		RLWheelAnchorMR->SetModel(core->GetResources()->Load<Model>("shapes/sphere"));
-		RLWheelAnchorMR->AddTexture(core->GetResources()->Load<Texture>("images/cat"));
 
 		std::shared_ptr<Entity> RRWheelAnchor = core->AddEntity();
 		RRWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(-0.863, 0.38, -1.027));
 		RRWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.01, 0.01, 0.01));
 		RRWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
-		std::shared_ptr<ModelRenderer> RRWheelAnchorMR = RRWheelAnchor->AddComponent<ModelRenderer>();
-		RRWheelAnchorMR->SetModel(core->GetResources()->Load<Model>("shapes/sphere"));
-		RRWheelAnchorMR->AddTexture(core->GetResources()->Load<Texture>("images/cat"));
 
 
 		// Front Left Wheel

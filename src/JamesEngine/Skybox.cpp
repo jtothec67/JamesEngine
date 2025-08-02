@@ -17,9 +17,9 @@ namespace JamesEngine
 	{
 		if (!mTexture)
 			return;
-
-		glm::mat4 projection = mCore.lock()->GetCamera()->GetProjectionMatrix();
-		glm::mat4 view = mCore.lock()->GetCamera()->GetViewMatrix();
+		std::shared_ptr<Camera> camera = mCore.lock()->GetCamera();
+		glm::mat4 projection = camera->GetProjectionMatrix();
+		glm::mat4 view = camera->GetViewMatrix();
 		glm::mat4 invPV = glm::inverse(projection * view);
 
 		mShader->uniform("u_InvPV", invPV);

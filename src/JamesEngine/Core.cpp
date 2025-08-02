@@ -42,6 +42,10 @@ namespace JamesEngine
 		int width, height;
 		mWindow->GetWindowSize(width, height);
 
+		// Needed now so that the loading screen UI can be rendered
+		mGUI->PreUploadGlobalStaticUniformsUI();
+		mGUI->UploadGlobalUniformsUI();
+
 		mGUI->Image(glm::vec2(width/2, height/2), glm::vec2(width, height), _texture);
 
 		mWindow->SwapWindows();
@@ -49,6 +53,9 @@ namespace JamesEngine
 
 	void Core::Run()
 	{
+		PreUploadGlobalStaticUniforms();
+		mGUI->PreUploadGlobalStaticUniformsUI();
+
 		Timer mDeltaTimer;
 
 		while (mIsRunning)
@@ -272,6 +279,8 @@ namespace JamesEngine
 		// Normal rendering of the scene
 		mSkybox->RenderSkybox();
 
+		UploadGlobalUniforms();
+
 		for (size_t ei = 0; ei < mEntities.size(); ++ei)
 		{
 			mEntities[ei]->OnRender();
@@ -280,6 +289,8 @@ namespace JamesEngine
 
 	void Core::RenderGUI()
 	{
+		mGUI->UploadGlobalUniformsUI();
+
 		glDisable(GL_DEPTH_TEST);
 
 		for (size_t ei = 0; ei < mEntities.size(); ++ei)
@@ -288,6 +299,53 @@ namespace JamesEngine
 		}
 
 		glEnable(GL_DEPTH_TEST);
+	}
+
+	void Core::PreUploadGlobalStaticUniforms()
+	{
+		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_DirLightDirection", mLightManager->GetDirectionalLightDirection()); // Assumes light direction and colour never change, light direction can't change while using pre baked shadows
+		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_DirLightColor", mLightManager->GetDirectionalLightColour());
+	}
+
+	void Core::UploadGlobalUniforms()
+	{
+		std::shared_ptr<Camera> camera = GetCamera();
+		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_Projection", camera->GetProjectionMatrix());
+		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_View", camera->GetViewMatrix());
+
+		std::vector<std::shared_ptr<Light>> lights = mLightManager->GetLights();
+
+		std::vector<glm::vec3> positions;
+		std::vector<glm::vec3> colors;
+		std::vector<float> strengths;
+
+		for (const auto& light : lights)
+		{
+			positions.push_back(light->position);
+			colors.push_back(light->colour);
+			strengths.push_back(light->strength);
+		}
+
+		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_LightPositions", positions);
+		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_LightColors", colors);
+		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_LightStrengths", strengths);
+
+		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_Ambient", mLightManager->GetAmbient());
+
+		// Wanted to upload shadow maps in the UploadGlobalUniforms function, but it needs to be done after the shadow maps are rendered
+		std::vector<std::shared_ptr<Renderer::RenderTexture>> shadowMaps;
+		shadowMaps.reserve(mLightManager->GetShadowCascades().size());
+		std::vector<glm::mat4> shadowMatrices;
+		shadowMatrices.reserve(mLightManager->GetShadowCascades().size());
+
+		for (const ShadowCascade& cascade : mLightManager->GetShadowCascades())
+		{
+			shadowMaps.emplace_back(cascade.renderTexture);
+			shadowMatrices.emplace_back(cascade.lightSpaceMatrix);
+		}
+
+		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_ShadowMaps", shadowMaps, 20);
+		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_LightSpaceMatrices", shadowMatrices);
 	}
 
 	std::shared_ptr<Entity> Core::AddEntity()

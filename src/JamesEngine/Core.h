@@ -157,6 +157,11 @@ namespace JamesEngine
 		std::vector<std::shared_ptr<Entity>> mEntities;
 		std::weak_ptr<Core> mSelf;
 
+		// Used to upload uniforms that only need uploading once
+		void PreUploadGlobalStaticUniforms();
+		// Used to upload uniforms that need to be updated every frame, but not for every entity
+		void UploadGlobalUniforms();
+
 		void RenderScene();
 		void RenderGUI();
 

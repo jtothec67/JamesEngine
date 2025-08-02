@@ -2,6 +2,8 @@
 
 #include "Component.h"
 
+#include "Renderer/Texture.h"
+
 #include <vector>
 
 namespace JamesEngine
@@ -41,6 +43,7 @@ namespace JamesEngine
 		std::shared_ptr<Shader> mShader = nullptr;
 
 		std::vector<std::shared_ptr<Texture>> mTextures;
+		std::vector<Renderer::Texture*> mRawTextures; // Optimisation assumes no nex textures added at runtime (after OnAlive)
 
 		float mSpecularStrength = 1.f;
 

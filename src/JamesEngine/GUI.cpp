@@ -31,6 +31,23 @@ namespace JamesEngine
         mRect->add(face2);
 	}
 
+	void GUI::PreUploadGlobalStaticUniformsUI()
+	{
+		mShader->uniform("u_View", glm::mat4(1.0f));
+		mBlendShader->uniform("u_View", glm::mat4(1.0f));
+	}
+
+	void GUI::UploadGlobalUniformsUI()
+	{
+		int width, height;
+		mCore.lock()->GetWindow()->GetWindowSize(width, height);
+
+		glm::mat4 uiProjection = glm::ortho(0.0f, (float)width, 0.0f, (float)height, 0.0f, 1.0f);
+		mShader->uniform("u_Projection", uiProjection);
+		mBlendShader->uniform("u_Projection", uiProjection);
+		mFontShader->uniform("u_Projection", uiProjection);
+	}
+
     // Returns 0 if mouse not over button, 1 if mouse over button, 2 if mouse over button and clicked
 	int GUI::Button(glm::vec2 _position, glm::vec2 _size, std::shared_ptr<Texture> _texture)
 	{
@@ -44,11 +61,6 @@ namespace JamesEngine
 
 		int width, height;
 		mCore.lock()->GetWindow()->GetWindowSize(width, height);
-
-		glm::mat4 uiProjection = glm::ortho(0.0f, (float)width, 0.0f, (float)height, 0.0f, 1.0f);
-		mShader->uniform("u_Projection", uiProjection);
-
-		mShader->uniform("u_View", glm::mat4(1.0f));
 
 		mShader->draw(mRect.get(), _texture->mTexture.get());
 
@@ -86,14 +98,6 @@ namespace JamesEngine
 		model = glm::scale(model, glm::vec3(_size.x, _size.y, 1));
 		mShader->uniform("u_Model", model);
 
-		int width, height;
-		mCore.lock()->GetWindow()->GetWindowSize(width, height);
-
-		glm::mat4 uiProjection = glm::ortho(0.0f, (float)width, 0.0f, (float)height, 0.0f, 1.0f);
-		mShader->uniform("u_Projection", uiProjection);
-
-		mShader->uniform("u_View", glm::mat4(1.0f));
-
 		mShader->draw(mRect.get(), _texture->mTexture.get());
 
 		// Replaces all images with the shadow map of the directional light (keeping in case of future debugging)
@@ -105,13 +109,6 @@ namespace JamesEngine
 	{
 		// By trial and error, 140 means capital letters are _size amount of pixels tall (pretty much)
 		float adjustedSize = _size / 140.f;
-
-        int width, height;
-        mCore.lock()->GetWindow()->GetWindowSize(width, height);
-
-        glm::mat4 uiProjection = glm::ortho(0.0f, (float)width, 0.0f, (float)height, 0.0f, 1.0f);
-        mFontShader->uniform("u_Projection", uiProjection);
-
 
 		float currentLineWidth = 0.0f;
 		float widestLineWidth = 0.0f;
@@ -199,13 +196,6 @@ namespace JamesEngine
 		model = glm::scale(model, glm::vec3(_size.x, _size.y, 1));
 		mBlendShader->uniform("u_Model", model);
 
-		int width, height;
-		mCore.lock()->GetWindow()->GetWindowSize(width, height);
-
-		glm::mat4 uiProjection = glm::ortho(0.0f, (float)width, 0.0f, (float)height, 0.0f, 1.0f);
-		mBlendShader->uniform("u_Projection", uiProjection);
-
-		mBlendShader->uniform("u_View", glm::mat4(1.0f));
 		mBlendShader->uniform("u_BlendFactor", _blendFactor);
 
 		// Bind both textures to different texture units
@@ -219,6 +209,5 @@ namespace JamesEngine
 
 		mBlendShader->draw(mRect.get());
 	}
-
 
 }

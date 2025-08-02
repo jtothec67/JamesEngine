@@ -22,17 +22,9 @@ namespace JamesEngine
 
 	void TriangleRenderer::OnRender()
 	{
-		std::shared_ptr<Camera> camera = GetEntity()->GetCore()->GetCamera();
-
-		mShader->uniform("u_Projection", camera->GetProjectionMatrix());
-
-		mShader->uniform("u_View", camera->GetViewMatrix());
-
 		Transform* transform = GetEntity()->GetComponent<Transform>().get();
 
 		mShader->uniform("u_Model", transform->GetModel());
-
-		mShader->uniform("u_Ambient", glm::vec3(1.f, 1.f, 1.f));
 
 		mShader->draw(mMesh.get(), mTexture.get());
 	}
