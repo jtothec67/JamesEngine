@@ -256,10 +256,8 @@ struct CarController : public Component
 
 	// Steering parameters
 	float maxSteeringAngle = 25.f;
-	float wheelTurnRate = 30.f;
 
 	// Engine and transmission parameters
-	float enginePeakPowerkW = 550.f; // kW
 	std::vector<std::pair<float, float>> torqueCurve = {
 	{1000, 250.0f},
 	{1500, 400.0f},
@@ -296,7 +294,7 @@ struct CarController : public Component
 
 	// Brake torques
 	float brakeTorqueCapacity = 15000.f;
-	float brakeBias = 0.56f; // 60% front, 40% rear
+	float brakeBias = 0.56f; // 56% front, 44% rear
 
 	// Input tracking
 	bool lastInputController = false;
@@ -560,7 +558,6 @@ struct CarController : public Component
 		// Simulate driven RPM (clutch fully engaged)
 		float drivenRPM = glm::mix(currentRPM, targetRPM, GetCore()->DeltaTime() * 10.0f);
 
-		// === Use clutchTorqueFactor as the blend factor ===
 		// Define clutch bite point behavior (reuse this for both RPM and torque)
 		float clutchTorqueFactor = 0.0f;
 		if (clutchEngagement < bitePointStart)
@@ -655,6 +652,18 @@ struct CarController : public Component
 		// Prevent torque beyond redline
 		if (currentRPM >= maxRPM)
 			engineTorque = 0.0f;
+
+		if (mThrottleInput < 0.05f)
+		{
+			float normRPM = (currentRPM - idleRPM) / (maxRPM - idleRPM);
+			//normRPM = glm::clamp(normRPM, 0.f, 1.f);
+			float rpmCurve = normRPM * normRPM; // quadratic ramp
+
+			float leverage = gearRatios[currentGear - 1]; // more effect in low gear
+			float baseK = 80.0f; // base coefficient in Nm at max RPM
+
+			engineTorque += -rpmCurve * baseK * leverage;
+		}
 
 
 		// Convert engine torque to wheel torque

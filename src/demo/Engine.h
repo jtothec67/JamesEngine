@@ -7,12 +7,16 @@ namespace JamesEngine
 
 	struct EngineParams
 	{
-		float peakPowerKW;
 		float maxRPM;
 		float idleRPM;
 		std::vector<float> gearRatios;
 		float finalDrive;
 		float drivetrainEfficiency;
+
+		float bitePointStart = 0.35f;
+		float bitePointEnd = 0.65f;
+
+		std::vector<std::pair<float, float>> torqueCurve;
 	};
 
 	class Engine : public Component
@@ -20,7 +24,7 @@ namespace JamesEngine
 	public:
 		void OnAlive();
 
-		void EngineUpdate(float _throttleInput);
+		void EngineUpdate(float _throttleInput, float _clutchEngagement, float _wheelRPM);
 
 		void SetEngineParams(const EngineParams& params) { mParams = params; }
 
