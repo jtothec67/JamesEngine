@@ -29,11 +29,80 @@ uniform mat4 u_PreBakedLightSpaceMatrices[NUM_PREBAKED];
 
 out vec4 FragColor;
 
+const int NUM_POISSON_SAMPLES = 12;
+
+vec2 poissonDisk[NUM_POISSON_SAMPLES] = vec2[](
+    // 4 0uter samples (Up, Down, Left, Right)
+    vec2(0.0,  1.5),
+    vec2(0.0, -1.5),
+    vec2(-1.5, 0.0),
+    vec2(1.5,  0.0),
+
+    // 8 inner semi-random samples
+    vec2(-0.613,  0.245),
+    vec2(0.535,  0.423),
+    vec2(-0.245, -0.567),
+    vec2(0.126,  0.946),
+    vec2(-0.931,  0.081),
+    vec2(0.804, -0.374),
+    vec2(-0.321,  0.715),
+    vec2(0.255, -0.803)
+);
+
+float ComputeShadowPoissonPCF(sampler2D shadowMap, vec3 projCoords, float depth, float bias)
+{
+    vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
+    float shadow = 0.0;
+    float totalSamples = 0.0;
+
+    ivec2 screenCoord = ivec2(gl_FragCoord.xy);
+
+    // Per-pixel rotation (keeps pattern varied)
+    float angle = fract(sin(dot(vec2(screenCoord), vec2(12.9898, 78.233))) * 43758.5453) * 6.2831;
+    mat2 rotation = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
+
+    // --- Initial Early-Out with Outer 4 Samples (indices 0–3) ---
+    int earlyShadowCount = 0;
+    for (int i = 0; i < 4; ++i)
+    {
+        vec2 offset = rotation * poissonDisk[i] * texelSize;
+        float sampleDepth = texture(shadowMap, projCoords.xy + offset).r;
+        if (depth - bias > sampleDepth)
+            earlyShadowCount++;
+    }
+
+    if (earlyShadowCount == 0)
+        return 0.0; // Fully lit
+    else if (earlyShadowCount == 4)
+        return 1.0; // Fully shadowed
+
+    // --- Rolling PCF Loop (indices 0–11) ---
+    int lastFourUnshadowed = 0;
+
+    for (int i = 0; i < NUM_POISSON_SAMPLES; ++i)
+    {
+        vec2 offset = rotation * poissonDisk[i] * texelSize;
+        float sampleDepth = texture(shadowMap, projCoords.xy + offset).r;
+        float isShadowed = (depth - bias > sampleDepth) ? 1.0 : 0.0;
+
+        shadow += isShadowed;
+        totalSamples += 1.0;
+
+        if (isShadowed == 0.0)
+            lastFourUnshadowed++;
+        else
+            lastFourUnshadowed = 0;
+
+        // Rolling early-out: last 4 samples were all lit
+        if (i >= 4 && lastFourUnshadowed >= 4)
+            break;
+    }
+
+    return shadow / totalSamples;
+}
+
 float ShadowCalculation(vec3 fragWorldPos, vec3 normal, vec3 lightDir)
 {
-    //if (NUM_CASCADES + NUM_PREBAKED == 0)
-        //return 0.0;
-
     int bestCascade = -1;
     int bestPrebaked = -1;
 
@@ -45,16 +114,13 @@ float ShadowCalculation(vec3 fragWorldPos, vec3 normal, vec3 lightDir)
 
     float bias = max(0.003 * (1.0 - dot(normal, lightDir)), 0.0005);
 
-    // Check prebaked
+    // Check pre-baked shadows
     for (int i = 0; i < NUM_PREBAKED; ++i)
     {
         vec4 lightSpacePos = u_PreBakedLightSpaceMatrices[i] * vec4(fragWorldPos, 1.0);
-        vec3 projCoords = lightSpacePos.xyz / lightSpacePos.w;
-        projCoords = projCoords * 0.5 + 0.5;
+        vec3 projCoords = lightSpacePos.xyz / lightSpacePos.w * 0.5 + 0.5;
 
-        if (projCoords.x >= 0.0 && projCoords.x <= 1.0 &&
-            projCoords.y >= 0.0 && projCoords.y <= 1.0 &&
-            projCoords.z >= 0.0 && projCoords.z <= 1.0)
+        if (all(greaterThanEqual(projCoords, vec3(0.0))) && all(lessThanEqual(projCoords, vec3(1.0))))
         {
             bestPrebaked = i;
             prebakedProjCoords = projCoords;
@@ -63,16 +129,13 @@ float ShadowCalculation(vec3 fragWorldPos, vec3 normal, vec3 lightDir)
         }
     }
 
-    // Check cascades
+    // Check cascade shadows
     for (int i = 0; i < NUM_CASCADES; ++i)
     {
         vec4 lightSpacePos = u_LightSpaceMatrices[i] * vec4(fragWorldPos, 1.0);
-        vec3 projCoords = lightSpacePos.xyz / lightSpacePos.w;
-        projCoords = projCoords * 0.5 + 0.5;
+        vec3 projCoords = lightSpacePos.xyz / lightSpacePos.w * 0.5 + 0.5;
 
-        if (projCoords.x >= 0.0 && projCoords.x <= 1.0 &&
-            projCoords.y >= 0.0 && projCoords.y <= 1.0 &&
-            projCoords.z >= 0.0 && projCoords.z <= 1.0)
+        if (all(greaterThanEqual(projCoords, vec3(0.0))) && all(lessThanEqual(projCoords, vec3(1.0))))
         {
             bestCascade = i;
             cascadeProjCoords = projCoords;
@@ -81,76 +144,23 @@ float ShadowCalculation(vec3 fragWorldPos, vec3 normal, vec3 lightDir)
         }
     }
 
-     float shadowCascade = 0.0;
+    float shadowCascade = 0.0;
     float shadowPrebaked = 0.0;
 
-    // Early-out for cascade shadows
     if (bestCascade != -1)
     {
-        // Check center sample first
-        float centerDepth = texture(u_ShadowMaps[bestCascade], cascadeProjCoords.xy).r;
-        
-        // If fragment is definitely not in shadow (with generous bias), skip expensive PCF
-        if (cascadeDepth - bias < centerDepth)
-        {
-            // Not in shadow, skip PCF
-            shadowCascade = 0.0;
-        }
-        else
-        {
-            // Might be in shadow, do PCF
-            vec2 texelSize = 1.0 / textureSize(u_ShadowMaps[bestCascade], 0);
-            
-            // Enhanced PCF - use 5x5 for better quality
-            for (int x = -2; x <= 2; ++x)
-            {
-                for (int y = -2; y <= 2; ++y)
-                {
-                    vec2 offset = vec2(x, y) * texelSize;
-                    float pcfDepth = texture(u_ShadowMaps[bestCascade], cascadeProjCoords.xy + offset).r;
-                    shadowCascade += cascadeDepth - bias > pcfDepth ? 1.0 : 0.0;
-                }
-            }
-            shadowCascade /= 25.0; // 5x5 samples
-        }
+        shadowCascade = ComputeShadowPoissonPCF(u_ShadowMaps[bestCascade], cascadeProjCoords, cascadeDepth, bias);
     }
 
-    // Early-out for prebaked shadows
     if (bestPrebaked != -1)
     {
-        // Check center sample first
-        float centerDepth = texture(u_PreBakedShadowMaps[bestPrebaked], prebakedProjCoords.xy).r;
-        
-        // If fragment is definitely not in shadow (with generous bias), skip expensive PCF
-        if (prebakedDepth - bias < centerDepth)
-        {
-            // Not in shadow, skip PCF
-            shadowPrebaked = 0.0;
-        }
-        else
-        {
-            // Might be in shadow, do PCF
-            vec2 texelSize = 1.0 / textureSize(u_PreBakedShadowMaps[bestPrebaked], 0);
-            
-            // Enhanced PCF - use 5x5 for better quality
-            for (int x = -2; x <= 2; ++x)
-            {
-                for (int y = -2; y <= 2; ++y)
-                {
-                    vec2 offset = vec2(x, y) * texelSize;
-                    float pcfDepth = texture(u_PreBakedShadowMaps[bestPrebaked], prebakedProjCoords.xy + offset).r;
-                    shadowPrebaked += prebakedDepth - bias > pcfDepth ? 1.0 : 0.0;
-                }
-            }
-            shadowPrebaked /= 25.0; // 5x5 samples
-        }
+        shadowPrebaked = ComputeShadowPoissonPCF(u_PreBakedShadowMaps[bestPrebaked], prebakedProjCoords, prebakedDepth, bias);
     }
 
     float shadow = max(shadowCascade, shadowPrebaked);
-    shadow = pow(shadow, 2.0);
-
     return shadow;
 }
+
 
 void main()
 {
