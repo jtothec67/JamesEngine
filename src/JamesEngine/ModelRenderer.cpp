@@ -254,6 +254,14 @@ namespace JamesEngine
 
 		mShader->mShader->uniform("u_Model", model);
 
+		// Model is not glTF, upload our own PBR values
+		if (mModel->mModel->GetEmbeddedTextures().empty())
+		{
+			mShader->mShader->uniform("u_BaseColorFactor", mBaseColorStrength);
+			mShader->mShader->uniform("u_MetallicFactor", mMetallicness);
+			mShader->mShader->uniform("u_RoughnessFactor", mRoughness);
+		}
+
 		mShader->mShader->uniform("u_SpecStrength", mSpecularStrength);
 
 		// Call the updated draw function with support for multi-materials

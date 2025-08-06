@@ -248,19 +248,90 @@ namespace Renderer
 		}
 		else
 		{
+			const auto& embeddedTextures = _model->GetEmbeddedTextures();
+			bool useEmbedded = !embeddedTextures.empty();
 			const auto& groups = _model->GetMaterialGroups();
+
 			for (size_t i = 0; i < groups.size(); ++i)
 			{
-				if (i < _textures.size())
+				const auto& group = groups[i];
+
+				if (useEmbedded)
+				{
+					const auto& pbr = group.pbr;
+
+					// Albedo (base color)
+					if (pbr.baseColorTexIndex >= 0 && pbr.baseColorTexIndex < embeddedTextures.size())
+					{
+						glActiveTexture(GL_TEXTURE0);
+						glBindTexture(GL_TEXTURE_2D, embeddedTextures[pbr.baseColorTexIndex].id());
+						glUniform1i(glGetUniformLocation(id(), "u_AlbedoMap"), 0);
+						glUniform1i(glGetUniformLocation(id(), "u_HasAlbedoMap"), 1);
+					}
+					else
+						glUniform1i(glGetUniformLocation(id(), "u_HasAlbedoMap"), 0);
+
+					// Normal map
+					if (pbr.normalTexIndex >= 0 && pbr.normalTexIndex < embeddedTextures.size())
+					{
+						glActiveTexture(GL_TEXTURE1);
+						glBindTexture(GL_TEXTURE_2D, embeddedTextures[pbr.normalTexIndex].id());
+						glUniform1i(glGetUniformLocation(id(), "u_NormalMap"), 1);
+						glUniform1i(glGetUniformLocation(id(), "u_HasNormalMap"), 1);
+					}
+					else
+						glUniform1i(glGetUniformLocation(id(), "u_HasNormalMap"), 0);
+
+					// Metallic-Roughness
+					if (pbr.metallicRoughnessTexIndex >= 0 && pbr.metallicRoughnessTexIndex < embeddedTextures.size())
+					{
+						glActiveTexture(GL_TEXTURE2);
+						glBindTexture(GL_TEXTURE_2D, embeddedTextures[pbr.metallicRoughnessTexIndex].id());
+						glUniform1i(glGetUniformLocation(id(), "u_MetallicRoughnessMap"), 2);
+						glUniform1i(glGetUniformLocation(id(), "u_HasMetallicRoughnessMap"), 1);
+					}
+					else
+						glUniform1i(glGetUniformLocation(id(), "u_HasMetallicRoughnessMap"), 0);
+
+					// Occlusion
+					if (pbr.occlusionTexIndex >= 0 && pbr.occlusionTexIndex < embeddedTextures.size())
+					{
+						glActiveTexture(GL_TEXTURE3);
+						glBindTexture(GL_TEXTURE_2D, embeddedTextures[pbr.occlusionTexIndex].id());
+						glUniform1i(glGetUniformLocation(id(), "u_OcclusionMap"), 3);
+						glUniform1i(glGetUniformLocation(id(), "u_HasOcclusionMap"), 1);
+					}
+					else
+						glUniform1i(glGetUniformLocation(id(), "u_HasOcclusionMap"), 0);
+
+					// Emissive
+					if (pbr.emissiveTexIndex >= 0 && pbr.emissiveTexIndex < embeddedTextures.size())
+					{
+						glActiveTexture(GL_TEXTURE4);
+						glBindTexture(GL_TEXTURE_2D, embeddedTextures[pbr.emissiveTexIndex].id());
+						glUniform1i(glGetUniformLocation(id(), "u_EmissiveMap"), 4);
+						glUniform1i(glGetUniformLocation(id(), "u_HasEmissiveMap"), 1);
+					}
+					else
+						glUniform1i(glGetUniformLocation(id(), "u_HasEmissiveMap"), 0);
+
+					// Material factors
+					glUniform4fv(glGetUniformLocation(id(), "u_BaseColorFactor"), 1, glm::value_ptr(pbr.baseColorFactor));
+					glUniform1f(glGetUniformLocation(id(), "u_MetallicFactor"), pbr.metallicFactor);
+					glUniform1f(glGetUniformLocation(id(), "u_RoughnessFactor"), pbr.roughnessFactor);
+				}
+				else if (i < _textures.size())
 				{
 					glActiveTexture(GL_TEXTURE0);
 					glBindTexture(GL_TEXTURE_2D, _textures[i]->id());
 					glUniform1i(glGetUniformLocation(id(), "u_Texture"), 0);
 				}
-				glBindVertexArray(groups[i].vao);
-				glDrawArrays(GL_TRIANGLES, 0, groups[i].faces.size() * 3);
+
+				glBindVertexArray(group.vao);
+				glDrawArrays(GL_TRIANGLES, 0, group.faces.size() * 3);
 			}
 		}
+
 		glBindVertexArray(0);
 		glUseProgram(0);
 	}

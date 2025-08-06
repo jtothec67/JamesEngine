@@ -313,23 +313,6 @@ namespace JamesEngine
 		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_Projection", camera->GetProjectionMatrix());
 		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_View", camera->GetViewMatrix());
 
-		std::vector<std::shared_ptr<Light>> lights = mLightManager->GetLights();
-
-		std::vector<glm::vec3> positions;
-		std::vector<glm::vec3> colors;
-		std::vector<float> strengths;
-
-		for (const auto& light : lights)
-		{
-			positions.push_back(light->position);
-			colors.push_back(light->colour);
-			strengths.push_back(light->strength);
-		}
-
-		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_LightPositions", positions);
-		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_LightColors", colors);
-		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_LightStrengths", strengths);
-
 		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_Ambient", mLightManager->GetAmbient());
 
 		// Wanted to upload shadow maps in the UploadGlobalUniforms function, but it needs to be done after the shadow maps are rendered

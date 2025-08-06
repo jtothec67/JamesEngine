@@ -1,6 +1,5 @@
 #version 460
 
-#define MAX_LIGHTS 10
 #define NUM_CASCADES 4
 #define NUM_PREBAKED 4
 
@@ -14,9 +13,9 @@ uniform vec3 u_ViewPos;
 uniform vec3 u_Ambient;
 uniform float u_SpecStrength;
 
-uniform vec3 u_LightPositions[MAX_LIGHTS];
-uniform vec3 u_LightColors[MAX_LIGHTS];
-uniform float u_LightStrengths[MAX_LIGHTS];
+uniform float u_BaseColorFactor;
+uniform float u_MetallicFactor;
+uniform float u_RoughnessFactor;
 
 uniform vec3 u_DirLightDirection;
 uniform vec3 u_DirLightColor;
@@ -164,38 +163,60 @@ float ShadowCalculation(vec3 fragWorldPos, vec3 normal, vec3 lightDir)
 
 void main()
 {
+//    vec4 tex = texture(u_Texture, v_TexCoord);
+//
+//    vec3 N = normalize(v_Normal);
+//    vec3 viewDir = normalize(u_ViewPos - v_FragPos);
+//    vec3 lighting = u_Ambient;
+//
+//    // Directional light
+//    vec3 dirLightDir = normalize(-u_DirLightDirection);
+//    float diff = max(dot(N, dirLightDir), 0.0);
+//    vec3 diffuse = u_DirLightColor * diff;
+//
+//    vec3 reflectDir = reflect(-dirLightDir, N);
+//    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 16);
+//    vec3 specular = spec * u_DirLightColor * u_SpecStrength;
+//
+//    float shadow = ShadowCalculation(v_FragPos, N, dirLightDir);
+//
+//    lighting += (1.0 - shadow) * (diffuse + specular);
+//
+//    FragColor = vec4(lighting, 1.0) * tex;
+    
     vec4 tex = texture(u_Texture, v_TexCoord);
+    vec3 albedo = tex.rgb * u_BaseColorFactor;
+    float metallic = clamp(u_MetallicFactor, 0.0, 1.0);
+    float roughness = clamp(u_RoughnessFactor, 0.04, 1.0); // minimum to avoid divide-by-zero
+    float ao = 1.0; // Assume full ambient occlusion for now
 
     vec3 N = normalize(v_Normal);
-    vec3 viewDir = normalize(u_ViewPos - v_FragPos);
-    vec3 lighting = u_Ambient;
+    vec3 V = normalize(u_ViewPos - v_FragPos);
+    vec3 F0 = mix(vec3(0.04), albedo, metallic); // Fresnel reflectance at normal incidence
 
-    // Point lights
-    for (int i = 0; i < MAX_LIGHTS; ++i)
-    {
-        vec3 lightDir = normalize(u_LightPositions[i] - v_FragPos);
-        float diff = max(dot(N, lightDir), 0.0);
-        vec3 diffuse = u_LightColors[i] * diff * u_LightStrengths[i];
+    vec3 Lo = vec3(0.0);
 
-        vec3 reflectDir = reflect(-lightDir, N);
-        float spec = pow(max(dot(viewDir, reflectDir), 0.0), 16);
-        vec3 specular = spec * u_LightColors[i] * u_LightStrengths[i] * u_SpecStrength;
+    // Directional Light
+    vec3 L = normalize(-u_DirLightDirection);
+    vec3 H = normalize(V + L);
+    vec3 radiance = u_DirLightColor;
 
-        lighting += diffuse + specular;
-    }
+    float NDF = max(pow(dot(N, H), 1024.0 * (1.0 - roughness)), 0.001);
+    float G = 1.0;
+    float NdotL = max(dot(N, L), 0.0);
+    vec3 F = F0 + (1.0 - F0) * pow(1.0 - dot(H, V), 5.0);
+    vec3 nominator = NDF * G * F;
+    float denominator = 4.0 * max(dot(N, V), 0.0) * NdotL + 0.001;
+    vec3 specular = nominator / denominator;
+    vec3 kD = (1.0 - F) * (1.0 - metallic);
 
-    // Directional light
-    vec3 dirLightDir = normalize(-u_DirLightDirection);
-    float diff = max(dot(N, dirLightDir), 0.0);
-    vec3 diffuse = u_DirLightColor * diff;
+    float shadow = ShadowCalculation(v_FragPos, N, L);
+    vec3 directLight = (kD * albedo / 3.1415 + specular) * radiance * NdotL * (1.0 - shadow);
+    Lo += directLight;
 
-    vec3 reflectDir = reflect(-dirLightDir, N);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 16);
-    vec3 specular = spec * u_DirLightColor * u_SpecStrength;
+    // Add ambient light
+    vec3 ambient = u_Ambient * albedo * ao;
 
-    float shadow = ShadowCalculation(v_FragPos, N, dirLightDir);
-
-    lighting += (1.0 - shadow) * (diffuse + specular);
-
-    FragColor = vec4(lighting, 1.0) * tex;
+    vec3 color = ambient + Lo;
+    FragColor = vec4(color, tex.a);
 }

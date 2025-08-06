@@ -1,8 +1,12 @@
 #include "Texture.h"
 
 #define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
 
-#include <stb_image.h>
+// Defining here as can only be defined once, we use tinygltf in Model.h
+#define TINYGLTF_IMPLEMENTATION
+#include "tiny_gltf.h" // Includes stb_image and stb_image_write
+
 #include <exception>
 #include <iostream>
 
@@ -44,7 +48,25 @@ namespace Renderer
 		skybox = true;
 	}
 
-	GLuint Texture::id()
+	Texture::Texture(const uint8_t* _imageData, int _width, int _height, int _channels)
+	{
+		m_width = _width;
+		m_height = _height;
+		m_channels = _channels;
+		m_isGLTFTexture = true;
+
+		// Copy raw data into m_data
+		m_data.reserve(_width * _height * _channels);
+		for (int i = 0; i < _width * _height * _channels; ++i)
+		{
+			m_data.push_back(_imageData[i]);
+		}
+
+		skybox = false;
+		m_dirty = true;
+	}
+
+	GLuint Texture::id() const
 	{
 		if (m_dirty)
 		{
@@ -60,7 +82,11 @@ namespace Renderer
 
 				glBindTexture(GL_TEXTURE_2D, m_id);
 
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_width, m_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &m_data.at(0));
+				GLenum format = GL_RGBA;
+				if (m_channels == 3) format = GL_RGB;
+				else if (m_channels == 1) format = GL_RED;
+
+				glTexImage2D(GL_TEXTURE_2D, 0, format, m_width, m_height, 0, format, GL_UNSIGNED_BYTE, &m_data.at(0));
 
 				glGenerateMipmap(GL_TEXTURE_2D);
 
