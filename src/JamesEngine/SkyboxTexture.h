@@ -15,6 +15,7 @@ namespace JamesEngine
 
 	private:
 		friend class Skybox;
+		friend class Core;
 
 		std::shared_ptr<Renderer::Texture> mTexture;
 	};

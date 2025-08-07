@@ -1224,6 +1224,8 @@ int main()
 		mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_37"));
 		mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_39"));
 		mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/black"));
+		mercedesMR->SetMetallicness(1.0f);
+		mercedesMR->SetRoughness(0.0f);
 		std::shared_ptr<BoxCollider> carBodyCollider = carBody->AddComponent<BoxCollider>();
 		carBodyCollider->SetSize(vec3(1.97, 0.9, 4.52));
 		carBodyCollider->SetPositionOffset(vec3(0, 0.37, 0.22));

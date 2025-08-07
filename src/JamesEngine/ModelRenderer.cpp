@@ -254,7 +254,7 @@ namespace JamesEngine
 
 		mShader->mShader->uniform("u_Model", model);
 
-		// Model is not glTF, upload our own PBR values
+		// No embedded textures, model is not glTF, upload our own PBR values
 		if (mModel->mModel->GetEmbeddedTextures().empty())
 		{
 			mShader->mShader->uniform("u_BaseColorFactor", mBaseColorStrength);

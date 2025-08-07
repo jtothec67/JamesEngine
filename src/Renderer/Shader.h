@@ -29,6 +29,7 @@ namespace Renderer
 		void uniform(const std::string& _name, const std::vector<glm::vec2>& _value);
 		void uniform(const std::string& _name, const std::vector<glm::vec3>& _value);
 		void uniform(const std::string& _name, const std::vector<glm::mat4>& values);
+		void uniform(const std::string& name, const std::shared_ptr<Texture> texture, int startingTextureUnit = 0);
 		void uniform(const std::string& name, const std::vector<std::shared_ptr<RenderTexture>>& textures, int startingTextureUnit = 0);
 
 		void draw(Model* _model, std::vector<Texture*>& _textures);

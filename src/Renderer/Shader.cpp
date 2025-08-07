@@ -209,6 +209,21 @@ namespace Renderer
 		glUseProgram(0);
 	}
 
+	// Hard coded to cube map for now
+	void Shader::uniform(const std::string& name, const std::shared_ptr<Texture> texture, int startingTextureUnit)
+	{
+		glUseProgram(id());
+
+		glActiveTexture(GL_TEXTURE0 + startingTextureUnit);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, texture->id());
+
+		GLint loc = glGetUniformLocation(id(), name.c_str());
+		glUniform1i(loc, startingTextureUnit);
+
+		glActiveTexture(GL_TEXTURE0);
+		glUseProgram(0);
+	}
+
 	void Shader::uniform(const std::string& name, const std::vector<std::shared_ptr<Renderer::RenderTexture>>& textures, int startingTextureUnit)
 	{
 		glUseProgram(id());

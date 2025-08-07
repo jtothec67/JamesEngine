@@ -1,7 +1,9 @@
 #version 460
 
-#define NUM_CASCADES 4
+#define NUM_CASCADES 1
 #define NUM_PREBAKED 4
+
+#define MAX_IBL_LOD 5
 
 uniform sampler2D u_Texture;
 in vec2 v_TexCoord;
@@ -26,6 +28,8 @@ uniform mat4 u_LightSpaceMatrices[NUM_CASCADES];
 uniform sampler2D u_PreBakedShadowMaps[NUM_PREBAKED];
 uniform mat4 u_PreBakedLightSpaceMatrices[NUM_PREBAKED];
 
+uniform samplerCube u_SkyBox;
+
 out vec4 FragColor;
 
 const int NUM_POISSON_SAMPLES = 12;
@@ -46,6 +50,17 @@ vec2 poissonDisk[NUM_POISSON_SAMPLES] = vec2[](
     vec2(0.804, -0.374),
     vec2(-0.321,  0.715),
     vec2(0.255, -0.803)
+);
+
+vec3 sampleOffsets[8] = vec3[](
+    vec3( 0.0,  1.0,  0.0),
+    vec3( 1.0,  0.0,  0.0),
+    vec3( 0.0,  0.0,  1.0),
+    vec3(-1.0,  0.0,  0.0),
+    vec3( 0.0, -1.0,  0.0),
+    vec3( 0.7, 0.7, 0.0),
+    vec3( 0.0, 0.7, 0.7),
+    vec3( 0.7, 0.0, 0.7)
 );
 
 float ComputeShadowPoissonPCF(sampler2D shadowMap, vec3 projCoords, float depth, float bias)
@@ -161,62 +176,95 @@ float ShadowCalculation(vec3 fragWorldPos, vec3 normal, vec3 lightDir)
 }
 
 
+float DistributionGGX(vec3 N, vec3 H, float roughness)
+{
+    float a = roughness * roughness;
+    float a2 = a * a;
+    float NdotH = max(dot(N, H), 0.0);
+    float NdotH2 = NdotH * NdotH;
+
+    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    return a2 / (3.14159 * denom * denom + 0.0001);
+}
+
+float GeometrySchlickGGX(float NdotV, float roughness)
+{
+    float r = roughness + 1.0;
+    float k = (r * r) / 8.0;
+
+    return NdotV / (NdotV * (1.0 - k) + k);
+}
+
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
+{
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    float ggx1 = GeometrySchlickGGX(NdotV, roughness);
+    float ggx2 = GeometrySchlickGGX(NdotL, roughness);
+    return ggx1 * ggx2;
+}
+
+vec3 FresnelSchlick(float cosTheta, vec3 F0)
+{
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+
+
 void main()
 {
-//    vec4 tex = texture(u_Texture, v_TexCoord);
-//
-//    vec3 N = normalize(v_Normal);
-//    vec3 viewDir = normalize(u_ViewPos - v_FragPos);
-//    vec3 lighting = u_Ambient;
-//
-//    // Directional light
-//    vec3 dirLightDir = normalize(-u_DirLightDirection);
-//    float diff = max(dot(N, dirLightDir), 0.0);
-//    vec3 diffuse = u_DirLightColor * diff;
-//
-//    vec3 reflectDir = reflect(-dirLightDir, N);
-//    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 16);
-//    vec3 specular = spec * u_DirLightColor * u_SpecStrength;
-//
-//    float shadow = ShadowCalculation(v_FragPos, N, dirLightDir);
-//
-//    lighting += (1.0 - shadow) * (diffuse + specular);
-//
-//    FragColor = vec4(lighting, 1.0) * tex;
-    
     vec4 tex = texture(u_Texture, v_TexCoord);
     vec3 albedo = tex.rgb * u_BaseColorFactor;
     float metallic = clamp(u_MetallicFactor, 0.0, 1.0);
-    float roughness = clamp(u_RoughnessFactor, 0.04, 1.0); // minimum to avoid divide-by-zero
-    float ao = 1.0; // Assume full ambient occlusion for now
+    float roughness = clamp(u_RoughnessFactor, 0.04, 1.0);
+    float ao = 1.0;
 
     vec3 N = normalize(v_Normal);
     vec3 V = normalize(u_ViewPos - v_FragPos);
-    vec3 F0 = mix(vec3(0.04), albedo, metallic); // Fresnel reflectance at normal incidence
+    vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
-    vec3 Lo = vec3(0.0);
-
-    // Directional Light
     vec3 L = normalize(-u_DirLightDirection);
     vec3 H = normalize(V + L);
     vec3 radiance = u_DirLightColor;
 
-    float NDF = max(pow(dot(N, H), 1024.0 * (1.0 - roughness)), 0.001);
-    float G = 1.0;
+    float NDF = DistributionGGX(N, H, roughness);
+    float G = GeometrySmith(N, V, L, roughness);
+    vec3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
+
+    vec3 kS = F;
+    vec3 kD = (1.0 - kS) * (1.0 - metallic);
+
     float NdotL = max(dot(N, L), 0.0);
-    vec3 F = F0 + (1.0 - F0) * pow(1.0 - dot(H, V), 5.0);
-    vec3 nominator = NDF * G * F;
-    float denominator = 4.0 * max(dot(N, V), 0.0) * NdotL + 0.001;
-    vec3 specular = nominator / denominator;
-    vec3 kD = (1.0 - F) * (1.0 - metallic);
-
     float shadow = ShadowCalculation(v_FragPos, N, L);
-    vec3 directLight = (kD * albedo / 3.1415 + specular) * radiance * NdotL * (1.0 - shadow);
-    Lo += directLight;
 
-    // Add ambient light
-    vec3 ambient = u_Ambient * albedo * ao;
+    vec3 numerator = NDF * G * F;
+    float denominator = 4.0 * max(dot(N, V), 0.0) * NdotL + 0.001;
+    vec3 specular = numerator / denominator;
 
-    vec3 color = ambient + Lo;
+    vec3 direct = (kD * albedo / 3.14159 + specular) * radiance * NdotL * (1.0 - shadow);
+
+    vec3 R = reflect(-V, N);
+    const int SAMPLE_COUNT = 8;
+    float roughnessClamped = clamp(roughness, 0.01, 1.0);
+
+    vec3 blurredReflection = vec3(0.0);
+    float totalWeight = 0.0;
+
+    for (int i = 0; i < SAMPLE_COUNT; ++i)
+    {
+        // Use a few offset directions (hardcoded or from a lookup table)
+        vec3 offset = normalize(R + roughnessClamped * (sampleOffsets[i] * 10));
+        float weight = 1.0; // could weight based on angle/distance if you want
+
+        blurredReflection += texture(u_SkyBox, offset).rgb * weight;
+        totalWeight += weight;
+    }
+
+    blurredReflection /= totalWeight;
+
+    vec3 specularIBL = blurredReflection * F * (1.0 - shadow) * 1.5;
+
+    vec3 ambient = u_Ambient * (kD * albedo + specularIBL) * ao;
+
+    vec3 color = ambient + direct;
     FragColor = vec4(color, tex.a);
 }

@@ -17,6 +17,7 @@ namespace JamesEngine
 		void RenderSkybox();
 
 		void SetTexture(std::shared_ptr<SkyboxTexture> _texture) { mTexture = _texture; }
+		std::shared_ptr<SkyboxTexture> GetTexture() { return mTexture; }
 
 	private:
 		std::shared_ptr<SkyboxTexture> mTexture;

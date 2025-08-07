@@ -26,6 +26,10 @@ namespace JamesEngine
 
 		void SetSpecularStrength(float _strength) { mSpecularStrength = _strength; }
 
+		void SetBaseColorStrength(float _strength) { mBaseColorStrength = _strength; }
+		void SetMetallicness(float _metallicness) { mMetallicness = glm::clamp(_metallicness, 0.f, 1.f); }
+		void SetRoughness(float _roughness) { mRoughness = glm::clamp(_roughness, 0.f, 1.f); }
+
 		void SetPositionOffset(glm::vec3 _offset) { mPositionOffset = _offset; }
 		glm::vec3 GetPositionOffset() { return mPositionOffset; }
 
@@ -48,8 +52,8 @@ namespace JamesEngine
 		float mSpecularStrength = 1.f;
 		
 		float mBaseColorStrength = 1.f;
-		float mMetallicness = 0.f;
-		float mRoughness = 1.f;
+		float mMetallicness = 0.0f;
+		float mRoughness = 1.0f;
 
 		glm::vec3 mPositionOffset{ 0 };
 		glm::vec3 mRotationOffset{ 0 };

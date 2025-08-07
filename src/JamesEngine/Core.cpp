@@ -305,6 +305,8 @@ namespace JamesEngine
 	{
 		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_DirLightDirection", mLightManager->GetDirectionalLightDirection()); // Assumes light direction and colour never change, light direction can't change while using pre baked shadows
 		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_DirLightColor", mLightManager->GetDirectionalLightColour());
+
+		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_SkyBox", mSkybox->GetTexture()->mTexture, 29); // Assumes shybox doesn't change
 	}
 
 	void Core::UploadGlobalUniforms()
