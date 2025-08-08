@@ -40,15 +40,7 @@ namespace JamesEngine
 		// (using a value other than 0 on a monitor without gsync/freesync feels very slow)
 		SDL_GL_SetSwapInterval(mVSync ? 1 : 0);
 
-		glEnable(GL_MULTISAMPLE);
-		glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glEnable(GL_DEPTH_TEST);
-		glEnable(GL_CULL_FACE);
-
-		glDepthFunc(GL_LESS);
-		glDepthMask(GL_TRUE);
+		ResetGLModes();
 
 		glClearColor(mClearColour.r, mClearColour.g, mClearColour.b, 1.f);
 
@@ -92,6 +84,19 @@ namespace JamesEngine
 			std::cout << "GPU memory could not be directly queried. Estimated: " << estimatedMemoryMB << " MB" << std::endl;
 			mVRAMGB = static_cast<float>(availableMemoryKB) / (1024 * 1024);
 		}
+	}
+
+	void Window::ResetGLModes()
+	{
+		glEnable(GL_MULTISAMPLE);
+		glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glEnable(GL_DEPTH_TEST);
+		glEnable(GL_CULL_FACE);
+
+		glDepthFunc(GL_LESS);
+		glDepthMask(GL_TRUE);
 	}
 
 	Window::~Window()

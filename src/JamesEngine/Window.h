@@ -39,6 +39,8 @@ namespace JamesEngine
 
 		float GetVRAMGB() const { return mVRAMGB; }
 
+		void ResetGLModes();
+
 	private:
 		SDL_Window* mRaw;
 

@@ -266,10 +266,7 @@ namespace JamesEngine
 
 			//ScopedTimer sceneTimer("Core::Final render to screen");
 
-			glEnable(GL_CULL_FACE);
-			glEnable(GL_BLEND);
-			glEnable(GL_MULTISAMPLE);
-			glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+			mWindow->ResetGLModes();
 		}
 
 		// Prepare window for rendering

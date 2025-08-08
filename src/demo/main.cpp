@@ -1057,7 +1057,7 @@ int main()
 		std::shared_ptr<Camera> freeCam = freeCamEntity->AddComponent<Camera>();
 		freeCam->SetPriority(10);
 		//freeCamEntity->GetComponent<Transform>()->SetPosition(vec3(647.479, -65.4695, -252.504));
-		freeCamEntity->GetComponent<Transform>()->SetPosition(vec3(0.000000, -65.000000, 0.000000));
+		freeCamEntity->GetComponent<Transform>()->SetPosition(vec3(647.479, -65.4695, -252.504));
 		freeCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		freeCamEntity->AddComponent<freelookCamController>();
 
@@ -1120,8 +1120,8 @@ int main()
 		track->GetComponent<Transform>()->SetPosition(vec3(0, 0, 0));
 		track->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		std::shared_ptr<ModelRenderer> trackMR = track->AddComponent<ModelRenderer>();
-		trackMR->SetModel(core->GetResources()->Load<Model>("models/Imola/Source/Imola6"));
-		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/grey"));
+		trackMR->SetModel(core->GetResources()->Load<Model>("models/Imola/Imola.glb"));
+		/*trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/grey"));
 		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/env_ext"));
 		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/external"));
 		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/Grass001_2K_Color"));
@@ -1167,11 +1167,11 @@ int main()
 		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/grey"));
 		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/trees2"));
 		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/trees"));
-		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/fences"));
+		trackMR->AddTexture(core->GetResources()->Load<Texture>("models/Imola/Textures/fences"));*/
 		trackMR->SetSpecularStrength(0.f);
 		trackMR->SetPreBakeShadows(true);
 		std::shared_ptr<ModelCollider> trackCollider = track->AddComponent<ModelCollider>();
-		trackCollider->SetModel(core->GetResources()->Load<Model>("models/Imola/Source/Imola6"));
+		trackCollider->SetModel(core->GetResources()->Load<Model>("models/Imola/Imola.glb"));
 		trackCollider->SetDebugVisual(false);
 
 		// Start/finish line
@@ -1184,6 +1184,12 @@ int main()
 		startFinishLineCollider->IsTrigger(true);
 		std::shared_ptr <StartFinishLine> startFinishLineComponent = startFinishLine->AddComponent<StartFinishLine>();
 
+		std::shared_ptr<Entity> glbTest = core->AddEntity();
+		std::shared_ptr<ModelRenderer> glbTestMR = glbTest->AddComponent<ModelRenderer>();
+		glbTestMR->SetModel(core->GetResources()->Load<Model>("models/glbTest/fromBlender.glb"));
+		glbTest->GetComponent<Transform>()->SetPosition(vec3(647.479, -65.4695, -252.504));
+		glbTest->GetComponent<Transform>()->SetRotation(vec3(177.438 - 90, 48.71 + 90, -179.937));
+
 		// Car Body
 		std::shared_ptr<Entity> carBody = core->AddEntity();
 		carBody->SetTag("carBody");
@@ -1193,7 +1199,7 @@ int main()
 		carBody->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
 		std::shared_ptr<ModelRenderer> mercedesMR = carBody->AddComponent<ModelRenderer>();
 		mercedesMR->SetRotationOffset(vec3(0, 180, 0));
-		mercedesMR->SetModel(core->GetResources()->Load<Model>("models/Mercedes/source/mercedes"));
+		mercedesMR->SetModel(core->GetResources()->Load<Model>("models/Mercedes/source/mercedes.obj"));
 		mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_0"));
 		mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_3"));
 		mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_2"));
@@ -1225,7 +1231,7 @@ int main()
 		mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/gltf_embedded_39"));
 		mercedesMR->AddTexture(core->GetResources()->Load<Texture>("models/Mercedes/textures/black"));
 		mercedesMR->SetMetallicness(1.0f);
-		mercedesMR->SetRoughness(0.0f);
+		mercedesMR->SetRoughness(0.5f);
 		std::shared_ptr<BoxCollider> carBodyCollider = carBody->AddComponent<BoxCollider>();
 		carBodyCollider->SetSize(vec3(1.97, 0.9, 4.52));
 		carBodyCollider->SetPositionOffset(vec3(0, 0.37, 0.22));
@@ -1279,7 +1285,7 @@ int main()
 		FLWheel->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		FLWheel->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
 		std::shared_ptr<ModelRenderer> FLWheelMR = FLWheel->AddComponent<ModelRenderer>();
-		FLWheelMR->SetModel(core->GetResources()->Load<Model>("models/MercedesWheels/source/Wheels"));
+		FLWheelMR->SetModel(core->GetResources()->Load<Model>("models/MercedesWheels/source/Wheels.obj"));
 		FLWheelMR->AddTexture(core->GetResources()->Load<Texture>("models/MercedesWheels/textures/gltf_embedded_17"));
 		FLWheelMR->AddTexture(core->GetResources()->Load<Texture>("models/MercedesWheels/textures/gltf_embedded_19"));
 		FLWheelMR->AddTexture(core->GetResources()->Load<Texture>("models/MercedesWheels/textures/gltf_embedded_31"));
@@ -1313,7 +1319,7 @@ int main()
 		FRWheel->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		FRWheel->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
 		std::shared_ptr<ModelRenderer> FRWheelMR = FRWheel->AddComponent<ModelRenderer>();
-		FRWheelMR->SetModel(core->GetResources()->Load<Model>("models/MercedesWheels/source/Wheels"));
+		FRWheelMR->SetModel(core->GetResources()->Load<Model>("models/MercedesWheels/source/Wheels.obj"));
 		FRWheelMR->AddTexture(core->GetResources()->Load<Texture>("models/MercedesWheels/textures/gltf_embedded_17"));
 		FRWheelMR->AddTexture(core->GetResources()->Load<Texture>("models/MercedesWheels/textures/gltf_embedded_19"));
 		FRWheelMR->AddTexture(core->GetResources()->Load<Texture>("models/MercedesWheels/textures/gltf_embedded_31"));
@@ -1347,7 +1353,7 @@ int main()
 		RLWheel->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		RLWheel->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
 		std::shared_ptr<ModelRenderer> RLWheelMR = RLWheel->AddComponent<ModelRenderer>();
-		RLWheelMR->SetModel(core->GetResources()->Load<Model>("models/MercedesWheels/source/Wheels"));
+		RLWheelMR->SetModel(core->GetResources()->Load<Model>("models/MercedesWheels/source/Wheels.obj"));
 		RLWheelMR->AddTexture(core->GetResources()->Load<Texture>("models/MercedesWheels/textures/gltf_embedded_17"));
 		RLWheelMR->AddTexture(core->GetResources()->Load<Texture>("models/MercedesWheels/textures/gltf_embedded_19"));
 		RLWheelMR->AddTexture(core->GetResources()->Load<Texture>("models/MercedesWheels/textures/gltf_embedded_31"));
@@ -1381,7 +1387,7 @@ int main()
 		RRWheel->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		RRWheel->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
 		std::shared_ptr<ModelRenderer> RRWheelMR = RRWheel->AddComponent<ModelRenderer>();
-		RRWheelMR->SetModel(core->GetResources()->Load<Model>("models/MercedesWheels/source/Wheels"));
+		RRWheelMR->SetModel(core->GetResources()->Load<Model>("models/MercedesWheels/source/Wheels.obj"));
 		RRWheelMR->AddTexture(core->GetResources()->Load<Texture>("models/MercedesWheels/textures/gltf_embedded_17"));
 		RRWheelMR->AddTexture(core->GetResources()->Load<Texture>("models/MercedesWheels/textures/gltf_embedded_19"));
 		RRWheelMR->AddTexture(core->GetResources()->Load<Texture>("models/MercedesWheels/textures/gltf_embedded_31"));

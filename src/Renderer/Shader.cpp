@@ -255,7 +255,17 @@ namespace Renderer
 			{
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, _textures[0]->id());
-				glUniform1i(glGetUniformLocation(id(), "u_Texture"), 0);
+				glUniform1i(glGetUniformLocation(id(), "u_AlbedoMap"), 0);
+				glUniform1i(glGetUniformLocation(id(), "u_HasAlbedoMap"), true);
+
+				glUniform1i(glGetUniformLocation(id(), "u_HasNormalMap"), false);
+				glUniform1i(glGetUniformLocation(id(), "u_HasMetallicRoughnessMap"), false);
+				glUniform1i(glGetUniformLocation(id(), "u_HasOcclusionMap"), false);
+				glUniform1i(glGetUniformLocation(id(), "u_HasEmissiveMap"), false);
+
+				// legacy path = opaque
+				glUniform1i(glGetUniformLocation(id(), "u_AlphaMode"), 0);
+				glUniform1f(glGetUniformLocation(id(), "u_AlphaCutoff"), 0.5f);
 			}
 			GLuint legacyVAO = _model->vao_id();
 			glBindVertexArray(legacyVAO);
@@ -267,9 +277,17 @@ namespace Renderer
 			bool useEmbedded = !embeddedTextures.empty();
 			const auto& groups = _model->GetMaterialGroups();
 
+			// Pass 1: draw Opaque/Mask (depth writes on, blending off)
+			glDisable(GL_BLEND);
+			glDepthMask(GL_TRUE);
+
 			for (size_t i = 0; i < groups.size(); ++i)
 			{
 				const auto& group = groups[i];
+
+				// skip blend materials in pass 1
+				if (group.pbr.alphaMode == Renderer::Model::PBRMaterial::AlphaMode::AlphaBlend)
+					continue;
 
 				if (useEmbedded)
 				{
@@ -281,10 +299,10 @@ namespace Renderer
 						glActiveTexture(GL_TEXTURE0);
 						glBindTexture(GL_TEXTURE_2D, embeddedTextures[pbr.baseColorTexIndex].id());
 						glUniform1i(glGetUniformLocation(id(), "u_AlbedoMap"), 0);
-						glUniform1i(glGetUniformLocation(id(), "u_HasAlbedoMap"), 1);
+						glUniform1i(glGetUniformLocation(id(), "u_HasAlbedoMap"), true);
 					}
 					else
-						glUniform1i(glGetUniformLocation(id(), "u_HasAlbedoMap"), 0);
+						glUniform1i(glGetUniformLocation(id(), "u_HasAlbedoMap"), false);
 
 					// Normal map
 					if (pbr.normalTexIndex >= 0 && pbr.normalTexIndex < embeddedTextures.size())
@@ -295,7 +313,7 @@ namespace Renderer
 						glUniform1i(glGetUniformLocation(id(), "u_HasNormalMap"), 1);
 					}
 					else
-						glUniform1i(glGetUniformLocation(id(), "u_HasNormalMap"), 0);
+						glUniform1i(glGetUniformLocation(id(), "u_HasNormalMap"), false);
 
 					// Metallic-Roughness
 					if (pbr.metallicRoughnessTexIndex >= 0 && pbr.metallicRoughnessTexIndex < embeddedTextures.size())
@@ -303,10 +321,10 @@ namespace Renderer
 						glActiveTexture(GL_TEXTURE2);
 						glBindTexture(GL_TEXTURE_2D, embeddedTextures[pbr.metallicRoughnessTexIndex].id());
 						glUniform1i(glGetUniformLocation(id(), "u_MetallicRoughnessMap"), 2);
-						glUniform1i(glGetUniformLocation(id(), "u_HasMetallicRoughnessMap"), 1);
+						glUniform1i(glGetUniformLocation(id(), "u_HasMetallicRoughnessMap"), true);
 					}
 					else
-						glUniform1i(glGetUniformLocation(id(), "u_HasMetallicRoughnessMap"), 0);
+						glUniform1i(glGetUniformLocation(id(), "u_HasMetallicRoughnessMap"), false);
 
 					// Occlusion
 					if (pbr.occlusionTexIndex >= 0 && pbr.occlusionTexIndex < embeddedTextures.size())
@@ -314,10 +332,10 @@ namespace Renderer
 						glActiveTexture(GL_TEXTURE3);
 						glBindTexture(GL_TEXTURE_2D, embeddedTextures[pbr.occlusionTexIndex].id());
 						glUniform1i(glGetUniformLocation(id(), "u_OcclusionMap"), 3);
-						glUniform1i(glGetUniformLocation(id(), "u_HasOcclusionMap"), 1);
+						glUniform1i(glGetUniformLocation(id(), "u_HasOcclusionMap"), true);
 					}
 					else
-						glUniform1i(glGetUniformLocation(id(), "u_HasOcclusionMap"), 0);
+						glUniform1i(glGetUniformLocation(id(), "u_HasOcclusionMap"), false);
 
 					// Emissive
 					if (pbr.emissiveTexIndex >= 0 && pbr.emissiveTexIndex < embeddedTextures.size())
@@ -325,27 +343,168 @@ namespace Renderer
 						glActiveTexture(GL_TEXTURE4);
 						glBindTexture(GL_TEXTURE_2D, embeddedTextures[pbr.emissiveTexIndex].id());
 						glUniform1i(glGetUniformLocation(id(), "u_EmissiveMap"), 4);
-						glUniform1i(glGetUniformLocation(id(), "u_HasEmissiveMap"), 1);
+						glUniform1i(glGetUniformLocation(id(), "u_HasEmissiveMap"), true);
 					}
 					else
-						glUniform1i(glGetUniformLocation(id(), "u_HasEmissiveMap"), 0);
+						glUniform1i(glGetUniformLocation(id(), "u_HasEmissiveMap"), false);
 
 					// Material factors
 					glUniform4fv(glGetUniformLocation(id(), "u_BaseColorFactor"), 1, glm::value_ptr(pbr.baseColorFactor));
 					glUniform1f(glGetUniformLocation(id(), "u_MetallicFactor"), pbr.metallicFactor);
 					glUniform1f(glGetUniformLocation(id(), "u_RoughnessFactor"), pbr.roughnessFactor);
+
+					glUniform4fv(glGetUniformLocation(id(), "u_AlbedoFallback"), 1, glm::value_ptr(glm::vec4(1, 1, 1, 1)));
+					glUniform1f(glGetUniformLocation(id(), "u_MetallicFallback"), 0.f);
+					glUniform1f(glGetUniformLocation(id(), "u_RoughnessFallback"), 1.f);
+					glUniform1f(glGetUniformLocation(id(), "u_AOFallback"), 1.f);
+					glUniform3fv(glGetUniformLocation(id(), "u_EmissiveFallback"), 1, glm::value_ptr(glm::vec3(0, 0, 0)));
+
+					// Alpha uniforms (Opaque/Mask -> non-blend)
+					int alphaMode = 0;
+					if (pbr.alphaMode == Renderer::Model::PBRMaterial::AlphaMode::AlphaMask) alphaMode = 1;
+					// AlphaBlend is skipped in this pass
+					glUniform1i(glGetUniformLocation(id(), "u_AlphaMode"), alphaMode);
+					glUniform1f(glGetUniformLocation(id(), "u_AlphaCutoff"), pbr.alphaCutoff);
 				}
 				else if (i < _textures.size())
 				{
 					glActiveTexture(GL_TEXTURE0);
 					glBindTexture(GL_TEXTURE_2D, _textures[i]->id());
-					glUniform1i(glGetUniformLocation(id(), "u_Texture"), 0);
+					glUniform1i(glGetUniformLocation(id(), "u_AlbedoMap"), 0);
+					glUniform1i(glGetUniformLocation(id(), "u_HasAlbedoMap"), true);
+
+					glUniform1i(glGetUniformLocation(id(), "u_HasNormalMap"), false);
+					glUniform1i(glGetUniformLocation(id(), "u_HasMetallicRoughnessMap"), false);
+					glUniform1i(glGetUniformLocation(id(), "u_HasOcclusionMap"), false);
+					glUniform1i(glGetUniformLocation(id(), "u_HasEmissiveMap"), false);
+
+					// default opaque for non-embedded path
+					glUniform1i(glGetUniformLocation(id(), "u_AlphaMode"), 0);
+					glUniform1f(glGetUniformLocation(id(), "u_AlphaCutoff"), 0.5f);
+				}
+
+				glBindVertexArray(group.vao);
+				glDrawArrays(GL_TRIANGLES, 0, group.faces.size() * 3);
+			}
+
+			// Pass 2: draw Blend (depth write off, blending on)
+			glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			glDepthMask(GL_FALSE);
+
+			for (size_t i = 0; i < groups.size(); ++i)
+			{
+				const auto& group = groups[i];
+
+				// only blend materials in pass 2
+				if (group.pbr.alphaMode != Renderer::Model::PBRMaterial::AlphaMode::AlphaBlend)
+					continue;
+
+				if (useEmbedded)
+				{
+					const auto& pbr = group.pbr;
+
+					// Albedo (base color)
+					if (pbr.baseColorTexIndex >= 0 && pbr.baseColorTexIndex < embeddedTextures.size())
+					{
+						glActiveTexture(GL_TEXTURE0);
+						glBindTexture(GL_TEXTURE_2D, embeddedTextures[pbr.baseColorTexIndex].id());
+						glUniform1i(glGetUniformLocation(id(), "u_AlbedoMap"), 0);
+						glUniform1i(glGetUniformLocation(id(), "u_HasAlbedoMap"), true);
+					}
+					else
+						glUniform1i(glGetUniformLocation(id(), "u_HasAlbedoMap"), false);
+
+					// Normal map
+					if (pbr.normalTexIndex >= 0 && pbr.normalTexIndex < embeddedTextures.size())
+					{
+						glActiveTexture(GL_TEXTURE1);
+						glBindTexture(GL_TEXTURE_2D, embeddedTextures[pbr.normalTexIndex].id());
+						glUniform1i(glGetUniformLocation(id(), "u_NormalMap"), 1);
+						glUniform1i(glGetUniformLocation(id(), "u_HasNormalMap"), 1);
+					}
+					else
+						glUniform1i(glGetUniformLocation(id(), "u_HasNormalMap"), false);
+
+					// Metallic-Roughness
+					if (pbr.metallicRoughnessTexIndex >= 0 && pbr.metallicRoughnessTexIndex < embeddedTextures.size())
+					{
+						glActiveTexture(GL_TEXTURE2);
+						glBindTexture(GL_TEXTURE_2D, embeddedTextures[pbr.metallicRoughnessTexIndex].id());
+						glUniform1i(glGetUniformLocation(id(), "u_MetallicRoughnessMap"), 2);
+						glUniform1i(glGetUniformLocation(id(), "u_HasMetallicRoughnessMap"), true);
+					}
+					else
+						glUniform1i(glGetUniformLocation(id(), "u_HasMetallicRoughnessMap"), false);
+
+					// Occlusion
+					if (pbr.occlusionTexIndex >= 0 && pbr.occlusionTexIndex < embeddedTextures.size())
+					{
+						glActiveTexture(GL_TEXTURE3);
+						glBindTexture(GL_TEXTURE_2D, embeddedTextures[pbr.occlusionTexIndex].id());
+						glUniform1i(glGetUniformLocation(id(), "u_OcclusionMap"), 3);
+						glUniform1i(glGetUniformLocation(id(), "u_HasOcclusionMap"), true);
+					}
+					else
+						glUniform1i(glGetUniformLocation(id(), "u_HasOcclusionMap"), false);
+
+					// Emissive
+					if (pbr.emissiveTexIndex >= 0 && pbr.emissiveTexIndex < embeddedTextures.size())
+					{
+						glActiveTexture(GL_TEXTURE4);
+						glBindTexture(GL_TEXTURE_2D, embeddedTextures[pbr.emissiveTexIndex].id());
+						glUniform1i(glGetUniformLocation(id(), "u_EmissiveMap"), 4);
+						glUniform1i(glGetUniformLocation(id(), "u_HasEmissiveMap"), true);
+					}
+					else
+						glUniform1i(glGetUniformLocation(id(), "u_HasEmissiveMap"), false);
+
+					// Material factors
+					glUniform4fv(glGetUniformLocation(id(), "u_BaseColorFactor"), 1, glm::value_ptr(pbr.baseColorFactor));
+					glUniform1f(glGetUniformLocation(id(), "u_MetallicFactor"), pbr.metallicFactor);
+					glUniform1f(glGetUniformLocation(id(), "u_RoughnessFactor"), pbr.roughnessFactor);
+
+					glUniform4fv(glGetUniformLocation(id(), "u_AlbedoFallback"), 1, glm::value_ptr(glm::vec4(1, 1, 1, 1)));
+					glUniform1f(glGetUniformLocation(id(), "u_MetallicFallback"), 0.f);
+					glUniform1f(glGetUniformLocation(id(), "u_RoughnessFallback"), 1.f);
+					glUniform1f(glGetUniformLocation(id(), "u_AOFallback"), 1.f);
+					glUniform3fv(glGetUniformLocation(id(), "u_EmissiveFallback"), 1, glm::value_ptr(glm::vec3(0, 0, 0)));
+
+					// Alpha uniforms (Blend)
+					glUniform1i(glGetUniformLocation(id(), "u_AlphaMode"), 2);
+					glUniform1f(glGetUniformLocation(id(), "u_AlphaCutoff"), pbr.alphaCutoff);
+				}
+				else if (i < _textures.size())
+				{
+					glActiveTexture(GL_TEXTURE0);
+					glBindTexture(GL_TEXTURE_2D, _textures[i]->id());
+					glUniform1i(glGetUniformLocation(id(), "u_AlbedoMap"), 0);
+					glUniform1i(glGetUniformLocation(id(), "u_HasAlbedoMap"), true);
+
+					glUniform1i(glGetUniformLocation(id(), "u_HasNormalMap"), false);
+					glUniform1i(glGetUniformLocation(id(), "u_HasMetallicRoughnessMap"), false);
+					glUniform1i(glGetUniformLocation(id(), "u_HasOcclusionMap"), false);
+					glUniform1i(glGetUniformLocation(id(), "u_HasEmissiveMap"), false);
+
+					// treat non-embedded as opaque by default; if you truly want it blended, set uniforms before calling draw
+					glUniform1i(glGetUniformLocation(id(), "u_AlphaMode"), 0);
+					glUniform1f(glGetUniformLocation(id(), "u_AlphaCutoff"), 0.5f);
 				}
 
 				glBindVertexArray(group.vao);
 				glDrawArrays(GL_TRIANGLES, 0, group.faces.size() * 3);
 			}
 		}
+
+		glEnable(GL_MULTISAMPLE);
+		glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glEnable(GL_DEPTH_TEST);
+		glEnable(GL_CULL_FACE);
+
+		glDepthFunc(GL_LESS);
+		glDepthMask(GL_TRUE);
 
 		glBindVertexArray(0);
 		glUseProgram(0);

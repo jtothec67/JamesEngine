@@ -5,7 +5,6 @@
 
 #define MAX_IBL_LOD 5
 
-uniform sampler2D u_Texture;
 in vec2 v_TexCoord;
 
 in vec3 v_Normal;
@@ -15,9 +14,34 @@ uniform vec3 u_ViewPos;
 uniform vec3 u_Ambient;
 uniform float u_SpecStrength;
 
-uniform float u_BaseColorFactor;
+uniform int   u_AlphaMode;    // 0 OPAQUE, 1 MASK, 2 BLEND
+uniform float u_AlphaCutoff;  // used when u_AlphaMode == 1
+
+// Texture samplers
+uniform sampler2D u_AlbedoMap;
+uniform sampler2D u_NormalMap;
+uniform sampler2D u_MetallicRoughnessMap;
+uniform sampler2D u_OcclusionMap;
+uniform sampler2D u_EmissiveMap;
+
+// “Has map” flags (now bools)
+uniform bool u_HasAlbedoMap;
+uniform bool u_HasNormalMap;
+uniform bool u_HasMetallicRoughnessMap;
+uniform bool u_HasOcclusionMap;
+uniform bool u_HasEmissiveMap;
+
+// Factors
+uniform vec4  u_BaseColorFactor;
 uniform float u_MetallicFactor;
 uniform float u_RoughnessFactor;
+
+// Fallback values (used when the corresponding map is missing)
+uniform vec4  u_AlbedoFallback;      // default e.g. vec4(1,1,1,1)
+uniform float u_MetallicFallback;    // default 0.0
+uniform float u_RoughnessFallback;   // default 1.0
+uniform float u_AOFallback;          // default 1.0
+uniform vec3  u_EmissiveFallback;    // default vec3(0.0)
 
 uniform vec3 u_DirLightDirection;
 uniform vec3 u_DirLightColor;
@@ -71,11 +95,9 @@ float ComputeShadowPoissonPCF(sampler2D shadowMap, vec3 projCoords, float depth,
 
     ivec2 screenCoord = ivec2(gl_FragCoord.xy);
 
-    // Per-pixel rotation (keeps pattern varied)
     float angle = fract(sin(dot(vec2(screenCoord), vec2(12.9898, 78.233))) * 43758.5453) * 6.2831;
     mat2 rotation = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
 
-    // --- Initial Early-Out with Outer 4 Samples (indices 0–3) ---
     int earlyShadowCount = 0;
     for (int i = 0; i < 4; ++i)
     {
@@ -86,11 +108,10 @@ float ComputeShadowPoissonPCF(sampler2D shadowMap, vec3 projCoords, float depth,
     }
 
     if (earlyShadowCount == 0)
-        return 0.0; // Fully lit
+        return 0.0;
     else if (earlyShadowCount == 4)
-        return 1.0; // Fully shadowed
+        return 1.0;
 
-    // --- Rolling PCF Loop (indices 0–11) ---
     int lastFourUnshadowed = 0;
 
     for (int i = 0; i < NUM_POISSON_SAMPLES; ++i)
@@ -107,7 +128,6 @@ float ComputeShadowPoissonPCF(sampler2D shadowMap, vec3 projCoords, float depth,
         else
             lastFourUnshadowed = 0;
 
-        // Rolling early-out: last 4 samples were all lit
         if (i >= 4 && lastFourUnshadowed >= 4)
             break;
     }
@@ -128,7 +148,6 @@ float ShadowCalculation(vec3 fragWorldPos, vec3 normal, vec3 lightDir)
 
     float bias = max(0.003 * (1.0 - dot(normal, lightDir)), 0.0005);
 
-    // Check pre-baked shadows
     for (int i = 0; i < NUM_PREBAKED; ++i)
     {
         vec4 lightSpacePos = u_PreBakedLightSpaceMatrices[i] * vec4(fragWorldPos, 1.0);
@@ -143,7 +162,6 @@ float ShadowCalculation(vec3 fragWorldPos, vec3 normal, vec3 lightDir)
         }
     }
 
-    // Check cascade shadows
     for (int i = 0; i < NUM_CASCADES; ++i)
     {
         vec4 lightSpacePos = u_LightSpaceMatrices[i] * vec4(fragWorldPos, 1.0);
@@ -162,19 +180,14 @@ float ShadowCalculation(vec3 fragWorldPos, vec3 normal, vec3 lightDir)
     float shadowPrebaked = 0.0;
 
     if (bestCascade != -1)
-    {
         shadowCascade = ComputeShadowPoissonPCF(u_ShadowMaps[bestCascade], cascadeProjCoords, cascadeDepth, bias);
-    }
 
     if (bestPrebaked != -1)
-    {
         shadowPrebaked = ComputeShadowPoissonPCF(u_PreBakedShadowMaps[bestPrebaked], prebakedProjCoords, prebakedDepth, bias);
-    }
 
     float shadow = max(shadowCascade, shadowPrebaked);
     return shadow;
 }
-
 
 float DistributionGGX(vec3 N, vec3 H, float roughness)
 {
@@ -209,16 +222,77 @@ vec3 FresnelSchlick(float cosTheta, vec3 F0)
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
-
 void main()
 {
-    vec4 tex = texture(u_Texture, v_TexCoord);
-    vec3 albedo = tex.rgb * u_BaseColorFactor;
-    float metallic = clamp(u_MetallicFactor, 0.0, 1.0);
-    float roughness = clamp(u_RoughnessFactor, 0.04, 1.0);
-    float ao = 1.0;
+    // Albedo + alpha
+    vec4 albedoTex = u_HasAlbedoMap ? texture(u_AlbedoMap, v_TexCoord) : u_AlbedoFallback;
+    vec3 albedo = albedoTex.rgb * u_BaseColorFactor.rgb;
 
-    vec3 N = normalize(v_Normal);
+    float alpha = albedoTex.a * u_BaseColorFactor.a;
+    if (alpha <= 0.001) discard;
+
+    if (u_AlphaMode == 1)
+    {
+        if (alpha < u_AlphaCutoff) discard;
+        alpha = 1.0;
+    }
+    else if (u_AlphaMode == 0)
+    {
+        alpha = 1.0;
+    }
+
+    // Metallic/Roughness (G=roughness, B=metallic)
+    float roughnessTex;
+    float metallicTex;
+    if (u_HasMetallicRoughnessMap)
+    {
+        vec2 mr = texture(u_MetallicRoughnessMap, v_TexCoord).gb;
+        roughnessTex = mr.x;
+        metallicTex = mr.y;
+    }
+    else
+    {
+        roughnessTex = u_RoughnessFallback;
+        metallicTex = u_MetallicFallback;
+    }
+    float metallic = clamp(u_MetallicFactor * metallicTex, 0.0, 1.0);
+    float roughness = clamp(u_RoughnessFactor * roughnessTex, 0.04, 1.0);
+
+    // AO (R channel)
+    float ao;
+    if (u_HasOcclusionMap)
+        ao = texture(u_OcclusionMap, v_TexCoord).r;
+    else
+        ao = u_AOFallback;
+
+    // Emissive
+    vec3 emissive;
+    if (u_HasEmissiveMap)
+        emissive = texture(u_EmissiveMap, v_TexCoord).rgb;
+    else
+        emissive = u_EmissiveFallback;
+
+    // Normal mapping (uniform branch). If no normal map, use geometric normal.
+    vec3 Ngeom = normalize(v_Normal);
+    vec3 N;
+    if (u_HasNormalMap)
+    {
+        vec3 dp1 = dFdx(v_FragPos);
+        vec3 dp2 = dFdy(v_FragPos);
+        vec2 duv1 = dFdx(v_TexCoord);
+        vec2 duv2 = dFdy(v_TexCoord);
+        vec3 T = normalize(dp1 * duv2.y - dp2 * duv1.y);
+        vec3 B = normalize(-dp1 * duv2.x + dp2 * duv1.x);
+        mat3 TBN = mat3(T, B, Ngeom);
+        vec3 nSample = texture(u_NormalMap, v_TexCoord).xyz * 2.0 - 1.0;
+        vec3 Nmap = normalize(TBN * normalize(nSample));
+        N = Nmap;
+    }
+    else
+    {
+        N = Ngeom;
+    }
+
     vec3 V = normalize(u_ViewPos - v_FragPos);
     vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
@@ -251,20 +325,18 @@ void main()
 
     for (int i = 0; i < SAMPLE_COUNT; ++i)
     {
-        // Use a few offset directions (hardcoded or from a lookup table)
         vec3 offset = normalize(R + roughnessClamped * (sampleOffsets[i] * 10));
-        float weight = 1.0; // could weight based on angle/distance if you want
-
+        float weight = 1.0;
         blurredReflection += texture(u_SkyBox, offset).rgb * weight;
         totalWeight += weight;
     }
 
     blurredReflection /= totalWeight;
 
-    vec3 specularIBL = blurredReflection * F * (1.0 - shadow) * 1.5;
+    vec3 specularIBL = blurredReflection * F * 1.5;
 
     vec3 ambient = u_Ambient * (kD * albedo + specularIBL) * ao;
 
-    vec3 color = ambient + direct;
-    FragColor = vec4(color, tex.a);
+    vec3 color = ambient + direct + emissive;
+    FragColor = vec4(color, albedoTex.a);
 }

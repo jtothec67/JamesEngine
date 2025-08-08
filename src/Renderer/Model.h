@@ -59,6 +59,8 @@ namespace Renderer
 
         struct PBRMaterial
         {
+            enum class AlphaMode { AlphaOpaque = 0, AlphaMask = 1, AlphaBlend = 2 };
+
             int baseColorTexIndex = -1;            // index into m_embeddedTextures
             int normalTexIndex = -1;
             int metallicRoughnessTexIndex = -1;
@@ -69,6 +71,9 @@ namespace Renderer
             glm::vec4 baseColorFactor = glm::vec4(1.0f);
             float metallicFactor = 0.0f;
             float roughnessFactor = 1.0f;
+
+            AlphaMode alphaMode = AlphaMode::AlphaOpaque;
+            float alphaCutoff = 0.5f;
         };
 
         // Structure for material-specific geometry.
@@ -472,78 +477,81 @@ namespace Renderer
 
     inline bool Model::LoadGLTF(const std::string& path)
     {
-        // 1) Load the file
+		std::cout << "Loading glTF model from: " << path << std::endl;
         tinygltf::TinyGLTF loader;
-        tinygltf::Model   scene;
-        std::string       err, warn;
+        tinygltf::Model scene;
+        std::string err, warn;
         bool ok = (path.find(".glb") != std::string::npos)
             ? loader.LoadBinaryFromFile(&scene, &err, &warn, path)
             : loader.LoadASCIIFromFile(&scene, &err, &warn, path);
         if (!warn.empty()) std::cerr << "glTF warning: " << warn << "\n";
         if (!err.empty())  std::cerr << "glTF error:   " << err << "\n";
-        if (!ok)           return false;
+        if (!ok) return false;
 
-        // 2) Extract embedded images into Renderer::Texture
         m_embeddedTextures.clear();
         for (const auto& img : scene.images)
-        {
-            m_embeddedTextures.emplace_back(
-                img.image.data(),
-                img.width,
-                img.height,
-                img.component
-            );
-        }
+            m_embeddedTextures.emplace_back(img.image.data(), img.width, img.height, img.component);
 
-        // 3) Prepare to build mesh + material groups
         m_faces.clear();
         m_materialGroups.clear();
         m_useMaterials = false;
 
-        // 4) Iterate all meshes & primitives
         for (const auto& mesh : scene.meshes)
         {
             for (const auto& prim : mesh.primitives)
             {
-                // -- vertex attribute data --
-                const auto& posAcc = scene.accessors[prim.attributes.at("POSITION")];
-                const auto& posView = scene.bufferViews[posAcc.bufferView];
-                const auto& posBuf = scene.buffers[posView.buffer];
-                const float* posData = reinterpret_cast<const float*>(
-                    posBuf.data.data() + posView.byteOffset + posAcc.byteOffset
-                    );
+                if (prim.mode != TINYGLTF_MODE_TRIANGLES)
+                    throw std::runtime_error("Only TRIANGLES are supported");
 
-                const float* normData = nullptr;
+                if (!prim.attributes.count("POSITION"))
+                    throw std::runtime_error("Missing POSITION");
+
+                const auto& posAcc = scene.accessors.at(prim.attributes.at("POSITION"));
+                if (posAcc.type != TINYGLTF_TYPE_VEC3 || posAcc.componentType != TINYGLTF_COMPONENT_TYPE_FLOAT)
+                    throw std::runtime_error("POSITION must be float vec3");
+                const auto& posView = scene.bufferViews.at(posAcc.bufferView);
+                const auto& posBuf = scene.buffers.at(posView.buffer);
+                const unsigned char* posBase = posBuf.data.data() + posView.byteOffset + posAcc.byteOffset;
+                size_t posStride = posView.byteStride ? posView.byteStride : 3 * sizeof(float);
+
+                const float* normBase = nullptr; size_t normStride = 0;
                 if (prim.attributes.count("NORMAL"))
                 {
-                    const auto& nAcc = scene.accessors[prim.attributes.at("NORMAL")];
-                    const auto& nView = scene.bufferViews[nAcc.bufferView];
-                    const auto& nBuf = scene.buffers[nView.buffer];
-                    normData = reinterpret_cast<const float*>(
-                        nBuf.data.data() + nView.byteOffset + nAcc.byteOffset
-                        );
+                    const auto& nAcc = scene.accessors.at(prim.attributes.at("NORMAL"));
+                    if (nAcc.type == TINYGLTF_TYPE_VEC3 && nAcc.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT)
+                    {
+                        const auto& nView = scene.bufferViews.at(nAcc.bufferView);
+                        const auto& nBuf = scene.buffers.at(nView.buffer);
+                        normBase = reinterpret_cast<const float*>(nBuf.data.data() + nView.byteOffset + nAcc.byteOffset);
+                        normStride = nView.byteStride ? nView.byteStride : 3 * sizeof(float);
+                    }
                 }
 
-                const float* uvData = nullptr;
+                const float* uvBase = nullptr; size_t uvStride = 0;
                 if (prim.attributes.count("TEXCOORD_0"))
                 {
-                    const auto& tAcc = scene.accessors[prim.attributes.at("TEXCOORD_0")];
-                    const auto& tView = scene.bufferViews[tAcc.bufferView];
-                    const auto& tBuf = scene.buffers[tView.buffer];
-                    uvData = reinterpret_cast<const float*>(
-                        tBuf.data.data() + tView.byteOffset + tAcc.byteOffset
-                        );
+                    const auto& tAcc = scene.accessors.at(prim.attributes.at("TEXCOORD_0"));
+                    if (tAcc.type == TINYGLTF_TYPE_VEC2 && tAcc.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT)
+                    {
+                        const auto& tView = scene.bufferViews.at(tAcc.bufferView);
+                        const auto& tBuf = scene.buffers.at(tView.buffer);
+                        uvBase = reinterpret_cast<const float*>(tBuf.data.data() + tView.byteOffset + tAcc.byteOffset);
+                        uvStride = tView.byteStride ? tView.byteStride : 2 * sizeof(float);
+                    }
                 }
 
-                // -- index data --
-                const auto& iAcc = scene.accessors[prim.indices];
-                const auto& iView = scene.bufferViews[iAcc.bufferView];
-                const auto& iBuf = scene.buffers[iView.buffer];
-                const uint16_t* idx = reinterpret_cast<const uint16_t*>(
-                    iBuf.data.data() + iView.byteOffset + iAcc.byteOffset
-                    );
+                if (prim.indices < 0)
+                    throw std::runtime_error("Indexed geometry required");
 
-                // -- material setup --
+                const auto& iAcc = scene.accessors.at(prim.indices);
+                if (iAcc.type != TINYGLTF_TYPE_SCALAR)
+                    throw std::runtime_error("indices accessor must be SCALAR");
+                const auto& iView = scene.bufferViews.at(iAcc.bufferView);
+                const auto& iBuf = scene.buffers.at(iView.buffer);
+                const unsigned char* iBase = iBuf.data.data() + iView.byteOffset + iAcc.byteOffset;
+                size_t icSize = tinygltf::GetComponentSizeInBytes(iAcc.componentType);
+                size_t iStride = iView.byteStride ? iView.byteStride : icSize;
+
                 int matIdx = prim.material;
                 bool useMat = (matIdx >= 0);
                 if (useMat) m_useMaterials = true;
@@ -551,103 +559,126 @@ namespace Renderer
                 size_t groupIndex = 0;
                 if (useMat)
                 {
-                    // find or create
-                    auto it = std::find_if(
-                        m_materialGroups.begin(), m_materialGroups.end(),
-                        [&](auto& g) { return g.materialName == scene.materials[matIdx].name; }
-                    );
+                    const std::string& mname = scene.materials[matIdx].name;
+                    auto it = std::find_if(m_materialGroups.begin(), m_materialGroups.end(),
+                        [&](const MaterialGroup& g) { return g.materialName == mname; });
                     if (it == m_materialGroups.end())
                     {
                         MaterialGroup mg;
-                        mg.materialName = scene.materials[matIdx].name;
+                        mg.materialName = mname;
                         groupIndex = m_materialGroups.size();
-                        m_materialGroups.push_back(std::move(mg));
+                        m_materialGroups.push_back(mg);
                     }
-                    else
-                    {
-                        groupIndex = std::distance(m_materialGroups.begin(), it);
-                    }
+                    else groupIndex = size_t(std::distance(m_materialGroups.begin(), it));
 
-                    // populate PBR data
                     auto& group = m_materialGroups[groupIndex];
                     const auto& mat = scene.materials[matIdx];
                     const auto& pbr = mat.pbrMetallicRoughness;
 
-                    // baseColor
                     if (pbr.baseColorTexture.index >= 0)
-                    {
-                        int texIndex = scene.textures[pbr.baseColorTexture.index].source;
-                        group.pbr.baseColorTexIndex = texIndex;
-                    }
+                        group.pbr.baseColorTexIndex = scene.textures[pbr.baseColorTexture.index].source;
                     group.pbr.baseColorFactor = glm::make_vec4(pbr.baseColorFactor.data());
 
-                    // metallicRoughness
                     if (pbr.metallicRoughnessTexture.index >= 0)
-                    {
-                        int texIndex = scene.textures[pbr.metallicRoughnessTexture.index].source;
-                        group.pbr.metallicRoughnessTexIndex = texIndex;
-                    }
+                        group.pbr.metallicRoughnessTexIndex = scene.textures[pbr.metallicRoughnessTexture.index].source;
                     group.pbr.metallicFactor = pbr.metallicFactor;
                     group.pbr.roughnessFactor = pbr.roughnessFactor;
 
-                    // normal
                     if (mat.normalTexture.index >= 0)
-                    {
-                        int texIndex = scene.textures[mat.normalTexture.index].source;
-                        group.pbr.normalTexIndex = texIndex;
-                    }
-                    // occlusion
+                        group.pbr.normalTexIndex = scene.textures[mat.normalTexture.index].source;
                     if (mat.occlusionTexture.index >= 0)
-                    {
-                        int texIndex = scene.textures[mat.occlusionTexture.index].source;
-                        group.pbr.occlusionTexIndex = texIndex;
-                    }
-                    // emissive
+                        group.pbr.occlusionTexIndex = scene.textures[mat.occlusionTexture.index].source;
                     if (mat.emissiveTexture.index >= 0)
-                    {
-                        int texIndex = scene.textures[mat.emissiveTexture.index].source;
-                        group.pbr.emissiveTexIndex = texIndex;
+                        group.pbr.emissiveTexIndex = scene.textures[mat.emissiveTexture.index].source;
+
+                    const std::string& am = mat.alphaMode;
+                    if (am == "BLEND") {
+                        group.pbr.alphaMode = PBRMaterial::AlphaMode::AlphaBlend;
+                    }
+                    else if (am == "MASK") {
+                        group.pbr.alphaMode = PBRMaterial::AlphaMode::AlphaMask;
+                        group.pbr.alphaCutoff = float(mat.alphaCutoff); // default 0.5 in glTF spec
+                    }
+                    else {
+                        group.pbr.alphaMode = PBRMaterial::AlphaMode::AlphaOpaque;
+                    }
+
+                    auto toLower = [](std::string s) { for (auto& c : s) c = (char)tolower(c); return s; };
+                    std::string lname = toLower(group.materialName);
+
+                    // If author exported trees/fences as BLEND, prefer MASK cutout:
+                    bool looksLikeFoliage =
+                        lname.find("tree") != std::string::npos ||
+						lname.find("trees") != std::string::npos ||
+                        lname.find("leaf") != std::string::npos ||
+                        lname.find("leaves") != std::string::npos ||
+                        lname.find("bush") != std::string::npos ||
+                        lname.find("hedge") != std::string::npos ||
+                        lname.find("grass") != std::string::npos ||
+                        lname.find("fence") != std::string::npos ||
+						lname.find("fencing") != std::string::npos ||
+						lname.find("fences") != std::string::npos ||
+                        lname.find("chain") != std::string::npos; // chain-link fence etc.
+
+                    if (looksLikeFoliage && group.pbr.alphaMode == Renderer::Model::PBRMaterial::AlphaMode::AlphaBlend) {
+                        group.pbr.alphaMode = Renderer::Model::PBRMaterial::AlphaMode::AlphaMask;
+                        group.pbr.alphaCutoff = 0.5f; // tweak if needed (0.4–0.6 typical)
                     }
                 }
 
-                // 5) Build faces
-                for (size_t f = 0; f < iAcc.count; f += 3)
+                auto fetchVert = [&](Vertex& v, size_t vi)
+                    {
+                        const float* p = reinterpret_cast<const float*>(posBase + vi * posStride);
+                        v.position = { p[0], p[1], p[2] };
+                        if (normBase)
+                        {
+                            const float* n = reinterpret_cast<const float*>(reinterpret_cast<const unsigned char*>(normBase) + vi * normStride);
+                            v.normal = { n[0], n[1], n[2] };
+                        }
+                        if (uvBase)
+                        {
+                            const float* t = reinterpret_cast<const float*>(reinterpret_cast<const unsigned char*>(uvBase) + vi * uvStride);
+                            v.texcoord = { t[0], t[1] };
+                        }
+                    };
+
+                for (size_t f = 0; f + 2 < iAcc.count; f += 3)
                 {
+                    uint32_t i0 = 0, i1 = 0, i2 = 0;
+                    switch (iAcc.componentType)
+                    {
+                    case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
+                        i0 = *(const uint8_t*)(iBase + (f + 0) * iStride);
+                        i1 = *(const uint8_t*)(iBase + (f + 1) * iStride);
+                        i2 = *(const uint8_t*)(iBase + (f + 2) * iStride);
+                        break;
+                    case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+                        i0 = *(const uint16_t*)(iBase + (f + 0) * iStride);
+                        i1 = *(const uint16_t*)(iBase + (f + 1) * iStride);
+                        i2 = *(const uint16_t*)(iBase + (f + 2) * iStride);
+                        break;
+                    case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
+                        i0 = *(const uint32_t*)(iBase + (f + 0) * iStride);
+                        i1 = *(const uint32_t*)(iBase + (f + 1) * iStride);
+                        i2 = *(const uint32_t*)(iBase + (f + 2) * iStride);
+                        break;
+                    default:
+                        throw std::runtime_error("Unsupported index type");
+                    }
+
                     Face face;
-                    auto fetchVert = [&](Vertex& v, size_t vi) {
-                        v.position = {
-                            posData[3 * vi + 0],
-                            posData[3 * vi + 1],
-                            posData[3 * vi + 2]
-                        };
-                        if (normData)
-                            v.normal = {
-                                normData[3 * vi + 0],
-                                normData[3 * vi + 1],
-                                normData[3 * vi + 2]
-                        };
-                        if (uvData)
-                            v.texcoord = {
-                                uvData[2 * vi + 0],
-                                1.0f - uvData[2 * vi + 1]
-                        };
-                        };
+                    fetchVert(face.a, i0);
+                    fetchVert(face.b, i1);
+                    fetchVert(face.c, i2);
 
-                    fetchVert(face.a, idx[f + 0]);
-                    fetchVert(face.b, idx[f + 1]);
-                    fetchVert(face.c, idx[f + 2]);
-
-                    if (useMat)
-                        m_materialGroups[groupIndex].faces.push_back(face);
+                    if (useMat) m_materialGroups[groupIndex].faces.push_back(face);
                     m_faces.push_back(face);
                 }
             }
         }
 
-        // 6) Upload to GPU (same as OBJ path)
         if (!m_useMaterials)
         {
-            // single mesh
             glGenBuffers(1, &m_vboid);
             glGenVertexArrays(1, &m_vaoid);
             std::vector<GLfloat> data;
@@ -676,7 +707,6 @@ namespace Renderer
         }
         else
         {
-            // per-material submeshes
             for (auto& group : m_materialGroups)
             {
                 if (group.faces.empty()) continue;
