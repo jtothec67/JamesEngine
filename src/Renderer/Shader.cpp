@@ -277,9 +277,7 @@ namespace Renderer
 			bool useEmbedded = !embeddedTextures.empty();
 			const auto& groups = _model->GetMaterialGroups();
 
-			// Pass 1: draw Opaque/Mask (depth writes on, blending off)
-			glDisable(GL_BLEND);
-			glDepthMask(GL_TRUE);
+			// Pass 1: draw Opaque/Mask
 
 			for (size_t i = 0; i < groups.size(); ++i)
 			{
@@ -387,10 +385,7 @@ namespace Renderer
 				glDrawArrays(GL_TRIANGLES, 0, group.faces.size() * 3);
 			}
 
-			// Pass 2: draw Blend (depth write off, blending on)
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			glDepthMask(GL_FALSE);
+			// Pass 2: draw Blend
 
 			for (size_t i = 0; i < groups.size(); ++i)
 			{
@@ -486,7 +481,7 @@ namespace Renderer
 					glUniform1i(glGetUniformLocation(id(), "u_HasOcclusionMap"), false);
 					glUniform1i(glGetUniformLocation(id(), "u_HasEmissiveMap"), false);
 
-					// treat non-embedded as opaque by default; if you truly want it blended, set uniforms before calling draw
+					// treat non-embedded as opaque by default
 					glUniform1i(glGetUniformLocation(id(), "u_AlphaMode"), 0);
 					glUniform1f(glGetUniformLocation(id(), "u_AlphaCutoff"), 0.5f);
 				}
@@ -496,16 +491,7 @@ namespace Renderer
 			}
 		}
 
-		glEnable(GL_MULTISAMPLE);
-		glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glEnable(GL_DEPTH_TEST);
-		glEnable(GL_CULL_FACE);
-
-		glDepthFunc(GL_LESS);
-		glDepthMask(GL_TRUE);
-
+		glActiveTexture(GL_TEXTURE0);
 		glBindVertexArray(0);
 		glUseProgram(0);
 	}

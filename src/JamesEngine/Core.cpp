@@ -303,7 +303,7 @@ namespace JamesEngine
 		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_DirLightDirection", mLightManager->GetDirectionalLightDirection()); // Assumes light direction and colour never change, light direction can't change while using pre baked shadows
 		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_DirLightColor", mLightManager->GetDirectionalLightColour());
 
-		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_SkyBox", mSkybox->GetTexture()->mTexture, 29); // Assumes shybox doesn't change
+		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_SkyBox", mSkybox->GetTexture()->mTexture, 29); // Assumes skybox doesn't change
 	}
 
 	void Core::UploadGlobalUniforms()
@@ -311,6 +311,7 @@ namespace JamesEngine
 		std::shared_ptr<Camera> camera = GetCamera();
 		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_Projection", camera->GetProjectionMatrix());
 		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_View", camera->GetViewMatrix());
+		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_ViewPos", camera->GetPosition());
 
 		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_Ambient", mLightManager->GetAmbient());
 

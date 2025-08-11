@@ -12,7 +12,6 @@ in vec3 v_FragPos;
 
 uniform vec3 u_ViewPos;
 uniform vec3 u_Ambient;
-uniform float u_SpecStrength;
 
 uniform int   u_AlphaMode;    // 0 OPAQUE, 1 MASK, 2 BLEND
 uniform float u_AlphaCutoff;  // used when u_AlphaMode == 1
@@ -37,7 +36,7 @@ uniform float u_MetallicFactor;
 uniform float u_RoughnessFactor;
 
 // Fallback values (used when the corresponding map is missing)
-uniform vec4  u_AlbedoFallback;      // default e.g. vec4(1,1,1,1)
+uniform vec4  u_AlbedoFallback;      // default vec4(1,1,1,1)
 uniform float u_MetallicFallback;    // default 0.0
 uniform float u_RoughnessFallback;   // default 1.0
 uniform float u_AOFallback;          // default 1.0
@@ -222,6 +221,12 @@ vec3 FresnelSchlick(float cosTheta, vec3 F0)
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
+vec3 FresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
+{
+    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
+}
+
+
 void main()
 {
     // Albedo + alpha
@@ -272,7 +277,7 @@ void main()
     else
         emissive = u_EmissiveFallback;
 
-    // Normal mapping (uniform branch). If no normal map, use geometric normal.
+    // Normal mapping . If no normal map, use geometric normal.
     vec3 Ngeom = normalize(v_Normal);
     vec3 N;
     if (u_HasNormalMap)
@@ -317,26 +322,23 @@ void main()
     vec3 direct = (kD * albedo / 3.14159 + specular) * radiance * NdotL * (1.0 - shadow);
 
     vec3 R = reflect(-V, N);
-    const int SAMPLE_COUNT = 8;
-    float roughnessClamped = clamp(roughness, 0.01, 1.0);
+    float NdotV = max(dot(N, V), 0.0);
 
-    vec3 blurredReflection = vec3(0.0);
-    float totalWeight = 0.0;
+    // Use existing mip chain instead of manual offsets (no new textures needed)
+    float lod = roughness * float(MAX_IBL_LOD);
+    vec3 envColor = textureLod(u_SkyBox, R, lod).rgb;
 
-    for (int i = 0; i < SAMPLE_COUNT; ++i)
-    {
-        vec3 offset = normalize(R + roughnessClamped * (sampleOffsets[i] * 10));
-        float weight = 1.0;
-        blurredReflection += texture(u_SkyBox, offset).rgb * weight;
-        totalWeight += weight;
-    }
+    // Roughness-aware Fresnel for IBL
+    vec3 Fibl = FresnelSchlickRoughness(NdotV, F0, roughness);
 
-    blurredReflection /= totalWeight;
+    // A tiny energy clamp that avoids metals going “pure env” at normal incidence
+    float iblEnergy = mix(0.6, 1.0, 1.0 - roughness); // 0.6 at rough=1, 1.0 at rough=0
 
-    vec3 specularIBL = blurredReflection * F * 1.5;
+    vec3 specularIBL = envColor * Fibl * iblEnergy;
 
-    vec3 ambient = u_Ambient * (kD * albedo + specularIBL) * ao;
+    // Ambient: diffuse only gets u_Ambient; specular IBL stands alone; both get AO
+    vec3 ambient = ao * (u_Ambient * (kD * albedo) + specularIBL);
 
     vec3 color = ambient + direct + emissive;
-    FragColor = vec4(color, albedoTex.a);
+    FragColor = vec4(color, alpha);
 }
