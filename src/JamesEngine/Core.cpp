@@ -65,6 +65,7 @@ namespace JamesEngine
 
 			//std::cout << "FPS: " << 1.0f / mDeltaTime << std::endl;
 
+			mLastFrameTime = mDeltaTime;
 			mDeltaTime *= mTimeScale;
 
 			//std::cout << "deltaTime: " << mDeltaTime << std::endl;

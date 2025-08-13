@@ -326,12 +326,17 @@ struct CarController : public Component
 	// Engine audio
 	std::shared_ptr<AudioSource> engineAudioSource;
 
+	bool vsyncStatus = false;
+
 	void OnAlive()
 	{
 		// Initialize engine audio source and looping sound
 		engineAudioSource = GetEntity()->AddComponent<AudioSource>();
 		engineAudioSource->SetSound(GetCore()->GetResources()->Load<Sound>("sounds/engine sample"));
 		engineAudioSource->SetLooping(true);
+
+		// For menu
+		vsyncStatus = GetCore()->GetWindow()->GetVSync();
 	}
 
 	bool clutchReadyToLaunch = true;
@@ -569,7 +574,7 @@ struct CarController : public Component
 		currentRPM = glm::clamp(currentRPM, idleRPM, maxRPM);
 
 		// Set engine volume to 0 when in menu
-		if (!inMenu)
+		if (menuState == MenuState::Closed)
 			engineAudioSource->SetGain(1);
 		else
 			engineAudioSource->SetGain(0);
@@ -733,175 +738,239 @@ struct CarController : public Component
 		return stream.str();
 	}
 
-	bool inMenu = false;
+	enum class MenuState { Closed, Main, Controller, Graphics, Car };
+	MenuState menuState = MenuState::Closed;
 
 	void OnGUI()
 	{
+		auto gui = GetCore()->GetGUI();
 		int width, height;
 		GetCore()->GetWindow()->GetWindowSize(width, height);
 
-		if (GetKeyboard()->IsKeyDown(SDLK_ESCAPE) && !inMenu)
+		// Toggle / navigate with ESC
+		if (GetKeyboard()->IsKeyDown(SDLK_ESCAPE))
 		{
-			GetCore()->SetTimeScale(0.f);
-			inMenu = true;
-		}
-		else if (GetKeyboard()->IsKeyDown(SDLK_ESCAPE) && inMenu)
-		{
-			GetCore()->SetTimeScale(1.f);
-			inMenu = false;
+			if (menuState == MenuState::Closed)
+			{
+				GetCore()->SetTimeScale(0.f);
+				menuState = MenuState::Main;
+			}
+			else if (menuState == MenuState::Main)
+			{
+				GetCore()->SetTimeScale(1.f);
+				menuState = MenuState::Closed;
+			}
+			else
+			{
+				menuState = MenuState::Main; // from any submenu back to main
+			}
 		}
 
-		GetGUI()->Image(vec2(width / 2, 25), vec2(750, 25), GetCore()->GetResources()->Load<Texture>("images/white"));
+		// HUD
+		gui->Image(vec2(width / 2, 25), vec2(750, 25), GetCore()->GetResources()->Load<Texture>("images/white"));
 
 		float normalized = (currentRPM - 6000) / (maxRPM - 6000);
 		float revBlend = glm::clamp(normalized, 0.0f, 1.0f);
-		GetGUI()->BlendImage(vec2(width / 2, 200), vec2(750, 100), GetCore()->GetResources()->Load<Texture>("images/white"), GetCore()->GetResources()->Load<Texture>("images/senegal"), revBlend);
+		gui->BlendImage(vec2(width / 2, 200), vec2(750, 100),
+			GetCore()->GetResources()->Load<Texture>("images/white"),
+			GetCore()->GetResources()->Load<Texture>("images/senegal"),
+			revBlend);
 
-		GetGUI()->BlendImage(vec2(150, 175), vec2(200, 75), GetCore()->GetResources()->Load<Texture>("images/white"), GetCore()->GetResources()->Load<Texture>("images/green"), mThrottleInput);
-		GetGUI()->BlendImage(vec2(150, 75), vec2(200, 75), GetCore()->GetResources()->Load<Texture>("images/white"), GetCore()->GetResources()->Load<Texture>("images/red"), mBrakeInput);
-		GetGUI()->BlendImage(vec2(150, 20), vec2(200, 20), GetCore()->GetResources()->Load<Texture>("images/white"), GetCore()->GetResources()->Load<Texture>("images/lightBlue"), 1-clutchEngagement);
+		gui->BlendImage(vec2(150, 175), vec2(200, 75),
+			GetCore()->GetResources()->Load<Texture>("images/white"),
+			GetCore()->GetResources()->Load<Texture>("images/green"),
+			mThrottleInput);
+		gui->BlendImage(vec2(150, 75), vec2(200, 75),
+			GetCore()->GetResources()->Load<Texture>("images/white"),
+			GetCore()->GetResources()->Load<Texture>("images/red"),
+			mBrakeInput);
+		gui->BlendImage(vec2(150, 20), vec2(200, 20),
+			GetCore()->GetResources()->Load<Texture>("images/white"),
+			GetCore()->GetResources()->Load<Texture>("images/lightBlue"),
+			1 - clutchEngagement);
 
 		if (mSteerInput > 0)
-			GetGUI()->BlendImage(vec2((width / 2) - 750 / 4, 25), vec2(750 / 2, 25), GetCore()->GetResources()->Load<Texture>("images/black"), GetCore()->GetResources()->Load<Texture>("images/white"), 1 - (mSteerInput / maxTireSteeringAngle));
+			gui->BlendImage(vec2((width / 2) - 750 / 4, 25), vec2(750 / 2, 25),
+				GetCore()->GetResources()->Load<Texture>("images/black"),
+				GetCore()->GetResources()->Load<Texture>("images/white"),
+				1 - (mSteerInput / maxTireSteeringAngle));
 		else if (mSteerInput < 0)
-			GetGUI()->BlendImage(vec2((width / 2) + 750 / 4, 25), vec2((750 / 2) + 2, 25), GetCore()->GetResources()->Load<Texture>("images/white"), GetCore()->GetResources()->Load<Texture>("images/black"), (mSteerInput / -maxTireSteeringAngle));
+			gui->BlendImage(vec2((width / 2) + 750 / 4, 25), vec2((750 / 2) + 2, 25),
+				GetCore()->GetResources()->Load<Texture>("images/white"),
+				GetCore()->GetResources()->Load<Texture>("images/black"),
+				(mSteerInput / -maxTireSteeringAngle));
 
 		float speed = glm::dot(rb->GetVelocity(), GetEntity()->GetComponent<Transform>()->GetForward());
-		GetGUI()->Text(vec2(width - 200, 100), 100, vec3(1, 1, 1), std::to_string((int)(speed * 3.6)), GetCore()->GetResources()->Load<Font>("fonts/munro"));
-		GetGUI()->Text(vec2(width - 50, 60), 25, vec3(1, 1, 1), "km/h", GetCore()->GetResources()->Load<Font>("fonts/munro"));
+		gui->Text(vec2(width - 200, 100), 100, vec3(1, 1, 1), std::to_string((int)(speed * 3.6)), GetCore()->GetResources()->Load<Font>("fonts/munro"));
+		gui->Text(vec2(width - 50, 60), 25, vec3(1, 1, 1), "km/h", GetCore()->GetResources()->Load<Font>("fonts/munro"));
 
-		GetGUI()->Text(vec2(width / 2, 100), 75, vec3(1, 1, 1), std::to_string(currentGear), GetCore()->GetResources()->Load<Font>("fonts/munro"));
-		GetGUI()->Text(vec2((width / 2) + 100, 75), 50, vec3(1, 1, 1), std::to_string((int)(currentRPM)), GetCore()->GetResources()->Load<Font>("fonts/munro"));
+		gui->Text(vec2(width / 2, 100), 75, vec3(1, 1, 1), std::to_string(currentGear), GetCore()->GetResources()->Load<Font>("fonts/munro"));
+		gui->Text(vec2((width / 2) + 100, 75), 50, vec3(1, 1, 1), std::to_string((int)(currentRPM)), GetCore()->GetResources()->Load<Font>("fonts/munro"));
 
-		if (inMenu)
+		// Menu overlays
+		if (menuState != MenuState::Closed)
 		{
-			GetGUI()->Image(vec2(width / 2, height / 2), vec2(width, height), GetCore()->GetResources()->Load<Texture>("images/transparentblack"));
+			auto res = GetCore()->GetResources();
+			auto white = res->Load<Texture>("images/white");
+			auto dim = res->Load<Texture>("images/transparentblack");
+			auto font = res->Load<Font>("fonts/munro");
 
-			// Throttle
-			GetGUI()->Image(vec2(width / 3, height - (height / 4)), vec2(450, 200), GetCore()->GetResources()->Load<Texture>("images/white"));
-			GetGUI()->Text(vec2(width / 3, height - (height / 4)), 100, vec3(0, 0, 0), FormatTo2DP(mThrottleMaxInput), GetCore()->GetResources()->Load<Font>("fonts/munro"));
-			GetGUI()->Text(vec2(width / 3, (height - (height / 4)) - 75), 40, vec3(0, 0, 0), "Max throttle value", GetCore()->GetResources()->Load<Font>("fonts/munro"));
-			if (GetGUI()->Button(vec2((width / 3) - 225 - 50, height - (height / 4)), vec2(50, 100), GetCore()->GetResources()->Load<Texture>("images/white")))
-			{
-				if (GetMouse()->IsButtonDown(SDL_BUTTON_LEFT))
-				{
-					mThrottleMaxInput -= 0.01f;
-					mThrottleMaxInput = glm::clamp(mThrottleMaxInput, 0.1f, 1.f);
-				}
-			}
-			GetGUI()->Text(vec2((width / 3) - 225 - 55, height - (height / 4)), 75, vec3(0, 0, 0), "<", GetCore()->GetResources()->Load<Font>("fonts/munro"));
-			if (GetGUI()->Button(vec2((width / 3) + 225 + 50, height - (height / 4)), vec2(50, 100), GetCore()->GetResources()->Load<Texture>("images/white")))
-			{
-				if (GetMouse()->IsButtonDown(SDL_BUTTON_LEFT))
-				{
-					mThrottleMaxInput += 0.01f;
-					mThrottleMaxInput = glm::clamp(mThrottleMaxInput, 0.1f, 1.f);
-				}
-			}
-			GetGUI()->Text(vec2((width / 3) + 225 + 50, height - (height / 4)), 75, vec3(0, 0, 0), ">", GetCore()->GetResources()->Load<Font>("fonts/munro"));
+			gui->Image(vec2(width / 2, height / 2), vec2(width, height), dim);
 
-			GetGUI()->Image(vec2(width / 3, height - (height / 4) * 2), vec2(450, 200), GetCore()->GetResources()->Load<Texture>("images/white"));
-			GetGUI()->Text(vec2(width / 3, height - (height / 4) * 2), 100, vec3(0, 0, 0), FormatTo2DP(mThrottleDeadZone), GetCore()->GetResources()->Load<Font>("fonts/munro"));
-			GetGUI()->Text(vec2(width / 3, (height - (height / 4) * 2) - 75), 40, vec3(0, 0, 0), "Throttle deadzone", GetCore()->GetResources()->Load<Font>("fonts/munro"));
-			if (GetGUI()->Button(vec2((width / 3) - 225 - 50, height - (height / 4) * 2), vec2(50, 100), GetCore()->GetResources()->Load<Texture>("images/white")))
+			if (menuState == MenuState::Main)
 			{
-				if (GetMouse()->IsButtonDown(SDL_BUTTON_LEFT))
+				if (gui->Button(vec2(200, 150), vec2(250, 100), white) == GUI::ButtonState::Clicked)
 				{
-					mThrottleDeadZone -= 0.01f;
-					mThrottleDeadZone = glm::clamp(mThrottleDeadZone, 0.01f, 1.f);
+					menuState = MenuState::Closed;
+					GetCore()->SetTimeScale(1.f);
 				}
-			}
-			GetGUI()->Text(vec2((width / 3) - 225 - 55, height - (height / 4) * 2), 75, vec3(0, 0, 0), "<", GetCore()->GetResources()->Load<Font>("fonts/munro"));
-			if (GetGUI()->Button(vec2((width / 3) + 225 + 50, height - (height / 4) * 2), vec2(50, 100), GetCore()->GetResources()->Load<Texture>("images/white")))
-			{
-				if (GetMouse()->IsButtonDown(SDL_BUTTON_LEFT))
-				{
-					mThrottleDeadZone += 0.01f;
-					mThrottleDeadZone = glm::clamp(mThrottleDeadZone, 0.01f, 1.f);
-				}
-			}
-			GetGUI()->Text(vec2((width / 3) + 225 + 50, height - (height / 4) * 2), 75, vec3(0, 0, 0), ">", GetCore()->GetResources()->Load<Font>("fonts/munro"));
+				gui->Text(vec2(200, 150), 50, vec3(0, 0, 0), "< Back", font);
 
+				if (gui->Button(vec2(width / 2, height / 2 - 120), vec2(600, 150), white) == GUI::ButtonState::Clicked)
+					menuState = MenuState::Controller;
+				gui->Text(vec2(width / 2, height / 2 - 120), 50, vec3(0, 0, 0), "Controller Settings", font);
 
-			// Brake
-			GetGUI()->Image(vec2((width / 3) * 2, height - (height / 4)), vec2(450, 200), GetCore()->GetResources()->Load<Texture>("images/white"));
-			GetGUI()->Text(vec2((width / 3) * 2, height - (height / 4)), 100, vec3(0, 0, 0), FormatTo2DP(mBrakeMaxInput), GetCore()->GetResources()->Load<Font>("fonts/munro"));
-			GetGUI()->Text(vec2((width / 3) * 2, (height - (height / 4)) - 75), 40, vec3(0, 0, 0), "Max brake value", GetCore()->GetResources()->Load<Font>("fonts/munro"));
-			if (GetGUI()->Button(vec2(((width / 3) * 2) - 225 - 50, height - (height / 4)), vec2(50, 100), GetCore()->GetResources()->Load<Texture>("images/white")))
+				if (gui->Button(vec2(width / 2, height / 2 + 40), vec2(600, 150), white) == GUI::ButtonState::Clicked)
+					menuState = MenuState::Graphics;
+				gui->Text(vec2(width / 2, height / 2 + 40), 50, vec3(0, 0, 0), "Graphics", font);
+
+				if (gui->Button(vec2(width / 2, height / 2 + 200), vec2(600, 150), white) == GUI::ButtonState::Clicked)
+					menuState = MenuState::Car;
+				gui->Text(vec2(width / 2, height / 2 + 200), 50, vec3(0, 0, 0), "Car Settings", font);
+
+				if (gui->Button(vec2(width - 200, 150), vec2(300, 150), white) == GUI::ButtonState::Clicked)
+					GetCore()->End();
+				gui->Text(vec2(width - 200, 150), 50, vec3(0, 0, 0), "CLOSE\nGAME", font);
+			}
+			else if (menuState == MenuState::Controller)
 			{
-				if (GetMouse()->IsButtonDown(SDL_BUTTON_LEFT))
+				// Back
+				if (gui->Button(vec2(200, 150), vec2(250, 100), white) == GUI::ButtonState::Clicked)
+					menuState = MenuState::Main;
+				gui->Text(vec2(200, 150), 50, vec3(0, 0, 0), "< Back", font);
+
+				// Brake
+				gui->Image(vec2(width / 3, height - (height / 4)), vec2(450, 200), white);
+				gui->Text(vec2(width / 3, height - (height / 4)), 100, vec3(0, 0, 0), FormatTo2DP(mBrakeMaxInput), font);
+				gui->Text(vec2(width / 3, (height - (height / 4)) - 75), 40, vec3(0, 0, 0), "Max brake value", font);
+				if (gui->Button(vec2((width / 3) - 225 - 50, height - (height / 4)), vec2(50, 100), white) == GUI::ButtonState::Clicked)
 				{
 					mBrakeMaxInput -= 0.01f;
 					mBrakeMaxInput = glm::clamp(mBrakeMaxInput, 0.1f, 1.f);
 				}
-			}
-			GetGUI()->Text(vec2(((width / 3) * 2) - 225 - 55, height - (height / 4)), 75, vec3(0, 0, 0), "<", GetCore()->GetResources()->Load<Font>("fonts/munro"));
-			if (GetGUI()->Button(vec2(((width / 3) * 2) + 225 + 50, height - (height / 4)), vec2(50, 100), GetCore()->GetResources()->Load<Texture>("images/white")))
-			{
-				if (GetMouse()->IsButtonDown(SDL_BUTTON_LEFT))
+				gui->Text(vec2((width / 3) - 225 - 55, height - (height / 4)), 75, vec3(0, 0, 0), "<", font);
+				if (gui->Button(vec2((width / 3) + 225 + 50, height - (height / 4)), vec2(50, 100), white) == GUI::ButtonState::Clicked)
 				{
 					mBrakeMaxInput += 0.01f;
 					mBrakeMaxInput = glm::clamp(mBrakeMaxInput, 0.1f, 1.f);
 				}
-			}
-			GetGUI()->Text(vec2(((width / 3) * 2) + 225 + 50, height - (height / 4)), 75, vec3(0, 0, 0), ">", GetCore()->GetResources()->Load<Font>("fonts/munro"));
+				gui->Text(vec2((width / 3) + 225 + 50, height - (height / 4)), 75, vec3(0, 0, 0), ">", font);
 
-			GetGUI()->Image(vec2((width / 3) * 2, height - (height / 4) * 2), vec2(450, 200), GetCore()->GetResources()->Load<Texture>("images/white"));
-			GetGUI()->Text(vec2((width / 3) * 2, height - (height / 4) * 2), 100, vec3(0, 0, 0), FormatTo2DP(mBrakeDeadZone), GetCore()->GetResources()->Load<Font>("fonts/munro"));
-			GetGUI()->Text(vec2((width / 3) * 2, (height - (height / 4) * 2) - 75), 40, vec3(0, 0, 0), "Brake deadzone", GetCore()->GetResources()->Load<Font>("fonts/munro"));
-			if (GetGUI()->Button(vec2(((width / 3) * 2) - 225 - 50, height - (height / 4) * 2), vec2(50, 100), GetCore()->GetResources()->Load<Texture>("images/white")))
-			{
-				if (GetMouse()->IsButtonDown(SDL_BUTTON_LEFT))
+				gui->Image(vec2(width / 3, height - (height / 4) * 2), vec2(450, 200), white);
+				gui->Text(vec2(width / 3, height - (height / 4) * 2), 100, vec3(0, 0, 0), FormatTo2DP(mBrakeDeadZone), font);
+				gui->Text(vec2(width / 3, (height - (height / 4) * 2) - 75), 40, vec3(0, 0, 0), "Brake deadzone", font);
+				if (gui->Button(vec2((width / 3) - 225 - 50, height - (height / 4) * 2), vec2(50, 100), white) == GUI::ButtonState::Clicked)
 				{
 					mBrakeDeadZone -= 0.01f;
 					mBrakeDeadZone = glm::clamp(mBrakeDeadZone, 0.01f, 1.f);
 				}
-			}
-			GetGUI()->Text(vec2(((width / 3) * 2) - 225 - 55, height - (height / 4) * 2), 75, vec3(0, 0, 0), "<", GetCore()->GetResources()->Load<Font>("fonts/munro"));
-			if (GetGUI()->Button(vec2(((width / 3) * 2) + 225 + 50, height - (height / 4) * 2), vec2(50, 100), GetCore()->GetResources()->Load<Texture>("images/white")))
-			{
-				if (GetMouse()->IsButtonDown(SDL_BUTTON_LEFT))
+				gui->Text(vec2((width / 3) - 225 - 55, height - (height / 4) * 2), 75, vec3(0, 0, 0), "<", font);
+				if (gui->Button(vec2((width / 3) + 225 + 50, height - (height / 4) * 2), vec2(50, 100), white) == GUI::ButtonState::Clicked)
 				{
 					mBrakeDeadZone += 0.01f;
 					mBrakeDeadZone = glm::clamp(mBrakeDeadZone, 0.01f, 1.f);
 				}
-			}
-			GetGUI()->Text(vec2(((width / 3) * 2) + 225 + 50, height - (height / 4) * 2), 75, vec3(0, 0, 0), ">", GetCore()->GetResources()->Load<Font>("fonts/munro"));
+				gui->Text(vec2((width / 3) + 225 + 50, height - (height / 4) * 2), 75, vec3(0, 0, 0), ">", font);
 
+				// Throttle
+				gui->Image(vec2((width / 3) * 2, height - (height / 4)), vec2(450, 200), white);
+				gui->Text(vec2((width / 3) * 2, height - (height / 4)), 100, vec3(0, 0, 0), FormatTo2DP(mThrottleMaxInput), font);
+				gui->Text(vec2((width / 3) * 2, (height - (height / 4)) - 75), 40, vec3(0, 0, 0), "Max throttle value", font);
+				if (gui->Button(vec2(((width / 3) * 2) - 225 - 50, height - (height / 4)), vec2(50, 100), white) == GUI::ButtonState::Clicked)
+				{
+					mThrottleMaxInput -= 0.01f;
+					mThrottleMaxInput = glm::clamp(mThrottleMaxInput, 0.1f, 1.f);
+				}
+				gui->Text(vec2(((width / 3) * 2) - 225 - 55, height - (height / 4)), 75, vec3(0, 0, 0), "<", font);
+				if (gui->Button(vec2(((width / 3) * 2) + 225 + 50, height - (height / 4)), vec2(50, 100), white) == GUI::ButtonState::Clicked)
+				{
+					mThrottleMaxInput += 0.01f;
+					mThrottleMaxInput = glm::clamp(mThrottleMaxInput, 0.1f, 1.f);
+				}
+				gui->Text(vec2(((width / 3) * 2) + 225 + 50, height - (height / 4)), 75, vec3(0, 0, 0), ">", font);
 
-			// Steering
-			GetGUI()->Image(vec2(width / 2, height - (height / 4) * 3), vec2(450, 200), GetCore()->GetResources()->Load<Texture>("images/white"));
-			GetGUI()->Text(vec2((width / 2), height - (height / 4) * 3), 100, vec3(0, 0, 0), FormatTo2DP(mSteerDeadzone), GetCore()->GetResources()->Load<Font>("fonts/munro"));
-			GetGUI()->Text(vec2((width / 2), (height - (height / 4) * 3) - 75), 40, vec3(0, 0, 0), "Steering deadzone", GetCore()->GetResources()->Load<Font>("fonts/munro"));
-			if (GetGUI()->Button(vec2(((width / 2)) - 225 - 50, height - (height / 4) * 3), vec2(50, 100), GetCore()->GetResources()->Load<Texture>("images/white")))
-			{
-				if (GetMouse()->IsButtonDown(SDL_BUTTON_LEFT))
+				gui->Image(vec2((width / 3) * 2, height - (height / 4) * 2), vec2(450, 200), white);
+				gui->Text(vec2((width / 3) * 2, height - (height / 4) * 2), 100, vec3(0, 0, 0), FormatTo2DP(mThrottleDeadZone), font);
+				gui->Text(vec2((width / 3) * 2, (height - (height / 4) * 2) - 75), 40, vec3(0, 0, 0), "Throttle deadzone", font);
+				if (gui->Button(vec2(((width / 3) * 2) - 225 - 50, height - (height / 4) * 2), vec2(50, 100), white) == GUI::ButtonState::Clicked)
+				{
+					mThrottleDeadZone -= 0.01f;
+					mThrottleDeadZone = glm::clamp(mThrottleDeadZone, 0.01f, 1.f);
+				}
+				gui->Text(vec2(((width / 3) * 2) - 225 - 55, height - (height / 4) * 2), 75, vec3(0, 0, 0), "<", font);
+				if (gui->Button(vec2(((width / 3) * 2) + 225 + 50, height - (height / 4) * 2), vec2(50, 100), white) == GUI::ButtonState::Clicked)
+				{
+					mThrottleDeadZone += 0.01f;
+					mThrottleDeadZone = glm::clamp(mThrottleDeadZone, 0.01f, 1.f);
+				}
+				gui->Text(vec2(((width / 3) * 2) + 225 + 50, height - (height / 4) * 2), 75, vec3(0, 0, 0), ">", font);
+
+				// Steering
+				gui->Image(vec2(width / 2, height - (height / 4) * 3), vec2(450, 200), white);
+				gui->Text(vec2((width / 2), height - (height / 4) * 3), 100, vec3(0, 0, 0), FormatTo2DP(mSteerDeadzone), font);
+				gui->Text(vec2((width / 2), (height - (height / 4) * 3) - 75), 40, vec3(0, 0, 0), "Steering deadzone", font);
+				if (gui->Button(vec2(((width / 2)) - 225 - 50, height - (height / 4) * 3), vec2(50, 100), white) == GUI::ButtonState::Clicked)
 				{
 					mSteerDeadzone -= 0.01f;
 					mSteerDeadzone = glm::clamp(mSteerDeadzone, 0.01f, 1.f);
 				}
-			}
-			GetGUI()->Text(vec2(((width / 2)) - 225 - 55, height - (height / 4) * 3), 75, vec3(0, 0, 0), "<", GetCore()->GetResources()->Load<Font>("fonts/munro"));
-			if (GetGUI()->Button(vec2(((width / 2)) + 225 + 50, height - (height / 4) * 3), vec2(50, 100), GetCore()->GetResources()->Load<Texture>("images/white")))
-			{
-				if (GetMouse()->IsButtonDown(SDL_BUTTON_LEFT))
+				gui->Text(vec2(((width / 2)) - 225 - 55, height - (height / 4) * 3), 75, vec3(0, 0, 0), "<", font);
+				if (gui->Button(vec2(((width / 2)) + 225 + 50, height - (height / 4) * 3), vec2(50, 100), white) == GUI::ButtonState::Clicked)
 				{
 					mSteerDeadzone += 0.01f;
 					mSteerDeadzone = glm::clamp(mSteerDeadzone, 0.01f, 1.f);
 				}
-			}
-			GetGUI()->Text(vec2(((width / 2)) + 225 + 50, height - (height / 4) * 3), 75, vec3(0, 0, 0), ">", GetCore()->GetResources()->Load<Font>("fonts/munro"));
-			
-			if (GetGUI()->Button(vec2(width - 200, 150), vec2(300, 150), GetCore()->GetResources()->Load<Texture>("images/white")))
-			{
-				if (GetMouse()->IsButtonDown(SDL_BUTTON_LEFT))
-				{
+				gui->Text(vec2(((width / 2)) + 225 + 50, height - (height / 4) * 3), 75, vec3(0, 0, 0), ">", font);
+
+				// Close game
+				if (gui->Button(vec2(width - 200, 150), vec2(300, 150), white) == GUI::ButtonState::Clicked)
 					GetCore()->End();
-				}
+				gui->Text(vec2(width - 200, 150), 50, vec3(0, 0, 0), "CLOSE\nGAME", font);
 			}
-			GetGUI()->Text(vec2(width - 200, 150), 50, vec3(0, 0, 0), "CLOSE\nGAME", GetCore()->GetResources()->Load<Font>("fonts/munro"));
+			else if (menuState == MenuState::Graphics)
+			{
+				if (gui->Button(vec2(200, 150), vec2(250, 100), white) == GUI::ButtonState::Clicked)
+					menuState = MenuState::Main;
+				gui->Text(vec2(200, 150), 50, vec3(0, 0, 0), "< Back", font);
+
+				// VSync
+				if (gui->Button(vec2(width / 2, height - (height / 2)), vec2(450, 200), white) == GUI::ButtonState::Clicked)
+				{
+					vsyncStatus = !vsyncStatus;
+					GetCore()->GetWindow()->SetVSync(vsyncStatus);
+				}
+				gui->Text(vec2(width / 2, height - (height / 2)), 75, vec3(0, 0, 0), vsyncStatus ? "VSync: ON" : "VSync: OFF", font);
+
+				if (gui->Button(vec2(width - 200, 150), vec2(300, 150), white) == GUI::ButtonState::Clicked)
+					GetCore()->End();
+				gui->Text(vec2(width - 200, 150), 50, vec3(0, 0, 0), "CLOSE\nGAME", font);
+			}
+			else if (menuState == MenuState::Car)
+			{
+				if (gui->Button(vec2(200, 150), vec2(250, 100), white) == GUI::ButtonState::Clicked)
+					menuState = MenuState::Main;
+				gui->Text(vec2(200, 150), 50, vec3(0, 0, 0), "< Back", font);
+
+				gui->Image(vec2(width / 2, height / 2), vec2(700, 300), white);
+				gui->Text(vec2(width / 2, height / 2), 50, vec3(0, 0, 0), "Car Settings", font);
+
+				if (gui->Button(vec2(width - 200, 150), vec2(300, 150), white) == GUI::ButtonState::Clicked)
+					GetCore()->End();
+				gui->Text(vec2(width - 200, 150), 50, vec3(0, 0, 0), "CLOSE\nGAME", font);
+			}
 		}
 	}
+
 };
 
 struct CameraController : Component
@@ -945,12 +1014,12 @@ struct CameraController : Component
 
 	void OnGUI()
 	{
-		mfpsTimer += GetCore()->DeltaTime();
+		mfpsTimer += GetCore()->GetLastFrameTime();
 
-		if (mfpsTimer > 1.f)
+		if (mfpsTimer > 0.5f)
 		{
 			mfpsTimer = 0.f;
-			currentFPS = (int)(1.0f / GetCore()->DeltaTime());
+			currentFPS = (int)(1.0f / GetCore()->GetLastFrameTime());
 		}
 
 		int width, height;

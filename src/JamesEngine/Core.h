@@ -132,8 +132,14 @@ namespace JamesEngine
 			return nullptr;
 		}
 
+		float GetLastFrameTime() const { return mLastFrameTime; }
 		/**
-		 * @brief Gets the delta time.
+		 * @brief Gets the raw last frame time. Not affected by time scale.
+		 * @return The amount of time the last frame took in seconds.
+		 */
+
+		/**
+		 * @brief Gets the delta time. Affected by time scale.
 		 * @return The time taken for the last frame to update and draw.
 		 */
 		float DeltaTime() { return mDeltaTime; }
@@ -166,6 +172,8 @@ namespace JamesEngine
 		void RenderGUI();
 
 		bool mIsRunning = true;
+
+		float mLastFrameTime = 0.0f; // Not affected by time scale
 
 		float mDeltaTime = 0.0f;
 

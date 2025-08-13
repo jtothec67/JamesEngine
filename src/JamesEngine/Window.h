@@ -25,9 +25,8 @@ namespace JamesEngine
 
 		void SetClearColour(glm::vec3 _colour);
 
-		void ActivateVSync(bool _activate) { SDL_GL_SetSwapInterval(_activate ? 1 : 0); mVSync = _activate; }
-
-		bool IsVSyncActive() { return mVSync; }
+		void SetVSync(bool _activate) { SDL_GL_SetSwapInterval(_activate ? 1 : 0); mVSync = _activate; }
+		bool GetVSync() { return mVSync; }
 
 		void HideMouse(bool _hide) { SDL_ShowCursor(_hide ? SDL_DISABLE : SDL_ENABLE); }
 
@@ -51,7 +50,7 @@ namespace JamesEngine
 
 		glm::vec3 mClearColour = glm::vec3(1.0f, 0.0f, 0.0f);
 
-		bool mVSync = false;
+		bool mVSync = true;
 
 		float mVRAMGB = 0.0f;
 

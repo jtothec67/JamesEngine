@@ -18,7 +18,14 @@ namespace JamesEngine
         GUI(std::shared_ptr<Core> _core);
 		~GUI() {}
 
-		int Button(glm::vec2 _position, glm::vec2 _size, std::shared_ptr<Texture> _texture);
+		enum class ButtonState
+		{
+			NotHovered,
+			Hovered,
+			Clicked
+		};
+
+		ButtonState Button(glm::vec2 _position, glm::vec2 _size, std::shared_ptr<Texture> _texture);
 		void Image(glm::vec2 _position, glm::vec2 _size, std::shared_ptr<Texture> _texture);
 		void Text(glm::vec2 _position, float _size, glm::vec3 _colour, std::string _text, std::shared_ptr<Font> _font);
 		void BlendImage(glm::vec2 _position, glm::vec2 _size, std::shared_ptr<Texture> _texture1, std::shared_ptr<Texture> _texture2, float _blendFactor);

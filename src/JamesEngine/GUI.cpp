@@ -49,7 +49,7 @@ namespace JamesEngine
 	}
 
     // Returns 0 if mouse not over button, 1 if mouse over button, 2 if mouse over button and clicked
-	int GUI::Button(glm::vec2 _position, glm::vec2 _size, std::shared_ptr<Texture> _texture)
+	GUI::ButtonState GUI::Button(glm::vec2 _position, glm::vec2 _size, std::shared_ptr<Texture> _texture)
 	{
 		// Adjust the position to be the center
 		glm::vec2 adjustedPosition = _position - (_size * 0.5f);
@@ -76,15 +76,15 @@ namespace JamesEngine
 			// Mouse clicked button
 			if (mCore.lock()->GetInput()->GetMouse()->IsButtonDown(1))
 			{
-				return 2;
+				return ButtonState::Clicked;
 			}
 			else
 			{
-				return 1;
+				return ButtonState::Hovered;
 			}
 		}
 
-		return 0;
+		return ButtonState::NotHovered;
 	}
 
 
