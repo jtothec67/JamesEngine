@@ -9,6 +9,22 @@
 
 namespace JamesEngine
 {
+
+	struct SuspensionParams
+	{
+		float stiffness = 0;
+		float dampingThreshold;
+		float reboundDampHighSpeed;
+		float reboundDampLowSpeed;
+		float bumpDampHighSpeed;
+		float bumpDampLowSpeed;
+		float bumpStopStiffness;
+		float bumpStopRange;
+		float antiRollBarStiffness;
+		float restLength;
+		float rideHeight;
+	};
+
 	class Rigidbody;
 
 	class Suspension : public Component
@@ -29,28 +45,14 @@ namespace JamesEngine
 		void SetAnchorPoint(std::shared_ptr<Entity> _anchorPoint) { mAnchorPoint = _anchorPoint; }
 		void SetOppositeAxelSuspension(std::shared_ptr<Suspension> _suspension) { mOppositeAxelSuspension = _suspension; }
 
-		void SetStiffness(float _stiffness) { mStiffness = _stiffness; }
-
-		void SetDampingThreshold(float _dampingThreshold) { mDampingThreshold = _dampingThreshold; }
-		void SetReboundDampHigh(float _reboundDampHighSpeed) { mReboundDampHighSpeed = _reboundDampHighSpeed; }
-		void SetReboundDampLow(float _reboundDampLowSpeed) { mReboundDampLowSpeed = _reboundDampLowSpeed; }
-		void SetBumpDampHigh(float _bumpDampHighSpeed) { mBumpDampHighSpeed = _bumpDampHighSpeed; }
-		void SetBumpDampLow(float _bumpDampLowSpeed) { mBumpDampLowSpeed = _bumpDampLowSpeed; }
-
-		void SetBumpStopStiffness(float _bumpStopStiffness) { mBumpStopStiffness = _bumpStopStiffness; }
-		void SetBumpStopRange(float _bumpStopRange) { mBumpStopRange = _bumpStopRange; }
-
-		float SetAntiRollBarStiffness(float _antiRollBarStiffness) { mAntiRollBarStiffness = _antiRollBarStiffness; return mAntiRollBarStiffness; }
+		void SetSuspensionParams(const SuspensionParams& _params) { mSuspensionParams = _params; }
+		SuspensionParams& GetSuspensionParams() { return mSuspensionParams; }
 
 		bool GetCollision() { return mGroundContact; }
 
 		void SetSteeringAngle(float _steeringAngle) { mSteeringAngle = _steeringAngle; }
 
 		void SetTireRadius(float _wheelRadius) { mTireRadius = _wheelRadius; }
-
-		void SetRestLength(float _restLength) { mRestLength = _restLength; }
-
-		void SetRideHeight(float _rideHeight) { mRideHeight = _rideHeight; }
 
 		void SetDebugVisual(bool _value) { mDebugVisual = _value; }
 
@@ -78,22 +80,8 @@ namespace JamesEngine
 		float mDisplacement = 0.0f;
 		float mCurrentLength = 0.0f;
 
-		float mStiffness = 500;
+		SuspensionParams mSuspensionParams;
 
-		float mDampingThreshold = 0.25f; // Threshold for high-speed damping, m/s
-
-		float mReboundDampHighSpeed = 100;
-		float mReboundDampLowSpeed = 100;
-		float mBumpDampHighSpeed = 100;
-		float mBumpDampLowSpeed = 100;
-
-		float mBumpStopStiffness = 1000.0f;
-		float mBumpStopRange = 0.02f;
-
-		float mAntiRollBarStiffness = 1000.0f;
-
-		float mRestLength = 0.45f;
-		float mRideHeight = 0.07f;
 		float mTireRadius = 0.34f;
 
 		float mSteeringAngle = 0.0f;

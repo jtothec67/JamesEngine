@@ -90,6 +90,7 @@ struct StartFinishLine : public Component
 
 		currentLapSamples.clear();
 		currentDelta = 0.f;
+		lastSampleIndex = 0;
 	}
 
 	void OnTick()
@@ -245,6 +246,8 @@ struct CarController : public Component
 	std::shared_ptr<Rigidbody> rb;
 	std::shared_ptr<Suspension> FLWheelSuspension;
 	std::shared_ptr<Suspension> FRWheelSuspension;
+	std::shared_ptr<Suspension> RLWheelSuspension;
+	std::shared_ptr<Suspension> RRWheelSuspension;
 	std::shared_ptr<Tire> FLWheelTire;
 	std::shared_ptr<Tire> FRWheelTire;
 	std::shared_ptr<Tire> RLWheelTire;
@@ -258,7 +261,7 @@ struct CarController : public Component
 
 	// Steering parameters
 	float maxTireSteeringAngle = 25.f; // Maximum tire steering angle
-	float maxSteeringRotation = 640.f; // Maximum steering wheel rotation
+	float maxSteeringRotation = 360.f; // Maximum steering wheel rotation
 
 	// Engine and transmission parameters
 	std::vector<std::pair<float, float>> torqueCurve = {
@@ -957,13 +960,62 @@ struct CarController : public Component
 			}
 			else if (menuState == MenuState::Car)
 			{
+				// Back
 				if (gui->Button(vec2(200, 150), vec2(250, 100), white) == GUI::ButtonState::Clicked)
 					menuState = MenuState::Main;
 				gui->Text(vec2(200, 150), 50, vec3(0, 0, 0), "< Back", font);
 
-				gui->Image(vec2(width / 2, height / 2), vec2(700, 300), white);
-				gui->Text(vec2(width / 2, height / 2), 50, vec3(0, 0, 0), "Car Settings", font);
+				// Get params by reference (so edits are live)
+				SuspensionParams& FL = FLWheelSuspension->GetSuspensionParams();
+				SuspensionParams& FR = FRWheelSuspension->GetSuspensionParams();
+				SuspensionParams& RL = RLWheelSuspension->GetSuspensionParams();
+				SuspensionParams& RR = RRWheelSuspension->GetSuspensionParams();
 
+				// Layout like your Controller page
+				const float colFront = width / 3.0f;            // Front column center
+				const float colRear = (width / 3.0f) * 2.0f;   // Rear column center
+				const float y = height - (height / 2.0f);
+				const vec2  boxSize = vec2(500, 250);
+
+				// Front spring stiffness
+				gui->Image(vec2(colFront, y), boxSize, white);
+				gui->Text(vec2(colFront, y - 75.0f), 40, vec3(0, 0, 0), "Front spring stiffness", font);
+                gui->Text(vec2(colFront, y), 100, vec3(0, 0, 0), std::to_string((int)FL.stiffness), font);
+
+				if (gui->Button(vec2(colFront - (boxSize.x / 2) - 50.0f, y), vec2(50, 100), white) == GUI::ButtonState::Clicked)
+				{
+					float nv = glm::clamp(FL.stiffness - 5000.0f, 100000.0f, 200000.0f);
+					FL.stiffness = FR.stiffness = nv;
+				}
+				gui->Text(vec2(colFront - (boxSize.x / 2) - 55.0f, y), 75, vec3(0, 0, 0), "<", font);
+
+				if (gui->Button(vec2(colFront + (boxSize.x / 2) + 50.0f, y), vec2(50, 100), white) == GUI::ButtonState::Clicked)
+				{
+					float nv = glm::clamp(FL.stiffness + 5000.0f, 100000.0f, 200000.0f);
+					FL.stiffness = FR.stiffness = nv;
+				}
+				gui->Text(vec2(colFront + (boxSize.x / 2) + 50.0f, y), 75, vec3(0, 0, 0), ">", font);
+
+				// Rear spring stiffness
+				gui->Image(vec2(colRear, y), boxSize, white);
+				gui->Text(vec2(colRear, y - 75.0f), 40, vec3(0, 0, 0), "Rear spring stiffness", font);
+				gui->Text(vec2(colRear, y), 100, vec3(0, 0, 0), std::to_string((int)RL.stiffness), font);
+
+				if (gui->Button(vec2(colRear - (boxSize.x / 2) - 50.0f, y), vec2(50, 100), white) == GUI::ButtonState::Clicked)
+				{
+					float nv = glm::clamp(RL.stiffness - 5000.0f, 100000.0f, 200000.0f);
+					RL.stiffness = RR.stiffness = nv;
+				}
+				gui->Text(vec2(colRear - (boxSize.x / 2) - 55.0f, y), 75, vec3(0, 0, 0), "<", font);
+
+				if (gui->Button(vec2(colRear + (boxSize.x / 2) + 50.0f, y), vec2(50, 100), white) == GUI::ButtonState::Clicked)
+				{
+					float nv = glm::clamp(RL.stiffness + 5000.0f, 100000.0f, 200000.0f);
+					RL.stiffness = RR.stiffness = nv;
+				}
+				gui->Text(vec2(colRear + (boxSize.x / 2) + 50.0f, y), 75, vec3(0, 0, 0), ">", font);
+
+				// Close game
 				if (gui->Button(vec2(width - 200, 150), vec2(300, 150), white) == GUI::ButtonState::Clicked)
 					GetCore()->End();
 				gui->Text(vec2(width - 200, 150), 50, vec3(0, 0, 0), "CLOSE\nGAME", font);
@@ -1066,49 +1118,31 @@ int main()
 		rearTyreParams.wheelMass = 25.f;
 		rearTyreParams.rollingResistance = 0.015f;
 
-		/*float FStiffness = 143000;
-		float FBumpLow = 7000;
-		float FBumpHigh = 9500;
-		float FReboundLow = 5000;
-		float FReboundHigh = 7000;
-		float FBumpStopStiffness = 100000;
-		float FBumpStopRange = 0.015f;
-		float FARBStiff = 30000;
-		float FRestLength = 0.43f;
-		float FRideHeightRatio = 0.053f;
 
-		float RStiffness = 95000;
-		float RBumpLow = 6500;
-		float RBumpHigh = 9000;
-		float RReboundLow = 9000;
-		float RReboundHigh = 10000;
-		float RBumpStopStiffness = 100000;
-		float RBumpStopRange = 0.015f;
-		float RARBStiff = 35000;
-		float RRestLength = 0.45f;
-		float RRideHeightRatio = 0.078f;*/
+		SuspensionParams frontSuspensionParams{};
+		frontSuspensionParams.stiffness = 140000;
+		frontSuspensionParams.bumpDampLowSpeed = 6000;
+		frontSuspensionParams.bumpDampHighSpeed = 11000;
+		frontSuspensionParams.reboundDampLowSpeed = 5500;
+		frontSuspensionParams.reboundDampHighSpeed = 8000;
+		frontSuspensionParams.bumpStopStiffness = 160000;
+		frontSuspensionParams.bumpStopRange = 0.015f;
+		frontSuspensionParams.antiRollBarStiffness = 35000;
+		frontSuspensionParams.restLength = 0.42f;
+		frontSuspensionParams.rideHeight = 0.052f;
 
-		float FStiffness = 140000;
-		float FBumpLow = 6000;        // Slightly higher to resist steady aero compression
-		float FBumpHigh = 11000;      // Firm to limit dive and reduce travel from downforce
-		float FReboundLow = 5500;     // Reduced rebound to prevent slow recoil and lag
-		float FReboundHigh = 8000;    // Lower than before to soften extension
-		float FBumpStopStiffness = 160000;
-		float FBumpStopRange = 0.015f;
-		float FARBStiff = 35000;
-		float FRestLength = 0.42f;
-		float FRideHeightRatio = 0.052f;
+		SuspensionParams rearSuspensionParams{};
+		rearSuspensionParams.stiffness = 105000;
+		rearSuspensionParams.bumpDampLowSpeed = 5500;
+		rearSuspensionParams.bumpDampHighSpeed = 9000;
+		rearSuspensionParams.reboundDampLowSpeed = 5000;
+		rearSuspensionParams.reboundDampHighSpeed = 10000;
+		rearSuspensionParams.bumpStopStiffness = 160000;
+		rearSuspensionParams.bumpStopRange = 0.015f;
+		rearSuspensionParams.antiRollBarStiffness = 32000;
+		rearSuspensionParams.restLength = 0.44f;
+		rearSuspensionParams.rideHeight = 0.072f;
 
-		float RStiffness = 105000;
-		float RBumpLow = 5500;
-		float RBumpHigh = 9000;
-		float RReboundLow = 5000;     // Reduced like the front to balance spring recovery
-		float RReboundHigh = 10000;
-		float RBumpStopStiffness = 160000;
-		float RBumpStopRange = 0.015f;
-		float RARBStiff = 32000;
-		float RRestLength = 0.44f;
-		float RRideHeightRatio = 0.072f;
 
 		core->GetSkybox()->SetTexture(core->GetResources()->Load<SkyboxTexture>("skyboxes/sky"));
 
@@ -1253,16 +1287,7 @@ int main()
 		FLWheelSuspension->SetWheel(FLWheel);
 		FLWheelSuspension->SetCarBody(carBody);
 		FLWheelSuspension->SetAnchorPoint(FLWheelAnchor);
-		FLWheelSuspension->SetStiffness(FStiffness);
-		FLWheelSuspension->SetBumpDampLow(FBumpLow);
-		FLWheelSuspension->SetBumpDampHigh(FBumpHigh);
-		FLWheelSuspension->SetReboundDampLow(FReboundLow);
-		FLWheelSuspension->SetReboundDampHigh(FReboundHigh);
-		FLWheelSuspension->SetBumpStopStiffness(FBumpStopStiffness);
-		FLWheelSuspension->SetBumpStopRange(FBumpStopRange);
-		FLWheelSuspension->SetAntiRollBarStiffness(FARBStiff);
-		FLWheelSuspension->SetRestLength(FRestLength);
-		FLWheelSuspension->SetRideHeight(FRideHeightRatio);
+		FLWheelSuspension->SetSuspensionParams(frontSuspensionParams);
 		std::shared_ptr<Tire> FLWheelTire = FLWheel->AddComponent<Tire>();
 		FLWheelTire->SetCarBody(carBody);
 		FLWheelTire->SetAnchorPoint(FLWheelAnchor);
@@ -1289,16 +1314,7 @@ int main()
 		FRWheelSuspension->SetWheel(FRWheel);
 		FRWheelSuspension->SetCarBody(carBody);
 		FRWheelSuspension->SetAnchorPoint(FRWheelAnchor);
-		FRWheelSuspension->SetStiffness(FStiffness);
-		FRWheelSuspension->SetBumpDampLow(FBumpLow);
-		FRWheelSuspension->SetBumpDampHigh(FBumpHigh);
-		FRWheelSuspension->SetReboundDampLow(FReboundLow);
-		FRWheelSuspension->SetReboundDampHigh(FReboundHigh);
-		FRWheelSuspension->SetBumpStopStiffness(FBumpStopStiffness);
-		FRWheelSuspension->SetBumpStopRange(FBumpStopRange);
-		FRWheelSuspension->SetAntiRollBarStiffness(FARBStiff);
-		FRWheelSuspension->SetRestLength(FRestLength);
-		FRWheelSuspension->SetRideHeight(FRideHeightRatio);
+		FRWheelSuspension->SetSuspensionParams(frontSuspensionParams);
 		std::shared_ptr<Tire> FRWheelTire = FRWheel->AddComponent<Tire>();
 		FRWheelTire->SetCarBody(carBody);
 		FRWheelTire->SetAnchorPoint(FRWheelAnchor);
@@ -1325,16 +1341,7 @@ int main()
 		RLWheelSuspension->SetWheel(RLWheel);
 		RLWheelSuspension->SetCarBody(carBody);
 		RLWheelSuspension->SetAnchorPoint(RLWheelAnchor);
-		RLWheelSuspension->SetStiffness(RStiffness);
-		RLWheelSuspension->SetBumpDampLow(RBumpLow);
-		RLWheelSuspension->SetBumpDampHigh(RBumpHigh);
-		RLWheelSuspension->SetReboundDampLow(RReboundLow);
-		RLWheelSuspension->SetReboundDampHigh(RReboundHigh);
-		RLWheelSuspension->SetBumpStopStiffness(RBumpStopStiffness);
-		RLWheelSuspension->SetBumpStopRange(RBumpStopRange);
-		RLWheelSuspension->SetAntiRollBarStiffness(RARBStiff);
-		RLWheelSuspension->SetRestLength(RRestLength);
-		RLWheelSuspension->SetRideHeight(RRideHeightRatio);
+		RLWheelSuspension->SetSuspensionParams(rearSuspensionParams);
 		std::shared_ptr<Tire> RLWheelTire = RLWheel->AddComponent<Tire>();
 		RLWheelTire->SetCarBody(carBody);
 		RLWheelTire->SetAnchorPoint(RLWheelAnchor);
@@ -1361,16 +1368,7 @@ int main()
 		RRWheelSuspension->SetWheel(RRWheel);
 		RRWheelSuspension->SetCarBody(carBody);
 		RRWheelSuspension->SetAnchorPoint(RRWheelAnchor);
-		RRWheelSuspension->SetStiffness(RStiffness);
-		RRWheelSuspension->SetBumpDampLow(RBumpLow);
-		RRWheelSuspension->SetBumpDampHigh(RBumpHigh);
-		RRWheelSuspension->SetReboundDampLow(RReboundLow);
-		RRWheelSuspension->SetReboundDampHigh(RReboundHigh);
-		RRWheelSuspension->SetBumpStopStiffness(RBumpStopStiffness);
-		RRWheelSuspension->SetBumpStopRange(RBumpStopRange);
-		RRWheelSuspension->SetAntiRollBarStiffness(RARBStiff);
-		RRWheelSuspension->SetRestLength(RRestLength);
-		RRWheelSuspension->SetRideHeight(RRideHeightRatio);
+		RRWheelSuspension->SetSuspensionParams(rearSuspensionParams);
 		std::shared_ptr<Tire> RRWheelTire = RRWheel->AddComponent<Tire>();
 		RRWheelTire->SetCarBody(carBody);
 		RRWheelTire->SetAnchorPoint(RRWheelAnchor);
@@ -1393,6 +1391,8 @@ int main()
 		carController->rb = carBodyRB;
 		carController->FLWheelSuspension = FLWheelSuspension;
 		carController->FRWheelSuspension = FRWheelSuspension;
+		carController->RLWheelSuspension = RLWheelSuspension;
+		carController->RRWheelSuspension = RRWheelSuspension;
 		carController->FLWheelTire = FLWheelTire;
 		carController->FRWheelTire = FRWheelTire;
 		carController->RLWheelTire = RLWheelTire;

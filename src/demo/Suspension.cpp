@@ -106,6 +106,13 @@ namespace JamesEngine
             std::cout << "Suspension component is missing a rigidbody on the car" << std::endl;
             return;
         }
+
+		// Lots more things that would break if they weren't set, but a small check to make sure you haven't forgotten to set any params
+        if (mSuspensionParams.stiffness == 0)
+        {
+            std::cout << "Suspension parameters are not set correctly" << std::endl;
+            return;
+		}
     }
 
     void Suspension::OnEarlyFixedTick()
@@ -118,7 +125,7 @@ namespace JamesEngine
         Ray ray;
         ray.origin = anchorPos;
         ray.direction = suspensionDir;
-        ray.length = mRestLength + mTireRadius;
+        ray.length = mSuspensionParams.restLength + mTireRadius;
 
         RaycastHit hit;
         mGroundContact = GetCore()->GetRaycastSystem()->Raycast(ray, hit);
@@ -132,10 +139,10 @@ namespace JamesEngine
         }
         else
         {
-            mCurrentLength = mRestLength;
+            mCurrentLength = mSuspensionParams.restLength;
         }
 
-        float targetLength = glm::clamp(mRideHeight + mTireRadius, 0.0f, mRestLength);
+        float targetLength = glm::clamp(mSuspensionParams.rideHeight + mTireRadius, 0.0f, mSuspensionParams.restLength);
         mDisplacement = targetLength - mCurrentLength;
     }
 
@@ -144,15 +151,20 @@ namespace JamesEngine
         glm::vec3 anchorPos = mAnchorPoint->GetComponent<Transform>()->GetPosition();
         glm::vec3 suspensionDir = -glm::normalize(mAnchorPoint->GetComponent<Transform>()->GetUp());
 
+		float wheelDistance = mCurrentLength;
+
+        if (mCurrentLength < mTireRadius)
+			wheelDistance = mTireRadius;
+
         // Update wheel position using previously calculated mCurrentLength
-        glm::vec3 wheelPos = anchorPos + suspensionDir * mCurrentLength;
+        glm::vec3 wheelPos = anchorPos + suspensionDir * wheelDistance;
         mWheel->GetComponent<Transform>()->SetPosition(wheelPos);
 
         // Exit early if no ground contact
         if (!mGroundContact)
             return;
 
-        float targetLength = glm::clamp(mRideHeight + mTireRadius, 0.0f, mRestLength);
+        float targetLength = glm::clamp(mSuspensionParams.rideHeight + mTireRadius, 0.0f, mSuspensionParams.restLength);
 
         // Get velocity of anchor point projected along suspension direction
         glm::vec3 pointVelocity = mCarRb->GetVelocityAtPoint(anchorPos);
@@ -162,42 +174,42 @@ namespace JamesEngine
         float springForce = 0.0f;
 
         // Regular spring force within normal range
-        if (mCurrentLength <= mRestLength && mCurrentLength >= 0.0f)
+        if (mCurrentLength <= mSuspensionParams.restLength && mCurrentLength >= 0.0f)
         {
-            springForce = glm::max(0.0f, mStiffness * mDisplacement);
+            springForce = glm::max(0.0f, mSuspensionParams.stiffness * mDisplacement);
         }
 
         // Bump stop (bottoming out)
-        if (mCurrentLength < mBumpStopRange)
+        if (mCurrentLength < mSuspensionParams.bumpStopRange)
         {
-            float compressionDepth = mBumpStopRange - mCurrentLength;
-            springForce += mBumpStopStiffness * compressionDepth;
+            float compressionDepth = mSuspensionParams.bumpStopRange - mCurrentLength;
+            springForce += mSuspensionParams.bumpStopStiffness * compressionDepth;
         }
 
         // Bump stop (extension limit)
-        if (mCurrentLength > mRestLength)
+        if (mCurrentLength > mSuspensionParams.restLength)
         {
-            float extensionOverrun = mCurrentLength - mRestLength;
-            if (extensionOverrun < mBumpStopRange)
+            float extensionOverrun = mCurrentLength - mSuspensionParams.restLength;
+            if (extensionOverrun < mSuspensionParams.bumpStopRange)
             {
-                float bumpCompression = mBumpStopRange - extensionOverrun;
-                springForce += mBumpStopStiffness * bumpCompression;
+                float bumpCompression = mSuspensionParams.bumpStopRange - extensionOverrun;
+                springForce += mSuspensionParams.bumpStopStiffness * bumpCompression;
             }
         }
 
         // Damping logic
         bool isRebound = (relativeVelocity > 0.0f);
         float absVel = std::abs(relativeVelocity);
-        bool isHighSpeed = (absVel > mDampingThreshold);
+        bool isHighSpeed = (absVel > mSuspensionParams.dampingThreshold);
 
         float dampingCoef = 0.0f;
         if (isRebound)
         {
-            dampingCoef = isHighSpeed ? mReboundDampHighSpeed : mReboundDampLowSpeed;
+            dampingCoef = isHighSpeed ? mSuspensionParams.reboundDampHighSpeed : mSuspensionParams.reboundDampLowSpeed;
         }
         else
         {
-            dampingCoef = isHighSpeed ? mBumpDampHighSpeed : mBumpDampLowSpeed;
+            dampingCoef = isHighSpeed ? mSuspensionParams.bumpDampHighSpeed : mSuspensionParams.bumpDampLowSpeed;
         }
 
         float dampingForce = -dampingCoef * relativeVelocity;
@@ -215,7 +227,7 @@ namespace JamesEngine
         if (mOppositeAxelSuspension)
         {
             float displacementDiff = mDisplacement - mOppositeAxelSuspension->GetDisplacement();
-            float antiRollForce = mAntiRollBarStiffness * displacementDiff;
+            float antiRollForce = mSuspensionParams.antiRollBarStiffness * displacementDiff;
 
             glm::vec3 antiRollCorrection = -suspensionDir * antiRollForce;
             mCarRb->ApplyForce(antiRollCorrection, anchorPos);
