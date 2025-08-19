@@ -10,31 +10,49 @@ namespace JamesEngine
 		float maxRPM;
 		float idleRPM;
 		std::vector<float> gearRatios;
+		std::vector<std::pair<float, float>> torqueCurve;
 		float finalDrive;
 		float drivetrainEfficiency;
 
 		float bitePointStart = 0.35f;
 		float bitePointEnd = 0.65f;
 
-		std::vector<std::pair<float, float>> torqueCurve;
+		float freeRevRate = 12000.0f;
+		float decayRate = 3000.0f;
+
+		float engineBrakeBaseK = 80.0f;
+		float throttleIdleThreshold = 0.05f;
 	};
 
-	class Engine : public Component
+	class Engine
 	{
 	public:
-		void OnAlive();
+        void SetEngineParams(const EngineParams& params) { mParams = params; }
 
-		void EngineUpdate(float _throttleInput, float _clutchEngagement, float _wheelRPM);
+        void SetGear(int gear) { mCurrentGear = glm::clamp(gear, 1, (int)std::max<size_t>(1, mParams.gearRatios.size())); }
+		int GetCurrentGear() { return mCurrentGear; }
 
-		void SetEngineParams(const EngineParams& params) { mParams = params; }
+		void SetAutoClutchEnabled(bool enabled) { mAutoClutchEnabled = enabled; }
+		float GetClutch() { return mClutch; }
 
-		void SetEngineAudioSource(std::shared_ptr<AudioSource> audioSource) { engineAudioSource = audioSource; }
-		void SetEngineSound(std::shared_ptr<Sound> sound) { engineSound = sound; }
+        void EngineUpdate(float throttle, float clutch, float wheelRPM, float dt);
 
-	private:
-		EngineParams mParams;
+        float GetRPM() { return mCurrentRPM; }
+        float GetWheelTorque();
 
-		std::shared_ptr<AudioSource> engineAudioSource;
-		std::shared_ptr<Sound> engineSound;
-	};
+    private:
+        EngineParams mParams;
+
+        int mCurrentGear = 1;
+        float mCurrentRPM = 0.0f;
+
+		enum class LaunchState { PreLaunch, Hold, Release };
+		bool mAutoClutchEnabled = true;
+		LaunchState mLaunchState = LaunchState::PreLaunch;
+
+        // cached inputs
+        float mThrottle = 0.0f;
+        float mClutch = 1.0f;
+    };
+
 }
