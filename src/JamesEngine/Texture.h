@@ -10,6 +10,7 @@ namespace JamesEngine
 
 	class ModelRenderer;
 	class GUI;
+	class Core;
 
 	class Texture : public Resource
 	{
@@ -19,6 +20,7 @@ namespace JamesEngine
 	private:
 		friend class ModelRenderer;
 		friend class GUI;
+		friend class Core;
 
 		std::shared_ptr<Renderer::Texture> mTexture;
 	};

@@ -14,10 +14,10 @@ using namespace JamesEngine;
 
 struct freelookCamController : public Component
 {
-	float normalSpeed = 0.005f;
-	float fastSpeed = 0.03f;
-	float slowSpeed = 0.0005f;
-	float sensitivity = 0.045f;
+	float normalSpeed = 1.f;
+	float fastSpeed = 3.f;
+	float slowSpeed = 0.5f;
+	float sensitivity = 0.25f;
 
 	void OnTick()
 	{
@@ -30,25 +30,25 @@ struct freelookCamController : public Component
 			speed = normalSpeed;
 
 		if (GetKeyboard()->IsKey(SDLK_u))
-			GetTransform()->Move(-GetTransform()->GetForward() * speed);// * GetCore()->DeltaTime());
+			GetTransform()->Move(-GetTransform()->GetForward() * speed * GetCore()->GetLastFrameTime());
 		if (GetKeyboard()->IsKey(SDLK_j))
-			GetTransform()->Move(GetTransform()->GetForward() * speed);// * GetCore()->DeltaTime());
+			GetTransform()->Move(GetTransform()->GetForward() * speed * GetCore()->GetLastFrameTime());
 		if (GetKeyboard()->IsKey(SDLK_h))
-			GetTransform()->Move(GetTransform()->GetRight() * speed);// * GetCore()->DeltaTime());
+			GetTransform()->Move(GetTransform()->GetRight() * speed * GetCore()->GetLastFrameTime());
 		if (GetKeyboard()->IsKey(SDLK_k))
-			GetTransform()->Move(-GetTransform()->GetRight() * speed);// * GetCore()->DeltaTime());
+			GetTransform()->Move(-GetTransform()->GetRight() * speed * GetCore()->GetLastFrameTime());
 		if (GetKeyboard()->IsKey(SDLK_y))
-			GetTransform()->Move(-GetTransform()->GetUp() * speed);// * GetCore()->DeltaTime());
+			GetTransform()->Move(-GetTransform()->GetUp() * speed * GetCore()->GetLastFrameTime());
 		if (GetKeyboard()->IsKey(SDLK_i))
-			GetTransform()->Move(GetTransform()->GetUp() * speed);// * GetCore()->DeltaTime());
+			GetTransform()->Move(GetTransform()->GetUp() * speed * GetCore()->GetLastFrameTime());
 		if (GetKeyboard()->IsKey(SDLK_UP))
-			GetTransform()->Rotate(vec3(sensitivity, 0, 0));// * GetCore()->DeltaTime(), 0, 0));
+			GetTransform()->Rotate(vec3(sensitivity, 0, 0 * GetCore()->GetLastFrameTime()));
 		if (GetKeyboard()->IsKey(SDLK_DOWN))
-			GetTransform()->Rotate(vec3(-sensitivity, 0, 0));// * GetCore()->DeltaTime(), 0, 0));
+			GetTransform()->Rotate(vec3(-sensitivity, 0, 0 * GetCore()->GetLastFrameTime()));
 		if (GetKeyboard()->IsKey(SDLK_LEFT))
-			GetTransform()->Rotate(vec3(0, sensitivity, 0));// * GetCore()->DeltaTime(), 0));
+			GetTransform()->Rotate(vec3(0, sensitivity, 0 * GetCore()->GetLastFrameTime()));
 		if (GetKeyboard()->IsKey(SDLK_RIGHT))
-			GetTransform()->Rotate(vec3(0, -sensitivity, 0));// * GetCore()->DeltaTime(), 0));
+			GetTransform()->Rotate(vec3(0, -sensitivity, 0 * GetCore()->GetLastFrameTime()));
 	}
 };
 

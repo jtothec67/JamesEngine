@@ -7,6 +7,7 @@
 #include "Camera.h"
 #include "Timer.h"
 #include "Skybox.h"
+#include "Texture.h"
 
 #include <iostream>
 
@@ -304,7 +305,9 @@ namespace JamesEngine
 		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_DirLightDirection", mLightManager->GetDirectionalLightDirection()); // Assumes light direction and colour never change, light direction can't change while using pre baked shadows
 		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_DirLightColor", mLightManager->GetDirectionalLightColour());
 
-		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_SkyBox", mSkybox->GetTexture()->mTexture, 29); // Assumes skybox doesn't change
+		mResources->Load<Shader>("shaders/ObjShader")->mShader->cubemapUniform("u_SkyBox", mSkybox->GetTexture()->mTexture, 29); // Assumes skybox doesn't change
+
+		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_BRDFLUT", mResources->Load<Texture>("skyboxes/brdf_lut")->mTexture, 28);
 	}
 
 	void Core::UploadGlobalUniforms()

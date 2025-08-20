@@ -88,6 +88,18 @@ namespace Renderer
 
 				glTexImage2D(GL_TEXTURE_2D, 0, format, m_width, m_height, 0, format, GL_UNSIGNED_BYTE, &m_data.at(0));
 
+				// Disgustingly hardcoded
+				if (m_path == "../assets/skyboxes/brdf_lut.png")
+				{
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+					glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0.0f);
+				}
+
 				glGenerateMipmap(GL_TEXTURE_2D);
 
 				glBindTexture(GL_TEXTURE_2D, 0);
@@ -105,10 +117,14 @@ namespace Renderer
 
 				glBindTexture(GL_TEXTURE_CUBE_MAP, m_id);
 
-				int width, height;
+				glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+				glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+
+				int width, height, channels;
 				for (unsigned int i = 0; i < m_syboxFaces.size(); i++)
 				{
-					unsigned char* data = stbi_load(m_syboxFaces[i].c_str(), &width, &height, NULL, 0);
+					unsigned char* data = stbi_load(m_syboxFaces[i].c_str(), &width, &height, &channels, 4);
 
 					if (data)
 					{
@@ -120,7 +136,7 @@ namespace Renderer
 							skyboxFaceData.push_back(data[j]);
 						}
 
-						glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &skyboxFaceData.at(0));
+						glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_SRGB8_ALPHA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &skyboxFaceData.at(0));
 						stbi_image_free(data);
 					}
 					else
@@ -135,7 +151,7 @@ namespace Renderer
 				}
 
 				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
