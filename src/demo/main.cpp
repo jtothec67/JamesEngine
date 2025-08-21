@@ -303,7 +303,7 @@ struct CarController : public Component
 
 	// Brake torques
 	float brakeTorqueCapacity = 15000.f;
-	float brakeBias = 0.60f; // 60% front, 40% rear
+	float brakeBias = 0.58f; // 60% front, 40% rear
 
 	// Input tracking
 	bool lastInputController = false;
@@ -325,11 +325,13 @@ struct CarController : public Component
 	float frontalArea = 1.8f; // m^2
 
 	// Downforce settings at reference speed
-	//float rearDownforceAt200 = 5300.0f; // N at 200 km/h
-	//float frontDownforceAt200 = 4000.0f; // N at 200 km/h
-	float rearDownforceAt200 = 1900.0f; // N at 200 km/h
-	float frontDownforceAt200 = 2600.0f; // N at 200 km/h
-	float referenceSpeed = 200.0f / 3.6f; // m/s
+	//float rearDownforceAtReference = 5300.0f; // N
+	//float frontDownforceAtReference = 4000.0f; // N
+	//float rearDownforceAtReference = 3800.0f; // N
+	//float frontDownforceAtReference = 2700.0f; // N
+	float rearDownforceAtReference = 7300.0f; // N
+	float frontDownforceAtReference = 5400.0f; // N
+	float referenceSpeed = 280.0f / 3.6f; // m/s
 
 	// Engine audio
 	std::shared_ptr<AudioSource> engineAudioSource;
@@ -587,8 +589,8 @@ struct CarController : public Component
 		float speedRatio = forwardSpeed / referenceSpeed;
 		float scale = speedRatio * speedRatio;
 
-		glm::vec3 rearDownforce = down * (rearDownforceAt200 * scale);
-		glm::vec3 frontDownforce = down * (frontDownforceAt200 * scale);
+		glm::vec3 rearDownforce = down * (rearDownforceAtReference * scale);
+		glm::vec3 frontDownforce = down * (frontDownforceAtReference * scale);
 
 		rb->ApplyForce(rearDownforce, rearDownforcePos->GetComponent<Transform>()->GetPosition());
 		rb->ApplyForce(frontDownforce, frontDownforcePos->GetComponent<Transform>()->GetPosition());
@@ -642,6 +644,20 @@ struct CarController : public Component
 
 		// HUD
 		gui->Image(vec2(width / 2, 25), vec2(750, 25), GetCore()->GetResources()->Load<Texture>("images/white"));
+		if (mSteerInput > 0)
+		{
+			gui->BlendImage(vec2((width / 2) - 750 / 4, 25), vec2(750 / 2, 25),
+				GetCore()->GetResources()->Load<Texture>("images/black"),
+				GetCore()->GetResources()->Load<Texture>("images/white"),
+				1 - (mSteerInput / maxTireSteeringAngle));
+		}
+		else if (mSteerInput < 0)
+		{
+			gui->BlendImage(vec2((width / 2) + 750 / 4, 25), vec2((750 / 2) + 2, 25),
+				GetCore()->GetResources()->Load<Texture>("images/white"),
+				GetCore()->GetResources()->Load<Texture>("images/black"),
+				(mSteerInput / -maxTireSteeringAngle));
+		}
 
 		float normalized = (currentRPM - 6000) / (maxRPM - 6000);
 		float revBlend = glm::clamp(normalized, 0.0f, 1.0f);
@@ -663,16 +679,20 @@ struct CarController : public Component
 			GetCore()->GetResources()->Load<Texture>("images/lightBlue"),
 			1 - clutchEngagement);
 
-		if (mSteerInput > 0)
-			gui->BlendImage(vec2((width / 2) - 750 / 4, 25), vec2(750 / 2, 25),
-				GetCore()->GetResources()->Load<Texture>("images/black"),
-				GetCore()->GetResources()->Load<Texture>("images/white"),
-				1 - (mSteerInput / maxTireSteeringAngle));
-		else if (mSteerInput < 0)
-			gui->BlendImage(vec2((width / 2) + 750 / 4, 25), vec2((750 / 2) + 2, 25),
-				GetCore()->GetResources()->Load<Texture>("images/white"),
-				GetCore()->GetResources()->Load<Texture>("images/black"),
-				(mSteerInput / -maxTireSteeringAngle));
+		// Brake bias
+		if (GetCore()->GetInput()->GetController()->IsButtonDown(SDL_CONTROLLER_BUTTON_DPAD_LEFT))
+		{
+			brakeBias -= 0.01f;
+			if (brakeBias < 0.5f) brakeBias = 0.5f; // Prevent going too far
+		}
+		else if (GetCore()->GetInput()->GetController()->IsButtonDown(SDL_CONTROLLER_BUTTON_DPAD_RIGHT))
+		{
+			brakeBias += 0.01f;
+			if (brakeBias > 0.8f) brakeBias = 0.8f; // Prevent going too far
+		}
+
+		gui->Image(vec2(width - 200, 200), vec2(350, 50), GetCore()->GetResources()->Load<Texture>("images/white"));
+		gui->Text(vec2(width - 200, 200), 30, vec3(0, 0, 0), "Brake bias: < " + std::to_string((int)(brakeBias * 100)) + "% >", GetCore()->GetResources()->Load<Font>("fonts/munro"));
 
 		float speed = glm::dot(rb->GetVelocity(), GetEntity()->GetComponent<Transform>()->GetForward());
 		gui->Text(vec2(width - 200, 100), 100, vec3(1, 1, 1), std::to_string((int)(speed * 3.6)), GetCore()->GetResources()->Load<Font>("fonts/munro"));
@@ -684,10 +704,10 @@ struct CarController : public Component
 		// Menu overlays
 		if (menuState != MenuState::Closed)
 		{
-			auto res = GetCore()->GetResources();
-			auto white = res->Load<Texture>("images/white");
-			auto dim = res->Load<Texture>("images/transparentblack");
-			auto font = res->Load<Font>("fonts/munro");
+			std::shared_ptr<Resources> res = GetCore()->GetResources();
+			std::shared_ptr<Texture> white = res->Load<Texture>("images/white");
+			std::shared_ptr<Texture> dim = res->Load<Texture>("images/transparentblack");
+			std::shared_ptr<Font> font = res->Load<Font>("fonts/munro");
 
 			gui->Image(vec2(width / 2, height / 2), vec2(width, height), dim);
 
