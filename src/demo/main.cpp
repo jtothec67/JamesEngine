@@ -992,8 +992,10 @@ int main()
 	{
 
 		TireParams frontTyreParams{};
-		frontTyreParams.brushLongStiffCoeff = 80;
-		frontTyreParams.brushLatStiffCoeff = 110;
+		frontTyreParams.brushLongStiffCoeff = 20;
+		frontTyreParams.brushLatStiffCoeff = 60;
+		/*frontTyreParams.brushLongStiffCoeff = 5.3;
+		frontTyreParams.brushLatStiffCoeff = 15;*/
 
 		frontTyreParams.peakFrictionCoefficient = 1.6f;
 		frontTyreParams.tireRadius = 0.34f;
@@ -1001,8 +1003,10 @@ int main()
 		frontTyreParams.rollingResistance = 0.015f;
 
 		TireParams rearTyreParams{};
-		rearTyreParams.brushLongStiffCoeff = 80;
-		rearTyreParams.brushLatStiffCoeff = 110;
+		rearTyreParams.brushLongStiffCoeff = 20;
+		rearTyreParams.brushLatStiffCoeff = 60;
+		/*rearTyreParams.brushLongStiffCoeff = 5.3;
+		rearTyreParams.brushLatStiffCoeff = 15;*/
 
 		rearTyreParams.peakFrictionCoefficient = 1.6f;
 		rearTyreParams.tireRadius = 0.34f;
@@ -1049,18 +1053,18 @@ int main()
 		freeCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
 		freeCamEntity->AddComponent<freelookCamController>();
 
+		std::shared_ptr<Entity> bonnetCamEntity = core->AddEntity();
+		std::shared_ptr<Camera> bonnetCam = bonnetCamEntity->AddComponent<Camera>();
+		bonnetCam->SetPriority(1);
+		bonnetCamEntity->GetComponent<Transform>()->SetPosition(vec3(0, 0.767, 0.39));
+		bonnetCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
+
 		std::shared_ptr<Entity> cockpitCamEntity = core->AddEntity();
 		std::shared_ptr<Camera> cockpitCam = cockpitCamEntity->AddComponent<Camera>();
 		cockpitCam->SetPriority(10);
 		cockpitCamEntity->GetComponent<Transform>()->SetPosition(vec3(0.390911, 0.611829, -0.526169));
 		cockpitCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
 		cockpitCamEntity->AddComponent<CameraController>();
-
-		std::shared_ptr<Entity> bonnetCamEntity = core->AddEntity();
-		std::shared_ptr<Camera> bonnetCam = bonnetCamEntity->AddComponent<Camera>();
-		bonnetCam->SetPriority(1);
-		bonnetCamEntity->GetComponent<Transform>()->SetPosition(vec3(0, 0.767, 0.39));
-		bonnetCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
 
 		std::shared_ptr<Entity> chaseCamEntity = core->AddEntity();
 		std::shared_ptr<Camera> chaseCam = chaseCamEntity->AddComponent<Camera>();

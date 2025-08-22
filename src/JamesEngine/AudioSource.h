@@ -18,9 +18,9 @@ namespace JamesEngine
 	class AudioSource : public Component
 	{
 	public:
-		AudioSource();
-		~AudioSource();
 
+		void OnInitialize();
+		void OnDestroy();
 		void OnTick();
 
 #ifdef _DEBUG
@@ -55,12 +55,12 @@ namespace JamesEngine
 
 		bool mLooping = false;
 
-		float mPitch;
-		float mGain;
+		float mPitch = 1.f;
+		float mGain = 1.f;
 
-		float mMaxDistance;
-		float mMinimumDistance;
-		float mRollOffFactor;
+		float mMaxDistance = 30.f;
+		float mMinimumDistance = 2.5f;
+		float mRollOffFactor = 1.f;
 
 #ifdef _DEBUG
 

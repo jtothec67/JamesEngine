@@ -2,6 +2,8 @@
 
 #include "Suspension.h"
 
+#include <iomanip>
+
 namespace JamesEngine
 {
 
@@ -79,6 +81,70 @@ namespace JamesEngine
             return;
         }
 
+        //{
+        //    // Representative outside-wheel vertical load (N)
+        //    float Fz = 5500.0f;
+
+        //    // Derived stiffness & plateau
+        //    float longStiff = mTireParams.brushLongStiffCoeff * Fz; // N per slip ratio
+        //    float Fmax = mTireParams.peakFrictionCoefficient * Fz;
+
+        //    // Sweep slip ratio (0% .. 25%)
+        //    const float sStart = 0.0f;
+        //    const float sEnd = 0.40f;
+        //    const float sStep = 0.0025f;
+
+        //    // CSV header
+        //    std::cout << "slip_ratio,Fx_N,region\n";
+
+        //    // Track peak (plateau entry)
+        //    float peakFx = -1e9f;
+        //    float peakS = 0.0f;
+
+        //    for (float s = sStart; s <= sEnd + 1e-9f; s += sStep)
+        //    {
+        //        // Raw longitudinal force
+        //        float FxRaw = -longStiff * s; // sign per your convention
+
+        //        // Combined demand (pure longitudinal here)
+        //        float gamma = std::fabs(FxRaw);
+
+        //        // Grip vs sliding
+        //        float Fx;
+        //        bool isSliding = false;
+
+        //        if (gamma < Fmax)
+        //        {
+        //            Fx = FxRaw;         // elastic region
+        //            isSliding = false;
+        //        }
+        //        else
+        //        {
+        //            float scale = Fmax / gamma; // caps at mu*Fz
+        //            Fx = FxRaw * scale;
+        //            isSliding = true;
+        //        }
+
+        //        // Output CSV
+        //        std::cout << std::fixed << std::setprecision(4)
+        //            << s << "," << Fx << "," << (isSliding ? "slide" : "grip") << "\n";
+
+        //        // Track peak magnitude (plateau entry)
+        //        if (std::fabs(Fx) > std::fabs(peakFx))
+        //        {
+        //            peakFx = Fx;
+        //            peakS = s;
+        //        }
+        //    }
+
+        //    // Summary to stderr so it won't pollute CSV
+        //    // Theoretical crossover (peak) slip ratio ~= mu / kx
+        //    float s_theory = mTireParams.peakFrictionCoefficient / mTireParams.brushLongStiffCoeff;
+
+        //    std::cerr << "Peak |Fx| near slip ratio s ~= " << std::setprecision(4) << peakS
+        //        << " (theory ~= " << s_theory << "), Fx = " << peakFx << " N\n";
+        //}
+
         // Compute vehicle velocity at contact
         glm::vec3 carVel = mCarRb->GetVelocityAtPoint(mSuspension->GetContactPoint());
 
@@ -122,6 +188,8 @@ namespace JamesEngine
 
         // Compute friction forces and handle grip vs sliding behavior
         float Fx, Fy;
+
+		//std::cout << GetEntity()->GetTag() << " Fmax: " << Fmax << std::endl;
 
         if (gamma < Fmax)
         {
@@ -208,7 +276,7 @@ namespace JamesEngine
             if (slipRatio > 0.0f)
                 tireScreechVolume = glm::clamp(slipRatio, 0.f, 1.f);
             else
-                tireScreechVolume = glm::clamp(-slipRatio * 4, 0.f, 1.f);
+                tireScreechVolume = glm::clamp(-slipRatio * 3, 0.f, 1.f);
             mAudioSource->SetGain(tireScreechVolume);
         }
         else

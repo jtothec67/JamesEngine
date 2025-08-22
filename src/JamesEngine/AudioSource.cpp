@@ -15,7 +15,7 @@
 namespace JamesEngine
 {
 
-	AudioSource::AudioSource()
+	void AudioSource::OnInitialize()
 	{
 		alGenSources(1, &mSourceId);
 		
@@ -29,7 +29,7 @@ namespace JamesEngine
 		SetRollOffFactor(1.f);
 	}
 
-	AudioSource::~AudioSource()
+	void AudioSource::OnDestroy()
 	{
 		alDeleteSources(1, &mSourceId);
 	}
@@ -42,13 +42,11 @@ namespace JamesEngine
 		glm::vec3 cameraUp = -core->GetCamera()->GetTransform()->GetUp();
 
 		alListener3f(AL_POSITION, cameraPosition.x, cameraPosition.y, cameraPosition.z);
-
 		float orientation[] = {
 		cameraForward.x, cameraForward.y, cameraForward.z,
 		cameraUp.x, cameraUp.y, cameraUp.z
 		};
 		alListenerfv(AL_ORIENTATION, orientation);
-
 
 		alSource3f(mSourceId, AL_POSITION, GetPosition().x + mOffset.x, GetPosition().y + mOffset.y, GetPosition().z + mOffset.z);
 
