@@ -74,6 +74,18 @@ namespace Renderer
 
             AlphaMode alphaMode = AlphaMode::AlphaOpaque;
             float alphaCutoff = 0.5f;
+
+            bool doubleSided = false;
+
+            // Normal/AO/emissive scalar controls from core glTF
+            float normalScale = 1.0f;
+            float occlusionStrength = 1.0f;
+            glm::vec3 emissiveFactor = glm::vec3(0.0f);
+
+            // KHR materials (specular/glossiness extension)
+            float transmissionFactor = 0.0f;
+            int transmissionTexIndex = -1;
+			float ior = 1.5f;
         };
 
         // Structure for material-specific geometry.
@@ -622,7 +634,56 @@ namespace Renderer
 
                     if (looksLikeFoliage && group.pbr.alphaMode == Renderer::Model::PBRMaterial::AlphaMode::AlphaBlend) {
                         group.pbr.alphaMode = Renderer::Model::PBRMaterial::AlphaMode::AlphaMask;
-                        group.pbr.alphaCutoff = 0.5f; // tweak if needed (0.4–0.6 typical)
+                        group.pbr.alphaCutoff = 0.5f;
+                    }
+
+                    group.pbr.doubleSided = mat.doubleSided;
+
+                    if (mat.normalTexture.index >= 0) {
+                        group.pbr.normalScale = static_cast<float>(mat.normalTexture.scale);
+                    }
+                    if (mat.occlusionTexture.index >= 0) {
+                        group.pbr.occlusionStrength = static_cast<float>(mat.occlusionTexture.strength);
+                    }
+                    if (mat.emissiveFactor.size() == 3) {
+                        group.pbr.emissiveFactor = glm::vec3(
+                            static_cast<float>(mat.emissiveFactor[0]),
+                            static_cast<float>(mat.emissiveFactor[1]),
+                            static_cast<float>(mat.emissiveFactor[2]));
+                    }
+
+                    auto extItTr = mat.extensions.find("KHR_materials_transmission");
+                    if (extItTr != mat.extensions.end()) {
+                        const tinygltf::Value& ext = extItTr->second;
+
+                        auto tfIt = ext.Get("transmissionFactor");
+                        if (tfIt.IsNumber()) {
+                            group.pbr.transmissionFactor = static_cast<float>(tfIt.Get<double>());
+                        }
+
+                        auto ttIt = ext.Get("transmissionTexture");
+                        if (ttIt.IsObject()) {
+                            auto idxIt = ttIt.Get("index");
+                            if (idxIt.IsInt()) {
+                                int texIndex = idxIt.Get<int>();
+                                if (texIndex >= 0 && texIndex < static_cast<int>(scene.textures.size())) {
+                                    int img = scene.textures[texIndex].source;
+                                    if (img >= 0 && img < static_cast<int>(scene.images.size())) {
+                                        group.pbr.transmissionTexIndex = img;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    auto extItIor = mat.extensions.find("KHR_materials_ior");
+                    if (extItIor != mat.extensions.end()) {
+                        const tinygltf::Value& ext = extItIor->second;
+
+                        auto iorIt = ext.Get("ior");
+                        if (iorIt.IsNumber()) {
+                            group.pbr.ior = static_cast<float>(iorIt.Get<double>());
+                        }
                     }
                 }
 

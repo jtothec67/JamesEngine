@@ -275,6 +275,8 @@ namespace JamesEngine
 		mWindow->Update();
 		mWindow->ClearWindow();
 
+		mWindow->ResetGLModes();
+
 		// Normal rendering of the scene
 		mSkybox->RenderSkybox();
 
@@ -284,10 +286,14 @@ namespace JamesEngine
 		{
 			mEntities[ei]->OnRender();
 		}
+
+		mWindow->ResetGLModes();
 	}
 
 	void Core::RenderGUI()
 	{
+		mWindow->ResetGLModes();
+
 		mGUI->UploadGlobalUniformsUI();
 
 		glDisable(GL_DEPTH_TEST);

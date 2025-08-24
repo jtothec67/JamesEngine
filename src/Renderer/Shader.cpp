@@ -274,9 +274,15 @@ namespace Renderer
 				glUniform1i(glGetUniformLocation(id(), "u_HasOcclusionMap"), false);
 				glUniform1i(glGetUniformLocation(id(), "u_HasEmissiveMap"), false);
 
-				// legacy path = opaque
 				glUniform1i(glGetUniformLocation(id(), "u_AlphaMode"), 0);
 				glUniform1f(glGetUniformLocation(id(), "u_AlphaCutoff"), 0.5f);
+
+				glUniform1f(glGetUniformLocation(id(), "u_NormalScale"), 1.0f);
+				glUniform1f(glGetUniformLocation(id(), "u_OcclusionStrength"), 1.0f);
+				glUniform3fv(glGetUniformLocation(id(), "u_EmissiveFactor"), 1, glm::value_ptr(glm::vec3(0.0f)));
+				glUniform1f(glGetUniformLocation(id(), "u_TransmissionFactor"), 0.0f);
+				glUniform1i(glGetUniformLocation(id(), "u_HasTransmissionTex"), 0);
+				glUniform1f(glGetUniformLocation(id(), "u_IOR"), 1.5f);
 			}
 			GLuint legacyVAO = _model->vao_id();
 			glBindVertexArray(legacyVAO);
@@ -289,7 +295,6 @@ namespace Renderer
 			const auto& groups = _model->GetMaterialGroups();
 
 			// Pass 1: draw Opaque/Mask
-
 			for (size_t i = 0; i < groups.size(); ++i)
 			{
 				const auto& group = groups[i];
@@ -297,6 +302,13 @@ namespace Renderer
 				// skip blend materials in pass 1
 				if (group.pbr.alphaMode == Renderer::Model::PBRMaterial::AlphaMode::AlphaBlend)
 					continue;
+
+				// Double-sided — capture previous state, set per material
+				GLboolean prevCullEnabled = glIsEnabled(GL_CULL_FACE);
+				if (useEmbedded && group.pbr.doubleSided)
+					glDisable(GL_CULL_FACE);
+				else
+					glEnable(GL_CULL_FACE);
 
 				if (useEmbedded)
 				{
@@ -367,6 +379,25 @@ namespace Renderer
 					glUniform1f(glGetUniformLocation(id(), "u_RoughnessFallback"), 1.f);
 					glUniform1f(glGetUniformLocation(id(), "u_AOFallback"), 1.f);
 					glUniform3fv(glGetUniformLocation(id(), "u_EmissiveFallback"), 1, glm::value_ptr(glm::vec3(0, 0, 0)));
+
+					glUniform1f(glGetUniformLocation(id(), "u_NormalScale"), pbr.normalScale);
+					glUniform1f(glGetUniformLocation(id(), "u_OcclusionStrength"), pbr.occlusionStrength);
+					glUniform3fv(glGetUniformLocation(id(), "u_EmissiveFactor"), 1, glm::value_ptr(pbr.emissiveFactor));
+
+					// Transmission / IOR
+					glUniform1f(glGetUniformLocation(id(), "u_TransmissionFactor"), pbr.transmissionFactor);
+					if (pbr.transmissionTexIndex >= 0 && pbr.transmissionTexIndex < (int)embeddedTextures.size())
+					{
+						glActiveTexture(GL_TEXTURE5);
+						glBindTexture(GL_TEXTURE_2D, embeddedTextures[pbr.transmissionTexIndex].id());
+						glUniform1i(glGetUniformLocation(id(), "u_TransmissionTex"), 5);
+						glUniform1i(glGetUniformLocation(id(), "u_HasTransmissionTex"), 1);
+					}
+					else
+					{
+						glUniform1i(glGetUniformLocation(id(), "u_HasTransmissionTex"), 0);
+					}
+					glUniform1f(glGetUniformLocation(id(), "u_IOR"), pbr.ior);
 
 					// Alpha uniforms (Opaque/Mask -> non-blend)
 					int alphaMode = 0;
@@ -387,13 +418,22 @@ namespace Renderer
 					glUniform1i(glGetUniformLocation(id(), "u_HasOcclusionMap"), false);
 					glUniform1i(glGetUniformLocation(id(), "u_HasEmissiveMap"), false);
 
-					// default opaque for non-embedded path
 					glUniform1i(glGetUniformLocation(id(), "u_AlphaMode"), 0);
 					glUniform1f(glGetUniformLocation(id(), "u_AlphaCutoff"), 0.5f);
+
+					glUniform1f(glGetUniformLocation(id(), "u_NormalScale"), 1.0f);
+					glUniform1f(glGetUniformLocation(id(), "u_OcclusionStrength"), 1.0f);
+					glUniform3fv(glGetUniformLocation(id(), "u_EmissiveFactor"), 1, glm::value_ptr(glm::vec3(0.0f)));
+					glUniform1f(glGetUniformLocation(id(), "u_TransmissionFactor"), 0.0f);
+					glUniform1i(glGetUniformLocation(id(), "u_HasTransmissionTex"), 0);
+					glUniform1f(glGetUniformLocation(id(), "u_IOR"), 1.5f);
 				}
 
 				glBindVertexArray(group.vao);
 				glDrawArrays(GL_TRIANGLES, 0, group.faces.size() * 3);
+
+				// Restore previous cull state
+				if (prevCullEnabled) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
 			}
 
 			// Pass 2: draw Blend
@@ -405,6 +445,13 @@ namespace Renderer
 				// only blend materials in pass 2
 				if (group.pbr.alphaMode != Renderer::Model::PBRMaterial::AlphaMode::AlphaBlend)
 					continue;
+
+				// Double-sided — capture previous state, set per material
+				GLboolean prevCullEnabled = glIsEnabled(GL_CULL_FACE);
+				if (useEmbedded && group.pbr.doubleSided)
+					glDisable(GL_CULL_FACE);
+				else
+					glEnable(GL_CULL_FACE);
 
 				if (useEmbedded)
 				{
@@ -476,6 +523,25 @@ namespace Renderer
 					glUniform1f(glGetUniformLocation(id(), "u_AOFallback"), 1.f);
 					glUniform3fv(glGetUniformLocation(id(), "u_EmissiveFallback"), 1, glm::value_ptr(glm::vec3(0, 0, 0)));
 
+					glUniform1f(glGetUniformLocation(id(), "u_NormalScale"), pbr.normalScale);
+					glUniform1f(glGetUniformLocation(id(), "u_OcclusionStrength"), pbr.occlusionStrength);
+					glUniform3fv(glGetUniformLocation(id(), "u_EmissiveFactor"), 1, glm::value_ptr(pbr.emissiveFactor));
+
+					// Transmission / IOR
+					glUniform1f(glGetUniformLocation(id(), "u_TransmissionFactor"), pbr.transmissionFactor);
+					if (pbr.transmissionTexIndex >= 0 && pbr.transmissionTexIndex < (int)embeddedTextures.size())
+					{
+						glActiveTexture(GL_TEXTURE5);
+						glBindTexture(GL_TEXTURE_2D, embeddedTextures[pbr.transmissionTexIndex].id());
+						glUniform1i(glGetUniformLocation(id(), "u_TransmissionTex"), 5);
+						glUniform1i(glGetUniformLocation(id(), "u_HasTransmissionTex"), 1);
+					}
+					else
+					{
+						glUniform1i(glGetUniformLocation(id(), "u_HasTransmissionTex"), 0);
+					}
+					glUniform1f(glGetUniformLocation(id(), "u_IOR"), pbr.ior);
+
 					// Alpha uniforms (Blend)
 					glUniform1i(glGetUniformLocation(id(), "u_AlphaMode"), 2);
 					glUniform1f(glGetUniformLocation(id(), "u_AlphaCutoff"), pbr.alphaCutoff);
@@ -492,13 +558,22 @@ namespace Renderer
 					glUniform1i(glGetUniformLocation(id(), "u_HasOcclusionMap"), false);
 					glUniform1i(glGetUniformLocation(id(), "u_HasEmissiveMap"), false);
 
-					// treat non-embedded as opaque by default
 					glUniform1i(glGetUniformLocation(id(), "u_AlphaMode"), 0);
 					glUniform1f(glGetUniformLocation(id(), "u_AlphaCutoff"), 0.5f);
+
+					glUniform1f(glGetUniformLocation(id(), "u_NormalScale"), 1.0f);
+					glUniform1f(glGetUniformLocation(id(), "u_OcclusionStrength"), 1.0f);
+					glUniform3fv(glGetUniformLocation(id(), "u_EmissiveFactor"), 1, glm::value_ptr(glm::vec3(0.0f)));
+					glUniform1f(glGetUniformLocation(id(), "u_TransmissionFactor"), 0.0f);
+					glUniform1i(glGetUniformLocation(id(), "u_HasTransmissionTex"), 0);
+					glUniform1f(glGetUniformLocation(id(), "u_IOR"), 1.5f);
 				}
 
 				glBindVertexArray(group.vao);
 				glDrawArrays(GL_TRIANGLES, 0, group.faces.size() * 3);
+
+				// Restore previous cull state
+				if (prevCullEnabled) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
 			}
 		}
 
@@ -506,6 +581,7 @@ namespace Renderer
 		glBindVertexArray(0);
 		glUseProgram(0);
 	}
+
 
 	void Shader::draw(Model* _model, Texture* _tex)
 	{

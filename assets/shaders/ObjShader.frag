@@ -21,7 +21,7 @@ uniform sampler2D u_MetallicRoughnessMap;
 uniform sampler2D u_OcclusionMap;
 uniform sampler2D u_EmissiveMap;
 
-// “Has map” flags (bools)
+// "Has map" flags (bools)
 uniform bool u_HasAlbedoMap;
 uniform bool u_HasNormalMap;
 uniform bool u_HasMetallicRoughnessMap;
@@ -39,6 +39,17 @@ uniform float u_MetallicFallback;    // default 0.0
 uniform float u_RoughnessFallback;   // default 1.0
 uniform float u_AOFallback;          // default 1.0
 uniform vec3  u_EmissiveFallback;    // default vec3(0.0)
+
+// Extra core factors from glTF
+uniform float u_NormalScale;         // default 1.0
+uniform float u_OcclusionStrength;   // default 1.0
+uniform vec3 u_EmissiveFactor;       // default vec3(0.0)
+
+// Thin-glass support (KHR_materials_transmission + ior)
+uniform float u_TransmissionFactor;  // default 0.0
+uniform bool u_HasTransmissionTex;   // default false
+uniform sampler2D u_TransmissionTex; // R channel if present
+uniform float u_IOR;                 // default 1.5
 
 // Direct light (directional)
 uniform vec3 u_DirLightDirection;
@@ -203,12 +214,11 @@ void main()
     vec3 albedo = albedoTex.rgb * u_BaseColorFactor.rgb;
 
     float alpha = albedoTex.a * u_BaseColorFactor.a;
-    if (alpha <= 0.001) discard;
 
-    if (u_AlphaMode == 1) {
+    if (u_AlphaMode == 1) { // MASK
         if (alpha < u_AlphaCutoff) discard;
         alpha = 1.0;
-    } else if (u_AlphaMode == 0) {
+    } else if (u_AlphaMode == 0) { // OPAQUE
         alpha = 1.0;
     }
 
@@ -227,14 +237,16 @@ void main()
     float roughness = clamp(u_RoughnessFactor * roughnessTex, 0.04, 1.0);
 
     // AO (R channel)
-    float ao = u_HasOcclusionMap ? texture(u_OcclusionMap, v_TexCoord).r : u_AOFallback;
+    float aoSample = u_HasOcclusionMap ? texture(u_OcclusionMap, v_TexCoord).r : u_AOFallback;
+    float ao = mix(1.0, aoSample, u_OcclusionStrength);
 
     // Emissive
-    vec3 emissive = u_HasEmissiveMap ? texture(u_EmissiveMap, v_TexCoord).rgb : u_EmissiveFallback;
+    vec3 emissiveTex = u_HasEmissiveMap ? texture(u_EmissiveMap, v_TexCoord).rgb : u_EmissiveFallback;
+    vec3 emissive = emissiveTex * u_EmissiveFactor;
 
     // Normal mapping
     vec3 Ngeom = normalize(v_Normal);
-    vec3 N;
+    vec3 N = Ngeom ;
     if (u_HasNormalMap) {
         vec3 dp1 = dFdx(v_FragPos);
         vec3 dp2 = dFdy(v_FragPos);
@@ -244,10 +256,12 @@ void main()
         vec3 B = normalize(-dp1 * duv2.x + dp2 * duv1.x);
         mat3 TBN = mat3(T, B, Ngeom);
         vec3 nSample = texture(u_NormalMap, v_TexCoord).xyz * 2.0 - 1.0;
+        nSample.xy *= u_NormalScale;
+        nSample.z = sqrt(max(0.0, 1.0 - dot(nSample.xy, nSample.xy)));
         N = normalize(TBN * normalize(nSample));
-    } else {
-        N = Ngeom;
     }
+
+    if (!gl_FrontFacing) N = -N;
 
     vec3 V = normalize(u_ViewPos - v_FragPos);
     vec3 L = normalize(-u_DirLightDirection);
@@ -256,10 +270,10 @@ void main()
     // Base reflectance
     vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
-    // Cook–Torrance direct light
+    // Cook-Torrance direct light
     float NDF = DistributionGGX(N, H, roughness);
-    float G   = GeometrySmith(N, V, L, roughness);
-    vec3  F   = FresnelSchlick(max(dot(H, V), 0.0), F0);
+    float G = GeometrySmith(N, V, L, roughness);
+    vec3  F = FresnelSchlick(max(dot(H, V), 0.0), F0);
 
     vec3 kS = F;
     vec3 kD = (1.0 - kS) * (1.0 - metallic);
@@ -268,8 +282,19 @@ void main()
     float shadow = ShadowCalculation(v_FragPos, N, L);
 
     vec3 numerator = NDF * G * F;
-    float denom    = 4.0 * max(dot(N, V), 0.0) * NdotL + 0.001;
-    vec3 specular  = numerator / denom;
+    float denom = 4.0 * max(dot(N, V), 0.0) * NdotL + 0.001;
+    vec3 specular = numerator / denom;
+
+    // Some exporters put transmission only in the texture and leave factor = 0.
+    // Read the texture first, then multiply.
+    float tTex = u_HasTransmissionTex ? texture(u_TransmissionTex, v_TexCoord).r : 1.0;
+    float transmission = clamp(u_TransmissionFactor * tTex, 0.0, 1.0);
+
+    // Treat as "glass" if either factor or texture wants it.
+    bool isGlass = (u_TransmissionFactor > 0.001) || (u_HasTransmissionTex && tTex > 0.001);
+
+    // For glass: no diffuse
+    if (isGlass) kD = vec3(0.0);
 
     vec3 radiance = u_DirLightColor;
     vec3 direct = (kD * albedo / 3.14159 + specular) * radiance * NdotL * (1.0 - shadow);
@@ -294,9 +319,33 @@ void main()
     vec2 brdf = textureLod(u_BRDFLUT, vec2(roughness, 1.0 - NdotV), 0.0).rg;
     vec3 specularIBL = envColor * (Fibl * brdf.x + brdf.y);
 
-    // Indirect lighting with AO
-    vec3 ambient = ao * (diffuseIBL + specularIBL);
+    vec3 ambient;
+    if (isGlass) {
+        // Thin-surface transmission via refracted IBL
+        float eta = max(u_IOR, 1.0001); // avoid divide-by-zero
+        vec3 Tdir = refract(-V, N, 1.0 / eta);
+        vec3 envT = textureLod(u_SkyBox, Tdir, lod).rgb;
+
+        // Energy split: what isn't reflected can transmit, tint by baseColor
+        vec3 transIBL = envT * (1.0 - Fibl) * transmission * albedo;
+
+        // No AO on specular/transmission
+        ambient = specularIBL + transIBL;
+    } else {
+        // AO only affects diffuse, not specular
+        ambient = ao * diffuseIBL + specularIBL;
+    }
 
     vec3 color = ambient + direct + emissive;
-    FragColor = vec4(color, alpha);
+
+    // After computing Fibl (roughness-aware Fresnel) and 'transmission'
+    float outAlpha = alpha;
+
+    if (u_AlphaMode == 2) {
+        float transVis = transmission * (1.0 - Fibl.r);      // how much isn't reflected
+        float roughBoost = mix(0.0, 0.3, clamp(roughness, 0.0, 1.0));
+        float coverage = clamp(0.02 + 0.65 * (transVis + roughBoost), 0.05, 0.7);
+        outAlpha = max(alpha, coverage);
+    }
+    FragColor = vec4(color, outAlpha);
 }
