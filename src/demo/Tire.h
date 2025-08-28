@@ -10,6 +10,9 @@ namespace JamesEngine
 		float brushLongStiffCoeff;
 		float brushLatStiffCoeff;
 
+		float contactHalfLengthX; // rolling direction
+		float contactHalfLengthY; // lateral width
+
 		float peakFrictionCoefficient;
 		float tireRadius;
 		float wheelMass;

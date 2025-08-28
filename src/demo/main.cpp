@@ -997,6 +997,9 @@ int main()
 		/*frontTyreParams.brushLongStiffCoeff = 5.3;
 		frontTyreParams.brushLatStiffCoeff = 15;*/
 
+		frontTyreParams.contactHalfLengthX = 0.05f;
+		frontTyreParams.contactHalfLengthY = 0.1f;
+
 		frontTyreParams.peakFrictionCoefficient = 1.6f;
 		frontTyreParams.tireRadius = 0.34f;
 		frontTyreParams.wheelMass = 25.f;
@@ -1007,6 +1010,9 @@ int main()
 		rearTyreParams.brushLatStiffCoeff = 60;
 		/*rearTyreParams.brushLongStiffCoeff = 5.3;
 		rearTyreParams.brushLatStiffCoeff = 15;*/
+
+		rearTyreParams.contactHalfLengthX = 0.05f;
+		rearTyreParams.contactHalfLengthY = 0.1f;
 
 		rearTyreParams.peakFrictionCoefficient = 1.6f;
 		rearTyreParams.tireRadius = 0.34f;

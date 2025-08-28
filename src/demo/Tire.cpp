@@ -81,69 +81,67 @@ namespace JamesEngine
             return;
         }
 
-        //{
-        //    // Representative outside-wheel vertical load (N)
-        //    float Fz = 5500.0f;
+        {
+            /*float Fz = 5500.0f;
+            float mu = mTireParams.peakFrictionCoefficient;
+            float a = mTireParams.contactHalfLengthX;
+            float b = mTireParams.contactHalfLengthY;
 
-        //    // Derived stiffness & plateau
-        //    float longStiff = mTireParams.brushLongStiffCoeff * Fz; // N per slip ratio
-        //    float Fmax = mTireParams.peakFrictionCoefficient * Fz;
+            float longStiff = mTireParams.brushLongStiffCoeff * Fz;
+            float latStiff = mTireParams.brushLatStiffCoeff * Fz;
 
-        //    // Sweep slip ratio (0% .. 25%)
-        //    const float sStart = 0.0f;
-        //    const float sEnd = 0.40f;
-        //    const float sStep = 0.0025f;
+            float kxA = longStiff / (2.0f * a * b);
+            float kyA = latStiff / (2.0f * a * b);
+            float p = Fz / (4.0f * a * b);
 
-        //    // CSV header
-        //    std::cout << "slip_ratio,Fx_N,region\n";
+            float slipRatio = 0.0f;
 
-        //    // Track peak (plateau entry)
-        //    float peakFx = -1e9f;
-        //    float peakS = 0.0f;
+            const float degStart = 0.0f;
+            const float degEnd = 15.0f;
+            const float degStep = 0.1f;
 
-        //    for (float s = sStart; s <= sEnd + 1e-9f; s += sStep)
-        //    {
-        //        // Raw longitudinal force
-        //        float FxRaw = -longStiff * s; // sign per your convention
+            std::cout << "slip_rad,Fy_N\n";
 
-        //        // Combined demand (pure longitudinal here)
-        //        float gamma = std::fabs(FxRaw);
+            for (float aDeg = degStart; aDeg <= degEnd + 1e-6f; aDeg += degStep)
+            {
+                float slipAngle = aDeg * float(M_PI) / 180.0f;
+                float tanAlpha = std::tan(slipAngle);
 
-        //        // Grip vs sliding
-        //        float Fx;
-        //        bool isSliding = false;
+                float tx = kxA * slipRatio;
+                float ty = kyA * tanAlpha;
+                float S = std::sqrt(tx * tx + ty * ty);
 
-        //        if (gamma < Fmax)
-        //        {
-        //            Fx = FxRaw;         // elastic region
-        //            isSliding = false;
-        //        }
-        //        else
-        //        {
-        //            float scale = Fmax / gamma; // caps at mu*Fz
-        //            Fx = FxRaw * scale;
-        //            isSliding = true;
-        //        }
+                float Fy = 0.0f;
+                const float Fmax = mu * Fz;
 
-        //        // Output CSV
-        //        std::cout << std::fixed << std::setprecision(4)
-        //            << s << "," << Fx << "," << (isSliding ? "slide" : "grip") << "\n";
+                if (S > 1e-12f && Fz > 0.0f)
+                {
+                    float xs = 2.0f * a * (mu * p) / S - a;
+                    xs = glm::clamp(xs, -a, a);
 
-        //        // Track peak magnitude (plateau entry)
-        //        if (std::fabs(Fx) > std::fabs(peakFx))
-        //        {
-        //            peakFx = Fx;
-        //            peakS = s;
-        //        }
-        //    }
+                    float c = tx / S;
+                    float s = ty / S;
 
-        //    // Summary to stderr so it won't pollute CSV
-        //    // Theoretical crossover (peak) slip ratio ~= mu / kx
-        //    float s_theory = mTireParams.peakFrictionCoefficient / mTireParams.brushLongStiffCoeff;
+                    float factor = (xs + a);
+                    float Fy_adh = (2.0f * b) * (kyA * tanAlpha) * (factor * factor / (4.0f * a));
+                    float Fy_sl = (2.0f * b) * (mu * p * s * (a - xs));
 
-        //    std::cerr << "Peak |Fx| near slip ratio s ~= " << std::setprecision(4) << peakS
-        //        << " (theory ~= " << s_theory << "), Fx = " << peakFx << " N\n";
-        //}
+                    Fy = -(Fy_adh + Fy_sl);
+
+                    float Fmag = std::fabs(Fy);
+                    if (Fmag > Fmax) {
+                        float scale = Fmax / Fmag;
+                        Fy *= scale;
+                    }
+                }
+                else
+                {
+                    Fy = 0.0f;
+                }
+
+                std::cout << std::fixed << std::setprecision(4) << slipAngle << "," << -Fy << "\n";
+            }*/
+        }
 
         // Compute vehicle velocity at contact
         glm::vec3 carVel = mCarRb->GetVelocityAtPoint(mSuspension->GetContactPoint());
@@ -164,51 +162,70 @@ namespace JamesEngine
 
         // Compute slip ratio and angle based on wheel rotation and ground speed
         float wheelCircumferentialSpeed = mWheelAngularVelocity * mTireParams.tireRadius;
-        float denominator = std::max(std::fabs(wheelCircumferentialSpeed), std::fabs(Vx));
-		if (denominator < 0.001f) // Avoid division by zero
-			denominator = 0.001f;
-        float slipRatio = (Vx - wheelCircumferentialSpeed) / denominator;
+        
+        float VxSafe = (std::fabs(Vx) < 0.1f) ? std::copysign(0.1f, Vx) : Vx;
+        float slipRatio = (Vx - wheelCircumferentialSpeed) / std::fabs(VxSafe);
 
-        float VxClamped = std::max(std::fabs(Vx), 0.1f);
+        float VxClamped = std::max(std::fabs(Vx), 1.f);
         float slipAngle = std::atan2(Vy, VxClamped);
 
         // Compute vertical load from suspension compression and weight transfer
         float Fz = mSuspension->GetForce();
 
         // Determine tire stiffness and maximum friction force
-        float longStiff = mTireParams.brushLongStiffCoeff * Fz;
-        float latStiff = mTireParams.brushLatStiffCoeff * Fz;
+        float Cx = mTireParams.brushLongStiffCoeff * Fz;
+        float Cy = mTireParams.brushLatStiffCoeff * Fz;
         float Fmax = mTireParams.peakFrictionCoefficient * Fz;
 
-		float FxRaw = -longStiff * slipRatio;
-		float FyRaw = -latStiff * glm::tan(slipAngle);
+        // Geometric half-dimensions of the footprint
+        float a = mTireParams.contactHalfLengthX; // rolling direction
+        float b = mTireParams.contactHalfLengthY; // lateral (half width)
 
-        // Compute gamma (total requested force magnitude)
-        float gamma = glm::sqrt(FxRaw * FxRaw + FyRaw * FyRaw);
+        // Convert to per-area bristle stiffness (preserves small-slip slopes)
+        float kxA = Cx / (2.0f * a * b);
+        float kyA = Cy / (2.0f * a * b);
 
-        // Compute friction forces and handle grip vs sliding behavior
-        float Fx, Fy;
+        // Uniform pressure over rectangular patch
+        float p = Fz / (4.0f * a * b);
 
-		//std::cout << GetEntity()->GetTag() << " Fmax: " << Fmax << std::endl;
+        // Build combined shear slope (per-area)
+        float tx = kxA * slipRatio;
+        float ty = kyA * std::tan(slipAngle);
+        float S = std::sqrt(tx * tx + ty * ty);
 
-        if (gamma < Fmax)
+        // Compute friction forces and handle adhesion vs sliding
+        float Fx = 0.f, Fy = 0.f;
+
+        if (S > 1e-12f && Fz > 0.f)
         {
-            // Elastic (grip) region: proportional longitudinal and lateral forces
-            Fx = FxRaw;
-            Fy = FyRaw;
+            // 2-D adhesion–sliding boundary
+            float xs = 2.0f * a * (mTireParams.peakFrictionCoefficient * p) / S - a;
+            xs = glm::clamp(xs, -a, a);
 
-            mIsSliding = false;
-        }
-        else
-        {
-            // Sliding region: friction limited by Fmax
-            // Outside the ellipse — scale forces to stay within Fmax
-            float scale = Fmax / gamma;
+            // Slip direction unit vector
+            float c = tx / S;
+            float s = ty / S;
 
-            Fx = FxRaw * scale;
-            Fy = FyRaw * scale;
+            // Adhesion contributions over [-a, xs] with linear shear ~(x+a)/(2a)
+            float factor = (xs + a);
+            float Fx_adh = (2.0f * b) * (kxA * slipRatio) * (factor * factor / (4.0f * a));
+            float Fy_adh = (2.0f * b) * (kyA * std::tan(slipAngle)) * (factor * factor / (4.0f * a));
 
-            mIsSliding = true;
+            // Sliding contributions over [xs, +a]
+            float span = (a - xs);
+            float Fx_sl = (2.0f * b) * (mTireParams.peakFrictionCoefficient * p * c * span);
+            float Fy_sl = (2.0f * b) * (mTireParams.peakFrictionCoefficient * p * s * span);
+
+            // Forces oppose slip
+            Fx = -(Fx_adh + Fx_sl);
+            Fy = -(Fy_adh + Fy_sl);
+
+            float Fmag = std::sqrt(Fx * Fx + Fy * Fy);
+            if (Fmag > Fmax)
+            {
+                float scale = Fmax / Fmag;
+                Fx *= scale; Fy *= scale;
+            }
         }
 
         // Compute max longitudinal force from available torque
@@ -265,13 +282,13 @@ namespace JamesEngine
         mDriveTorque = 0.0f;
         mBrakeTorque = 0.0f;
 
-        mGripUsage = glm::sqrt(FxRaw * FxRaw + FyRaw * FyRaw) / Fmax;
+        //mGripUsage = glm::sqrt(FxRaw * FxRaw + FyRaw * FyRaw) / Fmax;
 
 		//std::cout << GetEntity()->GetTag() << " Grip Usage: " << mGripUsage << std::endl;
 
         // Set tire screech audio based on slip conditions
         float tireScreechVolume = 0.0f;
-        if (mIsSliding && glm::length(carVel) > 5)
+        if (glm::length(carVel) > 5)
         {
             if (slipRatio > 0.0f)
                 tireScreechVolume = glm::clamp(slipRatio, 0.f, 1.f);
