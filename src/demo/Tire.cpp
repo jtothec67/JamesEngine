@@ -100,7 +100,7 @@ namespace JamesEngine
             const float degEnd = 15.0f;
             const float degStep = 0.1f;
 
-            std::cout << "slip_rad,Fy_N\n";
+            std::cout << "Slip_angle_rad,Fy_force\n";
 
             for (float aDeg = degStart; aDeg <= degEnd + 1e-6f; aDeg += degStep)
             {
@@ -124,19 +124,15 @@ namespace JamesEngine
 
                     float factor = (xs + a);
                     float Fy_adh = (2.0f * b) * (kyA * tanAlpha) * (factor * factor / (4.0f * a));
-                    float Fy_sl = (2.0f * b) * (mu * p * s * (a - xs));
+
+                    float slidingFraction = (a - xs) / (2.0f * a);
+                    float slideFriction = mTireParams.slidingFrictionFactor * mu;
+                    float effectiveFriction = slideFriction
+                        + (mu - slideFriction) * std::pow(1.0f - slidingFraction, mTireParams.slidingFrictionFalloffExponent);
+
+                    float Fy_sl = (2.0f * b) * (effectiveFriction * p * s * (a - xs));
 
                     Fy = -(Fy_adh + Fy_sl);
-
-                    float Fmag = std::fabs(Fy);
-                    if (Fmag > Fmax) {
-                        float scale = Fmax / Fmag;
-                        Fy *= scale;
-                    }
-                }
-                else
-                {
-                    Fy = 0.0f;
                 }
 
                 std::cout << std::fixed << std::setprecision(4) << slipAngle << "," << -Fy << "\n";
@@ -162,24 +158,30 @@ namespace JamesEngine
 
         // Compute slip ratio and angle based on wheel rotation and ground speed
         float wheelCircumferentialSpeed = mWheelAngularVelocity * mTireParams.tireRadius;
-        
-        float VxSafe = (std::fabs(Vx) < 0.1f) ? std::copysign(0.1f, Vx) : Vx;
-        float slipRatio = (Vx - wheelCircumferentialSpeed) / std::fabs(VxSafe);
 
-        float VxClamped = std::max(std::fabs(Vx), 1.f);
-        float slipAngle = std::atan2(Vy, VxClamped);
+        float slipRatioDenom = glm::max(std::fabs(Vx), 0.5f);
+        float slipRatio = (Vx - wheelCircumferentialSpeed) / slipRatioDenom;
+        slipRatio = glm::clamp(slipRatio, -3.0f, 3.0f);
+
+        float slipAngleDenom = glm::max(std::fabs(Vx), 1.0f);
+        float tanSlipAngle = Vy / slipAngleDenom;
 
         // Compute vertical load from suspension compression and weight transfer
         float Fz = mSuspension->GetForce();
 
         // Determine tire stiffness and maximum friction force
-        float Cx = mTireParams.brushLongStiffCoeff * Fz;
-        float Cy = mTireParams.brushLatStiffCoeff * Fz;
+        float FzRef = mTireParams.loadSensitivityRef;
+        float loadScale = glm::max(Fz, 1.0f) / glm::max(FzRef, 1.0f);
+
+        // Stiffness with load sensitivity
+        float Cx = mTireParams.longStiffCoeff * FzRef * std::pow(loadScale, mTireParams.longStiffExp);
+        float Cy = mTireParams.latStiffCoeff * FzRef * std::pow(loadScale, mTireParams.latStiffExp);
+
         float Fmax = mTireParams.peakFrictionCoefficient * Fz;
 
         // Geometric half-dimensions of the footprint
-        float a = mTireParams.contactHalfLengthX; // rolling direction
-        float b = mTireParams.contactHalfLengthY; // lateral (half width)
+        float a = mTireParams.contactHalfLengthX;
+        float b = mTireParams.contactHalfLengthY;
 
         // Convert to per-area bristle stiffness (preserves small-slip slopes)
         float kxA = Cx / (2.0f * a * b);
@@ -190,8 +192,8 @@ namespace JamesEngine
 
         // Build combined shear slope (per-area)
         float tx = kxA * slipRatio;
-        float ty = kyA * std::tan(slipAngle);
-        float S = std::sqrt(tx * tx + ty * ty);
+        float ty = kyA * tanSlipAngle;
+        float S = glm::sqrt(tx * tx + ty * ty);
 
         // Compute friction forces and handle adhesion vs sliding
         float Fx = 0.f, Fy = 0.f;
@@ -209,23 +211,21 @@ namespace JamesEngine
             // Adhesion contributions over [-a, xs] with linear shear ~(x+a)/(2a)
             float factor = (xs + a);
             float Fx_adh = (2.0f * b) * (kxA * slipRatio) * (factor * factor / (4.0f * a));
-            float Fy_adh = (2.0f * b) * (kyA * std::tan(slipAngle)) * (factor * factor / (4.0f * a));
+            float Fy_adh = (2.0f * b) * (kyA * tanSlipAngle) * (factor * factor / (4.0f * a));
+
+            // Nonlinear grip (sliding part only)
+            float slidingFraction = (a - xs) / (2.0f * a);
+            float slideFriction = mTireParams.slidingFrictionFactor * mTireParams.peakFrictionCoefficient;
+            float effectiveFriction = slideFriction + (mTireParams.peakFrictionCoefficient - slideFriction) * std::pow(1.0f - slidingFraction, mTireParams.slidingFrictionFalloffExponent);
 
             // Sliding contributions over [xs, +a]
             float span = (a - xs);
-            float Fx_sl = (2.0f * b) * (mTireParams.peakFrictionCoefficient * p * c * span);
-            float Fy_sl = (2.0f * b) * (mTireParams.peakFrictionCoefficient * p * s * span);
+            float Fx_sl = (2.0f * b) * (effectiveFriction * p * c * span);
+            float Fy_sl = (2.0f * b) * (effectiveFriction * p * s * span);
 
             // Forces oppose slip
             Fx = -(Fx_adh + Fx_sl);
             Fy = -(Fy_adh + Fy_sl);
-
-            float Fmag = std::sqrt(Fx * Fx + Fy * Fy);
-            if (Fmag > Fmax)
-            {
-                float scale = Fmax / Fmag;
-                Fx *= scale; Fy *= scale;
-            }
         }
 
         // Compute max longitudinal force from available torque

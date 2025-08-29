@@ -7,13 +7,21 @@ namespace JamesEngine
 
 	struct TireParams
 	{
-		float brushLongStiffCoeff;
-		float brushLatStiffCoeff;
+		float peakFrictionCoefficient;
+
+		float slidingFrictionFactor;
+		float slidingFrictionFalloffExponent;
+
+		float longStiffCoeff;
+		float latStiffCoeff;
+
+		float loadSensitivityRef;
+		float longStiffExp;
+		float latStiffExp;
 
 		float contactHalfLengthX; // rolling direction
 		float contactHalfLengthY; // lateral width
 
-		float peakFrictionCoefficient;
 		float tireRadius;
 		float wheelMass;
 		float rollingResistance;
@@ -72,8 +80,6 @@ namespace JamesEngine
 		float mWheelRotation = 0.f;
 
 		bool mIsSliding = false;
-
-		bool mIsLocked = false;
 
 		glm::vec3 mInitialRotationOffset = glm::vec3(0.f, 0.f, 0.f);
 

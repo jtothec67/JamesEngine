@@ -991,33 +991,50 @@ int main()
 	// Scope to ensure the entities aren't being held in main if they're destroyed
 	{
 
-		TireParams frontTyreParams{};
-		frontTyreParams.brushLongStiffCoeff = 20;
-		frontTyreParams.brushLatStiffCoeff = 60;
-		/*frontTyreParams.brushLongStiffCoeff = 5.3;
-		frontTyreParams.brushLatStiffCoeff = 15;*/
+		TireParams frontTireParams{};
+		frontTireParams.peakFrictionCoefficient = 1.6f;
 
-		frontTyreParams.contactHalfLengthX = 0.05f;
-		frontTyreParams.contactHalfLengthY = 0.1f;
+		frontTireParams.longStiffCoeff = 20;
+		frontTireParams.latStiffCoeff = 60;
+		/*frontTireParams.longStiffCoeff = 5.3;
+		frontTireParams.latStiffCoeff = 15;*/
 
-		frontTyreParams.peakFrictionCoefficient = 1.6f;
-		frontTyreParams.tireRadius = 0.34f;
-		frontTyreParams.wheelMass = 25.f;
-		frontTyreParams.rollingResistance = 0.015f;
+		frontTireParams.loadSensitivityRef = 5500;
 
-		TireParams rearTyreParams{};
-		rearTyreParams.brushLongStiffCoeff = 20;
-		rearTyreParams.brushLatStiffCoeff = 60;
-		/*rearTyreParams.brushLongStiffCoeff = 5.3;
-		rearTyreParams.brushLatStiffCoeff = 15;*/
+		frontTireParams.longStiffExp = 0.9;
+		frontTireParams.latStiffExp = 0.9;
 
-		rearTyreParams.contactHalfLengthX = 0.05f;
-		rearTyreParams.contactHalfLengthY = 0.1f;
+		frontTireParams.slidingFrictionFactor = 0.9f;
+		frontTireParams.slidingFrictionFalloffExponent = 1.5f;
 
-		rearTyreParams.peakFrictionCoefficient = 1.6f;
-		rearTyreParams.tireRadius = 0.34f;
-		rearTyreParams.wheelMass = 25.f;
-		rearTyreParams.rollingResistance = 0.015f;
+		frontTireParams.contactHalfLengthX = 0.05f;
+		frontTireParams.contactHalfLengthY = 0.1f;
+
+		frontTireParams.tireRadius = 0.34f;
+		frontTireParams.wheelMass = 25.f;
+		frontTireParams.rollingResistance = 0.015f;
+
+		TireParams rearTireParams{};
+		rearTireParams.peakFrictionCoefficient = 1.6f;
+
+		rearTireParams.longStiffCoeff = 20;
+		rearTireParams.latStiffCoeff = 60;
+		/*rearTireParams.longStiffCoeff = 5.3;
+		rearTireParams.latStiffCoeff = 15;*/
+
+		rearTireParams.loadSensitivityRef = 6500;
+		rearTireParams.longStiffExp = 0.9;
+		rearTireParams.latStiffExp = 0.9;
+
+		rearTireParams.slidingFrictionFactor = 0.9f;
+		rearTireParams.slidingFrictionFalloffExponent = 1.5f;
+
+		rearTireParams.contactHalfLengthX = 0.05f;
+		rearTireParams.contactHalfLengthY = 0.1f;
+
+		rearTireParams.tireRadius = 0.34f;
+		rearTireParams.wheelMass = 25.f;
+		rearTireParams.rollingResistance = 0.015f;
 
 
 		SuspensionParams frontSuspensionParams{};
@@ -1192,7 +1209,7 @@ int main()
 		std::shared_ptr<Tire> FLWheelTire = FLWheel->AddComponent<Tire>();
 		FLWheelTire->SetCarBody(carBody);
 		FLWheelTire->SetAnchorPoint(FLWheelAnchor);
-		FLWheelTire->SetTireParams(frontTyreParams);
+		FLWheelTire->SetTireParams(frontTireParams);
 		FLWheelTire->SetInitialRotationOffset(vec3(0, -90, 0));
 
 		std::shared_ptr<Entity> FLWheelBrake = core->AddEntity();
@@ -1219,7 +1236,7 @@ int main()
 		std::shared_ptr<Tire> FRWheelTire = FRWheel->AddComponent<Tire>();
 		FRWheelTire->SetCarBody(carBody);
 		FRWheelTire->SetAnchorPoint(FRWheelAnchor);
-		FRWheelTire->SetTireParams(frontTyreParams);
+		FRWheelTire->SetTireParams(frontTireParams);
 		FRWheelTire->SetInitialRotationOffset(vec3(0, 90, 0));
 
 		std::shared_ptr<Entity> FRWheelBrake = core->AddEntity();
@@ -1246,7 +1263,7 @@ int main()
 		std::shared_ptr<Tire> RLWheelTire = RLWheel->AddComponent<Tire>();
 		RLWheelTire->SetCarBody(carBody);
 		RLWheelTire->SetAnchorPoint(RLWheelAnchor);
-		RLWheelTire->SetTireParams(rearTyreParams);
+		RLWheelTire->SetTireParams(rearTireParams);
 		RLWheelTire->SetInitialRotationOffset(vec3(0, -90, 0));
 
 		std::shared_ptr<Entity> RLWheelBrake = core->AddEntity();
@@ -1273,7 +1290,7 @@ int main()
 		std::shared_ptr<Tire> RRWheelTire = RRWheel->AddComponent<Tire>();
 		RRWheelTire->SetCarBody(carBody);
 		RRWheelTire->SetAnchorPoint(RRWheelAnchor);
-		RRWheelTire->SetTireParams(rearTyreParams);
+		RRWheelTire->SetTireParams(rearTireParams);
 		RRWheelTire->SetInitialRotationOffset(vec3(0, 90, 0));
 
 		std::shared_ptr<Entity> RRWheelBrake = core->AddEntity();
