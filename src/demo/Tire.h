@@ -9,8 +9,11 @@ namespace JamesEngine
 	{
 		float peakFrictionCoefficient;
 
+		float peakFrictionCoeffLong;
+		float peakFrictionCoeffLat;
+
 		float slidingFrictionFactor;
-		float slidingFrictionFalloffExponent;
+		float slidingFrictionFalloffExp;
 
 		float longStiffCoeff;
 		float latStiffCoeff;

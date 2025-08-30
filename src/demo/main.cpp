@@ -329,8 +329,8 @@ struct CarController : public Component
 	//float frontDownforceAtReference = 4000.0f; // N
 	//float rearDownforceAtReference = 3800.0f; // N
 	//float frontDownforceAtReference = 2700.0f; // N
-	float rearDownforceAtReference = 7300.0f; // N
-	float frontDownforceAtReference = 5400.0f; // N
+	float rearDownforceAtReference = 9500.0f; // N
+	float frontDownforceAtReference = 7500.0f; // N
 	float referenceSpeed = 280.0f / 3.6f; // m/s
 
 	// Engine audio
@@ -994,6 +994,9 @@ int main()
 		TireParams frontTireParams{};
 		frontTireParams.peakFrictionCoefficient = 1.6f;
 
+		frontTireParams.peakFrictionCoeffLat = 1.6f;
+		frontTireParams.peakFrictionCoeffLong = 1.30f;
+
 		frontTireParams.longStiffCoeff = 20;
 		frontTireParams.latStiffCoeff = 60;
 		/*frontTireParams.longStiffCoeff = 5.3;
@@ -1005,7 +1008,7 @@ int main()
 		frontTireParams.latStiffExp = 0.9;
 
 		frontTireParams.slidingFrictionFactor = 0.9f;
-		frontTireParams.slidingFrictionFalloffExponent = 1.5f;
+		frontTireParams.slidingFrictionFalloffExp = 1.5f;
 
 		frontTireParams.contactHalfLengthX = 0.05f;
 		frontTireParams.contactHalfLengthY = 0.1f;
@@ -1017,6 +1020,9 @@ int main()
 		TireParams rearTireParams{};
 		rearTireParams.peakFrictionCoefficient = 1.6f;
 
+		rearTireParams.peakFrictionCoeffLat = 1.6f;
+		rearTireParams.peakFrictionCoeffLong = 1.30f;
+
 		rearTireParams.longStiffCoeff = 20;
 		rearTireParams.latStiffCoeff = 60;
 		/*rearTireParams.longStiffCoeff = 5.3;
@@ -1027,7 +1033,7 @@ int main()
 		rearTireParams.latStiffExp = 0.9;
 
 		rearTireParams.slidingFrictionFactor = 0.9f;
-		rearTireParams.slidingFrictionFalloffExponent = 1.5f;
+		rearTireParams.slidingFrictionFalloffExp = 1.5f;
 
 		rearTireParams.contactHalfLengthX = 0.05f;
 		rearTireParams.contactHalfLengthY = 0.1f;
@@ -1133,8 +1139,6 @@ int main()
 		std::shared_ptr<ModelRenderer> mercedesMR = carBody->AddComponent<ModelRenderer>();
 		mercedesMR->SetRotationOffset(vec3(0, 180, 0));
 		mercedesMR->SetModel(core->GetResources()->Load<Model>("models/Mercedes/RawCar.glb"));
-		mercedesMR->SetMetallicness(1.0f);
-		mercedesMR->SetRoughness(0.5f);
 		std::shared_ptr<BoxCollider> carBodyCollider = carBody->AddComponent<BoxCollider>();
 		carBodyCollider->SetSize(vec3(1.97, 0.9, 4.52));
 		carBodyCollider->SetPositionOffset(vec3(0, 0.37, 0.22));

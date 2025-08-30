@@ -177,8 +177,6 @@ namespace JamesEngine
         float Cx = mTireParams.longStiffCoeff * FzRef * std::pow(loadScale, mTireParams.longStiffExp);
         float Cy = mTireParams.latStiffCoeff * FzRef * std::pow(loadScale, mTireParams.latStiffExp);
 
-        float Fmax = mTireParams.peakFrictionCoefficient * Fz;
-
         // Geometric half-dimensions of the footprint
         float a = mTireParams.contactHalfLengthX;
         float b = mTireParams.contactHalfLengthY;
@@ -200,13 +198,18 @@ namespace JamesEngine
 
         if (S > 1e-12f && Fz > 0.f)
         {
-            // 2-D adhesion–sliding boundary
-            float xs = 2.0f * a * (mTireParams.peakFrictionCoefficient * p) / S - a;
-            xs = glm::clamp(xs, -a, a);
-
             // Slip direction unit vector
             float c = tx / S;
             float s = ty / S;
+
+            // Directional peak friction along slip direction
+            float muX_peak = mTireParams.peakFrictionCoeffLong;
+            float muY_peak = mTireParams.peakFrictionCoeffLat;
+            float muDir_peak = std::sqrt((muX_peak * c) * (muX_peak * c) + (muY_peak * s) * (muY_peak * s));
+
+            // 2-D adhesion–sliding boundary
+            float xs = 2.0f * a * (muDir_peak * p) / S - a;
+            xs = glm::clamp(xs, -a, a);
 
             // Adhesion contributions over [-a, xs] with linear shear ~(x+a)/(2a)
             float factor = (xs + a);
@@ -215,8 +218,8 @@ namespace JamesEngine
 
             // Nonlinear grip (sliding part only)
             float slidingFraction = (a - xs) / (2.0f * a);
-            float slideFriction = mTireParams.slidingFrictionFactor * mTireParams.peakFrictionCoefficient;
-            float effectiveFriction = slideFriction + (mTireParams.peakFrictionCoefficient - slideFriction) * std::pow(1.0f - slidingFraction, mTireParams.slidingFrictionFalloffExponent);
+            float slideFriction = mTireParams.slidingFrictionFactor * muDir_peak;
+            float effectiveFriction = slideFriction + (muDir_peak - slideFriction) * std::pow(1.0f - slidingFraction, mTireParams.slidingFrictionFalloffExp);
 
             // Sliding contributions over [xs, +a]
             float span = (a - xs);
