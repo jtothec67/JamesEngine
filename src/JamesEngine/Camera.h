@@ -26,8 +26,10 @@ namespace JamesEngine
 		float GetFarClip() { return mFarClip; }
 
 		void SetFov(float _fov) { mFov = _fov; }
+		float GetFov() { return mFov; }
 
 		void SetOrthographicSize(glm::vec2 _size) { mOrthographicSize = _size; }
+		glm::vec2 GetOrthographicSize() { return mOrthographicSize; }
 
 		void SetPriority(float _priority) { mPriority = _priority; }
 		float GetPriority() { return mPriority; }

@@ -109,9 +109,12 @@ public:
 	void SetupDefault3Cascades()
 	{
 		ClearShadowCascades();
-		AddShadowCascade({ 2.5f, 2.5f }, { 4000, 4000 }, 0.1f, 100.0f);
-		//AddShadowCascade({ 40.f, 40.f }, { 7500, 7500 }, 0.1f, 300.0f);
-		//AddShadowCascade({ 200.f, 200.f }, { 3000, 3000 }, 0.1f, 300.0f);
+		/*AddShadowCascade({ 2.5f, 2.5f }, { 4000, 4000 }, 0.1f, 100.0f);
+		AddShadowCascade({ 40.f, 40.f }, { 7500, 7500 }, 0.1f, 300.0f);
+		AddShadowCascade({ 200.f, 200.f }, { 3000, 3000 }, 0.1f, 300.0f);*/
+		AddShadowCascade({ 2.5f, 2.5f }, { 4048, 4048 }, 0.1f, 100.0f);
+		AddShadowCascade({ 40.f, 40.f }, { 2024, 2024 }, 0.1f, 300.0f);
+		AddShadowCascade({ 200.f, 200.f }, { 2024, 2024 }, 0.1f, 300.0f);
 	}
 
 	std::shared_ptr<std::vector<std::shared_ptr<Renderer::RenderTexture>>> GetShadowMaps()

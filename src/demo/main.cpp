@@ -1114,8 +1114,7 @@ int main()
 		track->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
 		std::shared_ptr<ModelRenderer> trackMR = track->AddComponent<ModelRenderer>();
 		trackMR->SetModel(core->GetResources()->Load<Model>("models/Imola/Imola.glb"));
-		trackMR->SetSpecularStrength(0.f);
-		trackMR->SetPreBakeShadows(true);
+		trackMR->SetShadowModel(core->GetResources()->Load<Model>("models/Imola/ImolaShadow.glb"));
 		std::shared_ptr<ModelCollider> trackCollider = track->AddComponent<ModelCollider>();
 		trackCollider->SetModel(core->GetResources()->Load<Model>("models/Imola/Imola.glb"));
 		trackCollider->SetDebugVisual(false);

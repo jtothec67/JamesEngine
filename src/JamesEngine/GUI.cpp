@@ -102,7 +102,7 @@ namespace JamesEngine
 
 		// Replaces all images with the shadow map of the directional light (keeping in case of future debugging)
 		//if(mCore.lock()->GetLightManager()->GetShadowMaps()->size() > 0)
-			//mShader->draw(mRect.get(), mCore.lock()->GetLightManager()->GetShadowMaps()->at(0)->getTextureId());
+			//mShader->draw(mRect.get(), mCore.lock()->GetLightManager()->GetShadowMaps()->at(1)->getTextureId());
 	}
 
     void GUI::Text(glm::vec2 _position, float _size, glm::vec3 _colour, std::string _text, std::shared_ptr<Font> _font)

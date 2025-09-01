@@ -24,6 +24,8 @@ namespace JamesEngine
 		void AddTexture(std::shared_ptr<Texture> _texture) { mTextures.push_back(_texture); }
 		void SetShader(std::shared_ptr<Shader> _shader) { mShader = _shader; }
 
+		void SetShadowModel(std::shared_ptr<Model> _model) { mShadowModel = _model; }
+
 		void SetSpecularStrength(float _strength) { mSpecularStrength = _strength; }
 
 		void SetBaseColorStrength(glm::vec4 _strength) { mBaseColorStrength = _strength; }
@@ -48,8 +50,10 @@ namespace JamesEngine
 		std::shared_ptr<Model> mModel = nullptr;
 		std::shared_ptr<Shader> mShader = nullptr;
 
-		std::vector<std::shared_ptr<Texture>> mTextures;
+		std::vector<std::shared_ptr<Texture>> mTextures; // Legacy (haven't got rid yet), used for .obj models
 		std::vector<Renderer::Texture*> mRawTextures; // Optimisation assumes no new textures added at runtime (after OnAlive)
+
+		std::shared_ptr<Model> mShadowModel = nullptr; // Optional simpler model for shadow rendering 
 
 		float mSpecularStrength = 1.f;
 		

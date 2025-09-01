@@ -1,7 +1,7 @@
 #version 460
 
-#define NUM_CASCADES 1
-#define NUM_PREBAKED 4
+#define MAX_NUM_CASCADES 5
+#define MAX_NUM_PREBAKED 16
 
 #define MAX_IBL_LOD 5
 
@@ -56,10 +56,13 @@ uniform vec3 u_DirLightDirection;
 uniform vec3 u_DirLightColor;
 
 // Shadowing
-uniform sampler2D u_ShadowMaps[NUM_CASCADES];
-uniform mat4 u_LightSpaceMatrices[NUM_CASCADES];
-uniform sampler2D u_PreBakedShadowMaps[NUM_PREBAKED];
-uniform mat4 u_PreBakedLightSpaceMatrices[NUM_PREBAKED];
+uniform int u_NumCascades;
+uniform sampler2D u_ShadowMaps[MAX_NUM_CASCADES];
+uniform mat4 u_LightSpaceMatrices[MAX_NUM_CASCADES];
+
+uniform int u_NumPreBaked;
+uniform sampler2D u_PreBakedShadowMaps[MAX_NUM_PREBAKED];
+uniform mat4 u_PreBakedLightSpaceMatrices[MAX_NUM_PREBAKED];
 
 // IBL
 uniform samplerCube u_SkyBox;
@@ -95,7 +98,8 @@ float ComputeShadowPoissonPCF(sampler2D shadowMap, vec3 projCoords, float depth,
     mat2 rotation = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
 
     int earlyShadowCount = 0;
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 4; ++i)
+    {
         vec2 offset = rotation * poissonDisk[i] * texelSize;
         float sampleDepth = texture(shadowMap, projCoords.xy + offset).r;
         if (depth - bias > sampleDepth) earlyShadowCount++;
@@ -105,7 +109,8 @@ float ComputeShadowPoissonPCF(sampler2D shadowMap, vec3 projCoords, float depth,
     else if (earlyShadowCount == 4) return 1.0;
 
     int lastFourUnshadowed = 0;
-    for (int i = 0; i < NUM_POISSON_SAMPLES; ++i) {
+    for (int i = 0; i < NUM_POISSON_SAMPLES; ++i)
+    {
         vec2 offset = rotation * poissonDisk[i] * texelSize;
         float sampleDepth = texture(shadowMap, projCoords.xy + offset).r;
         float isShadowed = (depth - bias > sampleDepth) ? 1.0 : 0.0;
@@ -135,10 +140,12 @@ float ShadowCalculation(vec3 fragWorldPos, vec3 normal, vec3 lightDir)
 
     float bias = max(0.003 * (1.0 - dot(normal, lightDir)), 0.0005);
 
-    for (int i = 0; i < NUM_PREBAKED; ++i) {
+    for (int i = 0; i < u_NumPreBaked; ++i)
+    {
         vec4 lightSpacePos = u_PreBakedLightSpaceMatrices[i] * vec4(fragWorldPos, 1.0);
         vec3 projCoords = lightSpacePos.xyz / lightSpacePos.w * 0.5 + 0.5;
-        if (all(greaterThanEqual(projCoords, vec3(0.0))) && all(lessThanEqual(projCoords, vec3(1.0)))) {
+        if (all(greaterThanEqual(projCoords, vec3(0.0))) && all(lessThanEqual(projCoords, vec3(1.0))))
+        {
             bestPrebaked = i;
             prebakedProjCoords = projCoords;
             prebakedDepth = projCoords.z;
@@ -146,10 +153,11 @@ float ShadowCalculation(vec3 fragWorldPos, vec3 normal, vec3 lightDir)
         }
     }
 
-    for (int i = 0; i < NUM_CASCADES; ++i) {
+    for (int i = 0; i < u_NumCascades; ++i) {
         vec4 lightSpacePos = u_LightSpaceMatrices[i] * vec4(fragWorldPos, 1.0);
         vec3 projCoords = lightSpacePos.xyz / lightSpacePos.w * 0.5 + 0.5;
-        if (all(greaterThanEqual(projCoords, vec3(0.0))) && all(lessThanEqual(projCoords, vec3(1.0)))) {
+        if (all(greaterThanEqual(projCoords, vec3(0.0))) && all(lessThanEqual(projCoords, vec3(1.0))))
+        {
             bestCascade = i;
             cascadeProjCoords = projCoords;
             cascadeDepth = projCoords.z;
@@ -215,10 +223,13 @@ void main()
 
     float alpha = albedoTex.a * u_BaseColorFactor.a;
 
-    if (u_AlphaMode == 1) { // MASK
+    if (u_AlphaMode == 1)
+    { // MASK
         if (alpha < u_AlphaCutoff) discard;
         alpha = 1.0;
-    } else if (u_AlphaMode == 0) { // OPAQUE
+    }
+    else if (u_AlphaMode == 0)
+    { // OPAQUE
         alpha = 1.0;
     }
 
@@ -320,7 +331,8 @@ void main()
     vec3 specularIBL = envColor * (Fibl * brdf.x + brdf.y);
 
     vec3 ambient;
-    if (isGlass) {
+    if (isGlass)
+    {
         // Thin-surface transmission via refracted IBL
         float eta = max(u_IOR, 1.0001); // avoid divide-by-zero
         vec3 Tdir = refract(-V, N, 1.0 / eta);
@@ -331,7 +343,9 @@ void main()
 
         // No AO on specular/transmission
         ambient = specularIBL + transIBL;
-    } else {
+    }
+    else
+    {
         // AO only affects diffuse, not specular
         ambient = ao * diffuseIBL + specularIBL;
     }
@@ -341,7 +355,8 @@ void main()
     // After computing Fibl (roughness-aware Fresnel) and 'transmission'
     float outAlpha = alpha;
 
-    if (u_AlphaMode == 2) {
+    if (u_AlphaMode == 2)
+    {
         float transVis = transmission * (1.0 - Fibl.r);      // how much isn't reflected
         float roughBoost = mix(0.0, 0.3, clamp(roughness, 0.0, 1.0));
         float coverage = clamp(0.02 + 0.65 * (transVis + roughBoost), 0.05, 0.7);

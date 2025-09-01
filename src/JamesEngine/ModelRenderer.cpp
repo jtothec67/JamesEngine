@@ -124,6 +124,9 @@ namespace JamesEngine
 			GetCore()->GetLightManager()->AddPreBakedShadowMap(renderTexture, lightSpaceMatrix);
 
 			std::cout << "Pre-baked shadow map for " << GetEntity()->GetTag() << " with a texture size of " << maxTextureSize << std::endl;
+
+			// Not sustainable, only works with one model with baked shadow map
+			GetEntity()->GetCore()->GetResources()->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_NumPreBaked", 1);
 		}
 		else
 		{
@@ -230,6 +233,9 @@ namespace JamesEngine
 				glFinish();
 			}
 
+			// Not sustainable, only works with one model with baked shadow map
+			GetEntity()->GetCore()->GetResources()->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_NumPreBaked", 4);
+
 			// Restore GL state
 			glEnable(GL_CULL_FACE);
 			glEnable(GL_BLEND);
@@ -277,25 +283,47 @@ namespace JamesEngine
 	void ModelRenderer::OnShadowRender(const glm::mat4& _lightSpaceMatrix)
 	{
 		// Don't draw static models each frame in the shadow pass
-		if (mPreBakeShadows || !mModel)
+		if (mPreBakeShadows || (!mModel && !mShadowModel))
 			return;
 
-		glm::mat4 entityModel = GetEntity()->GetComponent<Transform>()->GetModel();
+		if (!mShadowModel)
+		{
+			glm::mat4 entityModel = GetEntity()->GetComponent<Transform>()->GetModel();
 
-		glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(mRotationOffset.x), glm::vec3(1, 0, 0)) *
-			glm::rotate(glm::mat4(1.0f), glm::radians(mRotationOffset.y), glm::vec3(0, 1, 0)) *
-			glm::rotate(glm::mat4(1.0f), glm::radians(mRotationOffset.z), glm::vec3(0, 0, 1));
-		glm::mat4 offsetMatrix = glm::translate(glm::mat4(1.0f), mPositionOffset) * rotationMatrix;
+			glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(mRotationOffset.x), glm::vec3(1, 0, 0)) *
+				glm::rotate(glm::mat4(1.0f), glm::radians(mRotationOffset.y), glm::vec3(0, 1, 0)) *
+				glm::rotate(glm::mat4(1.0f), glm::radians(mRotationOffset.z), glm::vec3(0, 0, 1));
+			glm::mat4 offsetMatrix = glm::translate(glm::mat4(1.0f), mPositionOffset) * rotationMatrix;
 
-		glm::mat4 model = entityModel * offsetMatrix;
+			glm::mat4 model = entityModel * offsetMatrix;
 
-		mDepthShader->mShader->uniform("u_Model", model);
+			mDepthShader->mShader->uniform("u_Model", model);
 
-		mDepthShader->mShader->uniform("u_LightSpaceMatrix", _lightSpaceMatrix);
-		mDepthShader->mShader->uniform("u_AlphaCutoff", mAlphaCutoff);
+			mDepthShader->mShader->uniform("u_LightSpaceMatrix", _lightSpaceMatrix);
+			mDepthShader->mShader->uniform("u_AlphaCutoff", mAlphaCutoff);
 
-		// Call the updated draw function with support for multi-materials
-		mDepthShader->mShader->draw(mModel->mModel.get(), mRawTextures);
+			// Call the updated draw function with support for multi-materials
+			mDepthShader->mShader->draw(mModel->mModel.get(), mRawTextures);
+		}
+		else if (mShadowModel)
+		{
+			glm::mat4 entityModel = GetEntity()->GetComponent<Transform>()->GetModel();
+
+			glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(mRotationOffset.x), glm::vec3(1, 0, 0)) *
+				glm::rotate(glm::mat4(1.0f), glm::radians(mRotationOffset.y), glm::vec3(0, 1, 0)) *
+				glm::rotate(glm::mat4(1.0f), glm::radians(mRotationOffset.z), glm::vec3(0, 0, 1));
+			glm::mat4 offsetMatrix = glm::translate(glm::mat4(1.0f), mPositionOffset) * rotationMatrix;
+
+			glm::mat4 model = entityModel * offsetMatrix;
+
+			mDepthShader->mShader->uniform("u_Model", model);
+
+			mDepthShader->mShader->uniform("u_LightSpaceMatrix", _lightSpaceMatrix);
+			mDepthShader->mShader->uniform("u_AlphaCutoff", mAlphaCutoff);
+
+			// Call the updated draw function with support for multi-materials
+			mDepthShader->mShader->draw(mShadowModel->mModel.get(), mRawTextures);
+		}
 	}
 
 }

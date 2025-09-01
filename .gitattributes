@@ -1,1 +1,2 @@
 assets/models/Imola/Imola.glb filter=lfs diff=lfs merge=lfs -text
+assets/models/Imola/ImolaShadow.glb filter=lfs diff=lfs merge=lfs -text
