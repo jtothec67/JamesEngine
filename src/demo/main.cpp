@@ -995,7 +995,7 @@ int main()
 		frontTireParams.peakFrictionCoefficient = 1.6f;
 
 		frontTireParams.peakFrictionCoeffLat = 1.6f;
-		frontTireParams.peakFrictionCoeffLong = 1.30f;
+		frontTireParams.peakFrictionCoeffLong = 1.6f;
 
 		frontTireParams.longStiffCoeff = 20;
 		frontTireParams.latStiffCoeff = 60;
@@ -1007,8 +1007,11 @@ int main()
 		frontTireParams.longStiffExp = 0.9;
 		frontTireParams.latStiffExp = 0.9;
 
-		frontTireParams.slidingFrictionFactor = 0.9f;
-		frontTireParams.slidingFrictionFalloffExp = 1.5f;
+		frontTireParams.slidingFrictionFactorLong = 0.88f; // locked tire is ~88% of peak long
+		frontTireParams.slidingFrictionFactorLat = 0.96f; // lateral keeps a higher plateau
+
+		frontTireParams.slidingFrictionFalloffExponentLong = 1.2f; // starts softening earlier
+		frontTireParams.slidingFrictionFalloffExponentLat = 2.0f; // holds near-peak longer
 
 		frontTireParams.contactHalfLengthX = 0.05f;
 		frontTireParams.contactHalfLengthY = 0.1f;
@@ -1021,7 +1024,7 @@ int main()
 		rearTireParams.peakFrictionCoefficient = 1.6f;
 
 		rearTireParams.peakFrictionCoeffLat = 1.6f;
-		rearTireParams.peakFrictionCoeffLong = 1.30f;
+		rearTireParams.peakFrictionCoeffLong = 1.6f;
 
 		rearTireParams.longStiffCoeff = 20;
 		rearTireParams.latStiffCoeff = 60;
@@ -1032,8 +1035,11 @@ int main()
 		rearTireParams.longStiffExp = 0.9;
 		rearTireParams.latStiffExp = 0.9;
 
-		rearTireParams.slidingFrictionFactor = 0.9f;
-		rearTireParams.slidingFrictionFalloffExp = 1.5f;
+		rearTireParams.slidingFrictionFactorLong = 0.88f; // locked tire is ~88% of peak long
+		rearTireParams.slidingFrictionFactorLat = 0.96f; // lateral keeps a higher plateau
+
+		rearTireParams.slidingFrictionFalloffExponentLong = 1.2f; // starts softening earlier
+		rearTireParams.slidingFrictionFalloffExponentLat = 2.0f; // holds near-peak longer
 
 		rearTireParams.contactHalfLengthX = 0.05f;
 		rearTireParams.contactHalfLengthY = 0.1f;
@@ -1116,7 +1122,7 @@ int main()
 		trackMR->SetModel(core->GetResources()->Load<Model>("models/Imola/Imola.glb"));
 		trackMR->SetShadowModel(core->GetResources()->Load<Model>("models/Imola/ImolaShadow.glb"));
 		std::shared_ptr<ModelCollider> trackCollider = track->AddComponent<ModelCollider>();
-		trackCollider->SetModel(core->GetResources()->Load<Model>("models/Imola/Imola.glb"));
+		trackCollider->SetModel(core->GetResources()->Load<Model>("models/Imola/ImolaCollision.glb"));
 		trackCollider->SetDebugVisual(false);
 
 		// Start/finish line

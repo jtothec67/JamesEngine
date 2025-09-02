@@ -2,11 +2,6 @@
 
 #include "JamesEngine/JamesEngine.h"
 
-#ifdef _DEBUG
-#include "Renderer/Shader.h"
-#endif
-
-
 namespace JamesEngine
 {
 
@@ -83,6 +78,7 @@ namespace JamesEngine
 		SuspensionParams mSuspensionParams;
 
 		float mTireRadius = 0.34f;
+		float mTireWidth = 0.26f;
 
 		float mSteeringAngle = 0.0f;
 
@@ -90,7 +86,7 @@ namespace JamesEngine
 
 #ifdef _DEBUG
 		std::shared_ptr<Renderer::Shader> mShader = std::make_shared<Renderer::Shader>("../assets/shaders/OutlineShader.vert", "../assets/shaders/OutlineShader.frag");
-		std::shared_ptr<Renderer::Model> mModel = std::make_shared<Renderer::Model>("../assets/shapes/spring.obj");
+		std::shared_ptr<Renderer::Model> mModel = std::make_shared<Renderer::Model>("../assets/shapes/capsule.obj");
 #endif
 	};
 

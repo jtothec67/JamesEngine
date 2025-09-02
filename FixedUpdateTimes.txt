@@ -1,0 +1,26 @@
+1 ray per suspension:
+ScopedTimer [Core::FixedTick] took 0.0344 mililseconds.
+ScopedTimer [Core::FixedTick] took 0.0328 mililseconds.
+ScopedTimer [Core::FixedTick] took 0.0462 mililseconds.
+ScopedTimer [Core::FixedTick] took 0.0425 mililseconds.
+ScopedTimer [Core::FixedTick] took 0.0387 mililseconds.
+ScopedTimer [Core::FixedTick] took 0.0512 mililseconds.
+ScopedTimer [Core::FixedTick] took 0.0392 mililseconds.
+
+5 rays per suspension
+ScopedTimer [Core::FixedTick] took 0.0812 mililseconds.
+ScopedTimer [Core::FixedTick] took 0.0691 mililseconds.
+ScopedTimer [Core::FixedTick] took 0.0677 mililseconds.
+ScopedTimer [Core::FixedTick] took 0.0677 mililseconds.
+ScopedTimer [Core::FixedTick] took 0.0889 mililseconds.
+ScopedTimer [Core::FixedTick] took 0.0827 mililseconds.
+ScopedTimer [Core::FixedTick] took 0.0812 mililseconds.
+
+5 rays per suspension, optimised model
+ScopedTimer [Core::FixedTick] took 0.0514 mililseconds.
+ScopedTimer [Core::FixedTick] took 0.052 mililseconds.
+ScopedTimer [Core::FixedTick] took 0.0535 mililseconds.
+ScopedTimer [Core::FixedTick] took 0.0521 mililseconds.
+ScopedTimer [Core::FixedTick] took 0.0515 mililseconds.
+ScopedTimer [Core::FixedTick] took 0.0528 mililseconds.
+ScopedTimer [Core::FixedTick] took 0.0518 mililseconds.

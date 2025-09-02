@@ -9,87 +9,86 @@ namespace JamesEngine
 {
 
 #ifdef _DEBUG
-	void Suspension::OnGUI()
-	{
+    void Suspension::OnGUI()
+    {
         if (!mDebugVisual)
             return;
 
-        // Retrieve the current camera from the entity's core
         std::shared_ptr<Camera> camera = GetEntity()->GetCore()->GetCamera();
-
-        // Set up the shader uniforms for projection and view matrices
         mShader->uniform("projection", camera->GetProjectionMatrix());
         mShader->uniform("view", camera->GetViewMatrix());
 
-		if (!mWheel || !mAnchorPoint)
-			return;
+        if (!mWheel || !mAnchorPoint)
+            return;
 
-        // Get the anchor and wheel positions for the suspension
-        glm::vec3 anchorPos = mAnchorPoint->GetComponent<Transform>()->GetPosition(); 
-        glm::vec3 wheelPos = mWheel->GetComponent<Transform>()->GetPosition();
+        // Anchor basis and ray direction (cast along -Up)
+        glm::vec3 anchorPos = mAnchorPoint->GetComponent<Transform>()->GetPosition();
+        glm::vec3 anchorUp = mAnchorPoint->GetComponent<Transform>()->GetUp();
+        glm::vec3 anchorRight = mAnchorPoint->GetComponent<Transform>()->GetRight();
+        glm::vec3 anchorForward = mAnchorPoint->GetComponent<Transform>()->GetForward();
+        glm::vec3 rayDir = -anchorUp;
 
-        // Compute the midpoint between the anchor and the wheel.
-        glm::vec3 midPoint = (anchorPos + wheelPos) * 0.5f;
+        // Length for viz: draw to hit if we have one, else full ray
+        float fullRayLength = mSuspensionParams.restLength + mTireRadius;
+        float drawRayLength = mGroundContact ? (mCurrentLength + mTireRadius) : fullRayLength;
 
-        // Compute the direction and length from the anchor to the wheel.
-        glm::vec3 suspensionDir = wheelPos - anchorPos;
-        float springLength = glm::length(suspensionDir);
-        suspensionDir = glm::normalize(suspensionDir);
+        // Rotate offset basis by steering angle (must match physics)
+        glm::quat steerQuat = glm::angleAxis(glm::radians(mSteeringAngle), anchorUp);
+        glm::vec3 steerFwd = steerQuat * anchorForward;
+        glm::vec3 steerRight = steerQuat * anchorRight;
 
-        // Since the spring model is oriented upward along the y-axis,
-        // we need to compute the rotation that aligns (0,1,0) with suspensionDir.
-        glm::vec3 up = glm::vec3(0, 1, 0);
-        float dotVal = glm::dot(up, suspensionDir);
-        glm::vec3 rotationAxis = glm::cross(up, suspensionDir);
-        float angle = acos(glm::clamp(dotVal, -1.0f, 1.0f));
+        // Offsets: center + 4 corners (using steered basis)
+        float latOffset = 0.4f * mTireWidth;
+        float longOffset = 0.3f * mTireRadius;
+        glm::vec3 offsets[5] = {
+            glm::vec3(0.0f),
+            steerRight * latOffset + steerFwd * longOffset,
+            steerRight * latOffset - steerFwd * longOffset,
+            -steerRight * latOffset + steerFwd * longOffset,
+            -steerRight * latOffset - steerFwd * longOffset
+        };
 
-        // Handle the case where the vectors are nearly parallel or opposite.
-        if (glm::length(rotationAxis) < 1e-6f) {
-            if (dotVal < 0.0f) {
-                // Vectors are opposite, so choose an arbitrary perpendicular axis.
-                rotationAxis = glm::vec3(1, 0, 0);
-                angle = glm::pi<float>();
-            }
+        // Common capsule settings
+        float thickness = 0.03f; // skinny capsule (X/Z), tweak as desired
+        glm::vec3 capsuleUp = glm::vec3(0, 1, 0);
+
+        // Precompute rotation to align capsule +Y to rayDir
+        float dotVal = glm::clamp(glm::dot(capsuleUp, rayDir), -1.0f, 1.0f);
+        glm::vec3 rotAxis = glm::cross(capsuleUp, rayDir);
+        float angle = std::acos(dotVal);
+        if (glm::length(rotAxis) < 1e-12f) {
+            if (dotVal < 0.0f) { rotAxis = glm::vec3(1, 0, 0); angle = glm::pi<float>(); }
+            else { rotAxis = glm::vec3(1, 0, 0); angle = 0.0f; }
         }
         else {
-            rotationAxis = glm::normalize(rotationAxis);
+            rotAxis = glm::normalize(rotAxis);
         }
 
-        // Build the model matrix in several stages.
-        glm::mat4 modelMatrix = glm::mat4(1.0f);
-
-        // 1. Translate to the midpoint of the suspension.
-        modelMatrix = glm::translate(modelMatrix, midPoint);
-
-        // 2. Rotate the spring model so that its local up (0,1,0) is aligned with the suspension direction.
-        modelMatrix = modelMatrix * glm::rotate(glm::mat4(1.0f), angle, rotationAxis);
-
-        // 3. Adjust the spring model so that it is centered:
-        //    a. Translate it by (0, -0.5, 0) since the model is assumed to span [0,1] in y (its center is at y = 0.5).
-        //    b. Scale in y so that the spring spans the full distance between the anchor and the wheel.
-        glm::mat4 T_center = glm::translate(glm::mat4(1.0f), glm::vec3(0, -0.5f, 0));
-        glm::mat4 S = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, springLength, 1.0f));
-        glm::mat4 localTransform = S * T_center;
-
-        // Combine the transformations.
-        modelMatrix = modelMatrix * localTransform;
-
-        // Set the final model matrix to the shader.
-        mShader->uniform("model", modelMatrix);
-
-        // Additional uniforms for visual debugging (these can be adjusted for your needs).
+        // Visual style
         mShader->uniform("outlineWidth", 1.0f);
         mShader->uniform("outlineColor", glm::vec3(0, 1, 0));
 
-        // Disable depth testing so the debug visual is fully visible.
         glDisable(GL_DEPTH_TEST);
 
-        // Draw the spring model (assumes mSpringModel holds the proper model).
-        mShader->drawOutline(mModel.get());
+        // Draw all 5 capsules
+        for (int i = 0; i < 5; ++i)
+        {
+            glm::vec3 origin = anchorPos + offsets[i];
+            glm::vec3 midPoint = origin + 0.5f * drawRayLength * rayDir;
 
-        // Re-enable depth testing.
+            glm::mat4 model(1.0f);
+            model = glm::translate(model, midPoint);
+            model = model * glm::rotate(glm::mat4(1.0f), angle, rotAxis);
+            // Capsule spans [-1..+1] in local Y; scale Y by drawRayLength/2
+            model = model * glm::scale(glm::mat4(1.0f),
+                glm::vec3(thickness, drawRayLength * 0.5f, thickness));
+
+            mShader->uniform("model", model);
+            mShader->drawOutline(mModel.get()); // capsule mesh
+        }
+
         glEnable(GL_DEPTH_TEST);
-	}
+    }
 #endif
 
     void Suspension::OnAlive()
@@ -119,26 +118,61 @@ namespace JamesEngine
     {
         // Get anchor position and suspension direction
         glm::vec3 anchorPos = mAnchorPoint->GetComponent<Transform>()->GetPosition();
-        glm::vec3 suspensionDir = -glm::normalize(mAnchorPoint->GetComponent<Transform>()->GetUp());
+        glm::vec3 anchorUp = mAnchorPoint->GetComponent<Transform>()->GetUp();
+		glm::vec3 anchorForward = mAnchorPoint->GetComponent<Transform>()->GetForward();
+		glm::vec3 anchorRight = mAnchorPoint->GetComponent<Transform>()->GetRight();
+        glm::vec3 suspensionDir = -anchorUp;
 
-        // Setup raycast
-        Ray ray;
-        ray.origin = anchorPos;
-        ray.direction = suspensionDir;
-        ray.length = mSuspensionParams.restLength + mTireRadius;
+        float rayLength = mSuspensionParams.restLength + mTireRadius;
 
-        RaycastHit hit;
-        mGroundContact = GetCore()->GetRaycastSystem()->Raycast(ray, hit);
+        // Rotate the offset basis by steering angle around the anchor's Up
+        glm::quat steerQuat = glm::angleAxis(glm::radians(mSteeringAngle), anchorUp);
+        glm::vec3 steerFwd = steerQuat * anchorForward;
+        glm::vec3 steerRight = steerQuat * anchorRight;
 
-        // Determine current suspension length
-        if (mGroundContact)
+        // 5 offsets: center + 4 corners
+        float latOffset = 0.4f * mTireWidth;
+        float longOffset = 0.3f * mTireRadius;
+        glm::vec3 offsets[5] = {
+        glm::vec3(0.0f),
+        steerRight * latOffset + steerFwd * longOffset,
+        steerRight * latOffset - steerFwd * longOffset,
+        -steerRight * latOffset + steerFwd * longOffset,
+        -steerRight * latOffset - steerFwd * longOffset
+        };
+
+        int hitCount = 0;
+        glm::vec3 sumPoints(0.0f);
+        glm::vec3 sumNormals(0.0f);
+        float sumLengths = 0.0f;
+
+        for (int i = 0; i < 5; ++i)
         {
-            mContactPoint = hit.point;
-            mSurfaceNormal = hit.normal;
-            mCurrentLength = hit.distance - mTireRadius;
+            Ray ray;
+            ray.origin = anchorPos + offsets[i];
+            ray.direction = suspensionDir;
+            ray.length = rayLength;
+
+            RaycastHit hit;
+            if (GetCore()->GetRaycastSystem()->Raycast(ray, hit))
+            {
+                hitCount++;
+                sumPoints += hit.point;
+                sumNormals += hit.normal;
+                sumLengths += hit.distance - mTireRadius;
+            }
+        }
+
+        if (hitCount > 0)
+        {
+            mGroundContact = true;
+            mContactPoint = sumPoints / (float)hitCount;
+            mSurfaceNormal = glm::normalize(sumNormals / (float)hitCount);
+            mCurrentLength = sumLengths / (float)hitCount;
         }
         else
         {
+            mGroundContact = false;
             mCurrentLength = mSuspensionParams.restLength;
         }
 

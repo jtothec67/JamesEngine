@@ -115,8 +115,6 @@ namespace JamesEngine
 			}
 
 			{
-				//ScopedTimer timer("Core::FixedTick");
-
 				// Fixed time step logic
 				mFixedTimeAccumulator += mDeltaTime;
 
@@ -127,6 +125,8 @@ namespace JamesEngine
 
 				while (mFixedTimeAccumulator >= mFixedDeltaTime)
 				{
+					//ScopedTimer timer("Core::FixedTick");
+
 					for (size_t ei = 0; ei < mEntities.size(); ++ei)
 					{
 						mEntities[ei]->OnEarlyFixedTick();

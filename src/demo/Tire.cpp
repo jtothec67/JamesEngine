@@ -218,13 +218,24 @@ namespace JamesEngine
 
             // Nonlinear grip (sliding part only)
             float slidingFraction = (a - xs) / (2.0f * a);
-            float slideFriction = mTireParams.slidingFrictionFactor * muDir_peak;
-            float effectiveFriction = slideFriction + (muDir_peak - slideFriction) * std::pow(1.0f - slidingFraction, mTireParams.slidingFrictionFalloffExp);
+
+            float muX_slide = mTireParams.slidingFrictionFactorLong * muX_peak;
+            float muY_slide = mTireParams.slidingFrictionFactorLat * muY_peak;
+
+            float muX_eff = muX_slide + (muX_peak - muX_slide) *
+                std::pow(1.0f - slidingFraction, mTireParams.slidingFrictionFalloffExponentLong);
+
+            float muY_eff = muY_slide + (muY_peak - muY_slide) *
+                std::pow(1.0f - slidingFraction, mTireParams.slidingFrictionFalloffExponentLat);
+
+            // Effective friction along the current slip direction
+            float muDir_eff = std::sqrt((muX_eff * c) * (muX_eff * c) +
+                (muY_eff * s) * (muY_eff * s));
 
             // Sliding contributions over [xs, +a]
             float span = (a - xs);
-            float Fx_sl = (2.0f * b) * (effectiveFriction * p * c * span);
-            float Fy_sl = (2.0f * b) * (effectiveFriction * p * s * span);
+            float Fx_sl = (2.0f * b) * (muDir_eff * p * c * span);
+            float Fy_sl = (2.0f * b) * (muDir_eff * p * s * span);
 
             // Forces oppose slip
             Fx = -(Fx_adh + Fx_sl);
@@ -235,41 +246,28 @@ namespace JamesEngine
         float effectiveBrakeTorque = 0.0f;
         if (mBrakeTorque > 0.0f)
         {
-            float brakeDir = -glm::sign(mWheelAngularVelocity);
-            float resistingTorque = brakeDir * mBrakeTorque;
-
-            if (glm::sign(resistingTorque) == -glm::sign(mWheelAngularVelocity))
-            {
-                effectiveBrakeTorque = resistingTorque;
-            }
+            float spinSign = (std::fabs(mWheelAngularVelocity) > 1e-3f)
+                ? glm::sign(mWheelAngularVelocity)
+                : glm::sign(Vx); // oppose rolling if w ~ 0
+            effectiveBrakeTorque = -spinSign * std::abs(mBrakeTorque);
         }
 
         float torqueAvailable = mDriveTorque + effectiveBrakeTorque;
-        float maxFx = std::abs(torqueAvailable / mTireParams.tireRadius);
-
-        // Clamp Fx to respect drivetrain limits
-        if (std::abs(mDriveTorque) > 0.01f || std::abs(effectiveBrakeTorque) > 0.01f)
+        if (std::abs(torqueAvailable) > 0.01f)
         {
-            float torqueAvailable = mDriveTorque + effectiveBrakeTorque;
-            float maxFx = std::abs(torqueAvailable / mTireParams.tireRadius);
-            Fx = glm::clamp(Fx, -maxFx, maxFx);
+            float FxCap = std::abs(torqueAvailable) / mTireParams.tireRadius;
+            if (glm::sign(Fx) == glm::sign(torqueAvailable))
+            {
+                Fx = glm::clamp(Fx, -FxCap, FxCap); // clamp only when aligned
+            }
+            // if Fx is trying to UN-lock the wheel, don't clamp it
         }
 
-        // Apply Fx to car only if drive or brake torque exists
-        if (std::abs(mDriveTorque) > 0.01f || std::abs(mBrakeTorque) > 0.01f)
-        {
-            glm::vec3 forceWorld = projForward * Fx + projSide * Fy;
-            mCarRb->ApplyForce(forceWorld, mSuspension->GetContactPoint());
-        }
-        else
-        {
-            // Only apply lateral force + rolling resistance
-            glm::vec3 forceWorld = projSide * Fy;
-            mCarRb->ApplyForce(forceWorld, mSuspension->GetContactPoint());
-        }
+        glm::vec3 forceWorld = projForward * Fx + projSide * Fy;
+        mCarRb->ApplyForce(forceWorld, mSuspension->GetContactPoint());
 
         // Apply rolling resistance
-        glm::vec3 rollingResistanceDir = -tireForward * glm::sign(Vx);
+        glm::vec3 rollingResistanceDir = -projForward * glm::sign(Vx);
         glm::vec3 rollingResistanceForce = rollingResistanceDir * mTireParams.rollingResistance * Fz;
         mCarRb->ApplyForce(rollingResistanceForce, mSuspension->GetContactPoint());
 
@@ -277,7 +275,7 @@ namespace JamesEngine
         float roadTorque = -Fx * mTireParams.tireRadius;
         float netTorque = mDriveTorque + effectiveBrakeTorque + roadTorque;
 
-        float inertia = 0.5f * (mTireParams.wheelMass * 10.0f) * mTireParams.tireRadius * mTireParams.tireRadius;
+        float inertia = 0.5f * mTireParams.wheelMass * mTireParams.tireRadius * mTireParams.tireRadius;
         float angularAcceleration = netTorque / inertia;
         mWheelAngularVelocity += angularAcceleration * dt;
 
