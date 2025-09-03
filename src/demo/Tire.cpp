@@ -10,37 +10,37 @@ namespace JamesEngine
     void Tire::OnAlive()
     {
         mAudioSource = GetEntity()->AddComponent<AudioSource>();
-		mAudioSource->SetSound(GetCore()->GetResources()->Load<Sound>("sounds/tire screech"));
-		mAudioSource->SetLooping(true);
+        mAudioSource->SetSound(GetCore()->GetResources()->Load<Sound>("sounds/tire screech"));
+        mAudioSource->SetLooping(true);
 
-		if (!mCarBody || !mAnchorPoint)
-		{
-			std::cout << "Tire component is missing a car body or anchor point" << std::endl;
-			return;
-		}
+        if (!mCarBody || !mAnchorPoint)
+        {
+            std::cout << "Tire component is missing a car body or anchor point" << std::endl;
+            return;
+        }
 
-		mCarRb = mCarBody->GetComponent<Rigidbody>();
-		if (!mCarRb)
-		{
-			std::cout << "Tire component is missing a rigidbody on the car body" << std::endl;
-			return;
-		}
+        mCarRb = mCarBody->GetComponent<Rigidbody>();
+        if (!mCarRb)
+        {
+            std::cout << "Tire component is missing a rigidbody on the car body" << std::endl;
+            return;
+        }
 
         mSuspension = GetEntity()->GetComponent<Suspension>();
-		if (!mSuspension)
-		{
-			std::cout << "Tire is missing a suspension component" << std::endl;
-			return;
-		}
+        if (!mSuspension)
+        {
+            std::cout << "Tire is missing a suspension component" << std::endl;
+            return;
+        }
     }
 
-	void Tire::OnFixedTick()
-	{
+    void Tire::OnFixedTick()
+    {
         BrushTireModel();
-	}
+    }
 
-	void Tire::BrushTireModel()
-	{
+    void Tire::BrushTireModel()
+    {
         float dt = GetCore()->FixedDeltaTime();
 
         // If wheel is off the ground, don't do tire model, just deal with inputs
@@ -152,7 +152,7 @@ namespace JamesEngine
         glm::vec3 projSide = glm::normalize(glm::cross(surfaceNormal, projForward));
         glm::vec3 projVelocity = ProjectOntoPlane(carVel, surfaceNormal);
 
-		// Decompose velocity into longitudinal and lateral (Vx long, Vy lat)
+        // Decompose velocity into longitudinal and lateral (Vx long, Vy lat)
         float Vx = glm::dot(projVelocity, projForward);
         float Vy = glm::dot(projVelocity, projSide);
 
@@ -160,7 +160,7 @@ namespace JamesEngine
         float wheelCircumferentialSpeed = mWheelAngularVelocity * mTireParams.tireRadius;
 
         float slipRatioDenom = glm::max(std::fabs(Vx), 0.5f);
-        float slipRatio = (Vx - wheelCircumferentialSpeed) / slipRatioDenom;
+        float slipRatio = (wheelCircumferentialSpeed - Vx) / slipRatioDenom;
         slipRatio = glm::clamp(slipRatio, -3.0f, 3.0f);
 
         float slipAngleDenom = glm::max(std::fabs(Vx), 1.0f);
@@ -238,7 +238,7 @@ namespace JamesEngine
             float Fy_sl = (2.0f * b) * (muDir_eff * p * s * span);
 
             // Forces oppose slip
-            Fx = -(Fx_adh + Fx_sl);
+            Fx = (Fx_adh + Fx_sl);
             Fy = -(Fy_adh + Fy_sl);
         }
 
@@ -276,8 +276,21 @@ namespace JamesEngine
         float netTorque = mDriveTorque + effectiveBrakeTorque + roadTorque;
 
         float inertia = 0.5f * mTireParams.wheelMass * mTireParams.tireRadius * mTireParams.tireRadius;
-        float angularAcceleration = netTorque / inertia;
-        mWheelAngularVelocity += angularAcceleration * dt;
+        float Vref = std::sqrt(Vx * Vx + (mWheelAngularVelocity * mTireParams.tireRadius) * (mWheelAngularVelocity * mTireParams.tireRadius) + 0.25f * 0.25f);
+        // Blend factor: ~1 at speed, ~0 near standstill
+        float v0 = 1.0f; // m/s, tune 0.5–2.0
+        float g = std::fabs(Vx) / (std::fabs(Vx) + v0);
+
+        // Effective small-slip slope used only for the implicit stabilizer
+        float Kk_eff = 0.3f * Cx * g;   // 0.2–0.5 × Cx is typical; g kills it near 0 speed
+
+        // Closed-form backward-Euler
+        float A = 1.0f + (dt / inertia) * ((mTireParams.tireRadius * mTireParams.tireRadius * Kk_eff) / Vref);
+        float B = mWheelAngularVelocity + (dt / inertia) * (mDriveTorque + effectiveBrakeTorque + (mTireParams.tireRadius * Kk_eff / Vref) * Vx);
+
+        mWheelAngularVelocity = B / A;
+
+        //std::cout << GetEntity()->GetTag() << " slip ratio: " << slipRatio << std::endl;
 
         // Clear torques for next frame
         mDriveTorque = 0.0f;
@@ -285,7 +298,7 @@ namespace JamesEngine
 
         //mGripUsage = glm::sqrt(FxRaw * FxRaw + FyRaw * FyRaw) / Fmax;
 
-		//std::cout << GetEntity()->GetTag() << " Grip Usage: " << mGripUsage << std::endl;
+        //std::cout << GetEntity()->GetTag() << " Grip Usage: " << mGripUsage << std::endl;
 
         // Set tire screech audio based on slip conditions
         float tireScreechVolume = 0.0f;
@@ -301,10 +314,10 @@ namespace JamesEngine
         {
             mAudioSource->SetGain(0.0f);
         }
-	}
+    }
 
-	void Tire::OnTick()
-	{
+    void Tire::OnTick()
+    {
         mWheelRotation += glm::degrees(mWheelAngularVelocity * GetCore()->DeltaTime());
 
         if (mWheelRotation > 360)
@@ -318,7 +331,7 @@ namespace JamesEngine
 
         glm::vec3 modelRotationOffset = glm::vec3(mWheelRotation, 0.0f, 0.0f) + mInitialRotationOffset;
         GetEntity()->GetComponent<ModelRenderer>()->SetRotationOffset(modelRotationOffset);
-	}
+    }
 
     float Tire::GetSlidingAmount()
     {

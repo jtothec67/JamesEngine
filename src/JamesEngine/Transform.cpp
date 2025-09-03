@@ -50,7 +50,7 @@ namespace JamesEngine
     glm::vec3 Transform::GetRight()
     {
         glm::quat worldRot = GetWorldRotation();
-        return glm::normalize(worldRot * glm::vec3(-1.f, 0.f, 0.f));
+        return glm::normalize(worldRot * glm::vec3(1.f, 0.f, 0.f));
     }
 
     glm::vec3 Transform::GetUp()

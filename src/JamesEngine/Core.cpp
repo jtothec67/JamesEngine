@@ -210,7 +210,7 @@ namespace JamesEngine
 			const glm::vec3 camPos = GetCamera()->GetPosition();
 			const glm::vec3 camFwd = -GetCamera()->GetEntity()->GetComponent<Transform>()->GetForward();
 			const glm::vec3 camUp = GetCamera()->GetEntity()->GetComponent<Transform>()->GetUp();
-			const glm::vec3 camRight = -GetCamera()->GetEntity()->GetComponent<Transform>()->GetRight();
+			const glm::vec3 camRight = GetCamera()->GetEntity()->GetComponent<Transform>()->GetRight();
 			const float vfov = glm::radians(GetCamera()->GetFov());
 			int winW, winH;
 			mWindow->GetWindowSize(winW, winH);

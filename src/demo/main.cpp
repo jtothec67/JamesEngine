@@ -34,9 +34,9 @@ struct freelookCamController : public Component
 		if (GetKeyboard()->IsKey(SDLK_j))
 			GetTransform()->Move(GetTransform()->GetForward() * speed * GetCore()->GetLastFrameTime());
 		if (GetKeyboard()->IsKey(SDLK_h))
-			GetTransform()->Move(GetTransform()->GetRight() * speed * GetCore()->GetLastFrameTime());
-		if (GetKeyboard()->IsKey(SDLK_k))
 			GetTransform()->Move(-GetTransform()->GetRight() * speed * GetCore()->GetLastFrameTime());
+		if (GetKeyboard()->IsKey(SDLK_k))
+			GetTransform()->Move(GetTransform()->GetRight() * speed * GetCore()->GetLastFrameTime());
 		if (GetKeyboard()->IsKey(SDLK_y))
 			GetTransform()->Move(-GetTransform()->GetUp() * speed * GetCore()->GetLastFrameTime());
 		if (GetKeyboard()->IsKey(SDLK_i))
@@ -997,7 +997,7 @@ int main()
 		frontTireParams.peakFrictionCoeffLat = 1.6f;
 		frontTireParams.peakFrictionCoeffLong = 1.6f;
 
-		frontTireParams.longStiffCoeff = 20;
+		frontTireParams.longStiffCoeff = 60;
 		frontTireParams.latStiffCoeff = 60;
 		/*frontTireParams.longStiffCoeff = 5.3;
 		frontTireParams.latStiffCoeff = 15;*/
@@ -1026,7 +1026,7 @@ int main()
 		rearTireParams.peakFrictionCoeffLat = 1.6f;
 		rearTireParams.peakFrictionCoeffLong = 1.6f;
 
-		rearTireParams.longStiffCoeff = 20;
+		rearTireParams.longStiffCoeff = 60;
 		rearTireParams.latStiffCoeff = 60;
 		/*rearTireParams.longStiffCoeff = 5.3;
 		rearTireParams.latStiffCoeff = 15;*/
