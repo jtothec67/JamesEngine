@@ -64,7 +64,7 @@ namespace JamesEngine
 		float GetSlidingAmount();
 
 	private:
-		void BrushTireModel();
+		glm::vec2 BrushTireModel(float Vx, float Vy, float omega, float Fz);
 
 		std::shared_ptr<Entity> mCarBody;
 		std::shared_ptr<Entity> mAnchorPoint;
