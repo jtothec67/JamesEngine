@@ -25,8 +25,9 @@ namespace JamesEngine
 		float longStiffExp;
 		float latStiffExp;
 
-		float contactHalfLengthX; // rolling direction
-		float contactHalfLengthY; // lateral width
+		float contactHalfLengthY; // Lateral width, stays constant
+		float maxContactHalfLengthX; // Longitudinal length, changes with load
+		float refMaxLoadContactHalfLengthX; // Contact patch length at reference max load
 
 		float tireRadius;
 		float wheelMass;

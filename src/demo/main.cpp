@@ -972,6 +972,81 @@ struct CameraController : Component
 	}
 };
 
+struct ChaseCam : Component
+{
+	std::shared_ptr<Entity> target; // The entity the camera is following
+
+	float distance = 5.f;
+	float height = 2.f;
+	float minSpeedForVelDir = 0.2f;
+	float positionSmoothingTime = 0.12f;
+
+	// Camera sets it's local position to this offset from the target entity based on the target's velocity
+	void OnFixedTick()
+	{
+		glm::vec3 targetPos = target->GetComponent<Transform>()->GetPosition();
+		glm::vec3 targetVel = target->GetComponent<Rigidbody>()->GetVelocity();
+
+		glm::vec3 targetVelDir;
+
+		if (glm::length(targetVel) < minSpeedForVelDir)
+			targetVelDir = target->GetComponent<Transform>()->GetForward();
+		else
+			targetVelDir = glm::normalize(targetVel);
+
+		glm::vec3 desiredPos = targetPos - (targetVelDir * distance) + (target->GetComponent<Transform>()->GetUp() * height);
+		glm::vec3 newPos = glm::mix(GetPosition(), desiredPos, GetCore()->DeltaTime() / positionSmoothingTime);
+		SetPosition(newPos);
+		
+
+		glm::vec3 eye = GetPosition();
+		glm::vec3 upHint = target->GetComponent<Transform>()->GetUp();
+
+		glm::vec3 f = targetPos - eye;
+		if (glm::length2(f) < 1e-12f)
+		{
+			SetQuaternion(glm::quat(1, 0, 0, 0));
+			return;
+		}
+		f = glm::normalize(f);
+
+		if (glm::length2(upHint) < 1e-12f) upHint = glm::vec3(0, 1, 0);
+
+		// Pick the actual local +Z axis first (this prevents reflections)
+		glm::vec3 z = -f;
+
+		// Make a proper up (local +Y) orthogonal to z
+		glm::vec3 y = upHint - z * glm::dot(upHint, z);
+		float y2 = glm::length2(y);
+		if (y2 < 1e-12f) {
+			glm::vec3 fallback = (std::abs(z.y) < 0.999f) ? glm::vec3(0, 1, 0) : glm::vec3(1, 0, 0);
+			y = fallback - z * glm::dot(fallback, z);
+			y2 = glm::length2(y);
+			if (y2 < 1e-12f)
+			{
+				SetQuaternion(glm::quat(1, 0, 0, 0));
+				return;
+			}
+		}
+		y *= glm::inversesqrt(y2);
+
+		// Right-handed basis: x = y × z, then re-orthonormalize y
+		glm::vec3 x = glm::normalize(glm::cross(y, z));
+		y = glm::normalize(glm::cross(z, x));
+
+		// Columns = local axes (+X, +Y, +Z). GLM is column-major.
+		glm::mat3 m;
+		m[0] = x;
+		m[1] = y;
+		m[2] = z;
+
+		// (Optional) sanity: ensure determinant ~ +1 (proper rotation)
+		// assert(glm::abs(glm::determinant(m) - 1.0f) < 1e-3f);
+
+		SetQuaternion(glm::quat_cast(m));
+	}
+};
+
 struct printPosition : Component
 {
 	void OnTick()
@@ -997,7 +1072,7 @@ int main()
 		frontTireParams.peakFrictionCoeffLat = 1.6f;
 		frontTireParams.peakFrictionCoeffLong = 1.6f;
 
-		frontTireParams.longStiffCoeff = 60;
+		frontTireParams.longStiffCoeff = 20;
 		frontTireParams.latStiffCoeff = 60;
 		/*frontTireParams.longStiffCoeff = 5.3;
 		frontTireParams.latStiffCoeff = 15;*/
@@ -1013,8 +1088,9 @@ int main()
 		frontTireParams.slidingFrictionFalloffExponentLong = 1.2f; // starts softening earlier
 		frontTireParams.slidingFrictionFalloffExponentLat = 2.0f; // holds near-peak longer
 
-		frontTireParams.contactHalfLengthX = 0.05f;
 		frontTireParams.contactHalfLengthY = 0.1f;
+		frontTireParams.maxContactHalfLengthX = 0.13;
+		frontTireParams.refMaxLoadContactHalfLengthX = 12000;
 
 		frontTireParams.tireRadius = 0.34f;
 		frontTireParams.wheelMass = 25.f;
@@ -1026,7 +1102,7 @@ int main()
 		rearTireParams.peakFrictionCoeffLat = 1.6f;
 		rearTireParams.peakFrictionCoeffLong = 1.6f;
 
-		rearTireParams.longStiffCoeff = 60;
+		rearTireParams.longStiffCoeff = 20;
 		rearTireParams.latStiffCoeff = 60;
 		/*rearTireParams.longStiffCoeff = 5.3;
 		rearTireParams.latStiffCoeff = 15;*/
@@ -1041,8 +1117,9 @@ int main()
 		rearTireParams.slidingFrictionFalloffExponentLong = 1.2f; // starts softening earlier
 		rearTireParams.slidingFrictionFalloffExponentLat = 2.0f; // holds near-peak longer
 
-		rearTireParams.contactHalfLengthX = 0.05f;
 		rearTireParams.contactHalfLengthY = 0.1f;
+		rearTireParams.maxContactHalfLengthX = 0.13;
+		rearTireParams.refMaxLoadContactHalfLengthX = 12000;
 
 		rearTireParams.tireRadius = 0.34f;
 		rearTireParams.wheelMass = 25.f;
@@ -1101,17 +1178,23 @@ int main()
 		cockpitCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
 		cockpitCamEntity->AddComponent<CameraController>();
 
-		std::shared_ptr<Entity> chaseCamEntity = core->AddEntity();
-		std::shared_ptr<Camera> chaseCam = chaseCamEntity->AddComponent<Camera>();
-		chaseCam->SetPriority(1);
-		chaseCamEntity->GetComponent<Transform>()->SetPosition(vec3(0, 1.66, -5.98));
-		chaseCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
+		std::shared_ptr<Entity> thirdPersonCamEntity = core->AddEntity();
+		std::shared_ptr<Camera> thirdPersonCam = thirdPersonCamEntity->AddComponent<Camera>();
+		thirdPersonCam->SetPriority(1);
+		thirdPersonCamEntity->GetComponent<Transform>()->SetPosition(vec3(0, 1.66, -5.98));
+		thirdPersonCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
 
 		std::shared_ptr<Entity> wheelCamEntity = core->AddEntity();
 		std::shared_ptr<Camera> wheelCam = wheelCamEntity->AddComponent<Camera>();
 		wheelCam->SetPriority(1);
 		wheelCamEntity->GetComponent<Transform>()->SetPosition(vec3(-1.36, 0.246, -1.63));
 		wheelCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 183.735, 0));
+
+		std::shared_ptr<Entity> chaseCamEntity = core->AddEntity();
+		std::shared_ptr<Camera> chaseCam = chaseCamEntity->AddComponent<Camera>();
+		chaseCam->SetPriority(1);
+		std::shared_ptr<ChaseCam> chaseCamComp = chaseCamEntity->AddComponent<ChaseCam>();
+
 
 		// Track, Imola
 		std::shared_ptr<Entity> track = core->AddEntity();
@@ -1161,8 +1244,9 @@ int main()
 
 		cockpitCamEntity->GetComponent<Transform>()->SetParent(carBody);
 		bonnetCamEntity->GetComponent<Transform>()->SetParent(carBody);
-		chaseCamEntity->GetComponent<Transform>()->SetParent(carBody);
+		thirdPersonCamEntity->GetComponent<Transform>()->SetParent(carBody);
 		wheelCamEntity->GetComponent<Transform>()->SetParent(carBody);
+		chaseCamComp->target = carBody;
 
 		//freeCamEntity->GetComponent<Transform>()->SetParent(carBody);
 

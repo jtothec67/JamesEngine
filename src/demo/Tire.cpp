@@ -37,7 +37,7 @@ namespace JamesEngine
 
     void Tire::OnFixedTick()
     {
-		ScopedTimer timer("Tire::OnFixedTick");
+		//ScopedTimer timer("Tire::OnFixedTick");
         float dt = GetCore()->FixedDeltaTime();
 
         // If wheel is off the ground, don't do tire model, just deal with inputs
@@ -313,8 +313,11 @@ namespace JamesEngine
         float tanSlipAngle = Vy / slipAngleDenom;
 
         // Geometric half-dimensions of the footprint
-        float a = mTireParams.contactHalfLengthX;
         float b = mTireParams.contactHalfLengthY;
+
+        float FzAtMax = glm::max(mTireParams.refMaxLoadContactHalfLengthX, 1.0f);
+        float t = glm::clamp(Fz / FzAtMax, 0.0f, 1.0f);
+        float a = mTireParams.maxContactHalfLengthX * t;  // 0 at 0 load -> max at ref load
 
         // Convert to per-area bristle stiffness (preserves small-slip slopes)
         float kxA = Cx / (2.0f * a * b);
