@@ -12,19 +12,37 @@ namespace JamesEngine
         float gearRatio = mParams.gearRatios.empty() ? 1.0f : mParams.gearRatios[mCurrentGear - 1];
         float targetEngineRPM = _wheelRPM * gearRatio * mParams.finalDrive;
 
-		// Auto-clutch logic
+        // Auto-clutch logic
         if (mAutoClutchEnabled)
         {
-            const float idleStallRPM = mParams.idleRPM + 500.0f;
+            const float throttleThreshold = 0.05f;
             const float bitePoint = 0.5f;
             const float releaseStartRPM = 2000.0f;
             const float releaseEndRPM = 3000.0f;
-            const float throttleThreshold = 0.05f;
+
+            // Anti-stall hysteresis around idle
+            const float stallEngageRPM = mParams.idleRPM + 150.0f; // enter anti-stall below this
+            const float stallReleaseRPM = mParams.idleRPM + 50.0f;  // leave anti-stall above this
+
+            // Off-throttle clutch target based on slip (prevents re-stall but allows engine braking)
+            const float openSlipRPM = 800.0f;  // slip at which we fully open (0 clutch)
+            const float closedSlipRPM = 200.0f;  // slip at which we can fully close (1 clutch)
 
             const bool throttlePressed = (mThrottle > throttleThreshold);
-            const bool stalled = (mCurrentRPM < idleStallRPM);
 
-            // State transitions
+            if (!mAntiStallActive)
+            {
+                // Enter anti-stall only when BOTH engine and wheel-imposed RPMs are very low
+                if (mCurrentRPM < stallEngageRPM && targetEngineRPM < stallEngageRPM)
+                    mAntiStallActive = true;
+            }
+            else
+            {
+                // Exit anti-stall when EITHER rises (wheels unlock or engine speeds up)
+                if (mCurrentRPM > stallReleaseRPM || targetEngineRPM > stallReleaseRPM)
+                    mAntiStallActive = false;
+            }
+
             switch (mLaunchState)
             {
             case LaunchState::PreLaunch:
@@ -35,22 +53,29 @@ namespace JamesEngine
                 break;
             case LaunchState::Release:
                 // Reset when driver lifts and revs drop back near idle
-                if (!throttlePressed && mCurrentRPM < idleStallRPM + 100.0f)
+                if (!throttlePressed && mCurrentRPM < (mParams.idleRPM + 100.0f))
                     mLaunchState = LaunchState::PreLaunch;
                 break;
             }
 
-            // Behavior
-            if (stalled)
+            if (mAntiStallActive)
             {
-                mClutch = 0.0f; // Anti-stall: fully open
+                // Protect the engine when wheels are locked / near-zero
+                mClutch = 0.0f; // fully open
             }
             else if (!throttlePressed)
             {
-                mClutch = 1.0f; // Fully engaged when not launching
+                // OFF-THROTTLE: engage clutch to get engine braking, but avoid re-stall using slip
+                const float slipRPM = mCurrentRPM - targetEngineRPM;  // +ve: engine faster than wheels
+                // Map slip to a 0..1 "openness" factor, then invert to get target clutch
+                float t = glm::clamp((std::abs(slipRPM) - closedSlipRPM) / (openSlipRPM - closedSlipRPM), 0.0f, 1.0f);
+                float targetClutch = 1.0f - t; // 1 at low slip -> strong engine braking; fades open as slip grows
+                // Only increase toward target (prevents chatter if current mClutch is already higher)
+                mClutch = std::max(mClutch, targetClutch);
             }
             else
             {
+                // Throttle pressed: use your launch state machine
                 switch (mLaunchState)
                 {
                 case LaunchState::PreLaunch:

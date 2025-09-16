@@ -55,8 +55,10 @@ namespace JamesEngine
 
 		void SetInitialRotationOffset(const glm::vec3& _offset) { mInitialRotationOffset = _offset; }
 
-		void SetWheelAngularVelocity(float _angularVelocity) { mWheelAngularVelocity = _angularVelocity; }
-		float GetWheelAngularVelocity() const { return mWheelAngularVelocity; }
+		void SetAngularVelocity(float _angularVelocity) { mWheelAngularVelocity = _angularVelocity; }
+		float GetAngularVelocity() const { return mWheelAngularVelocity; }
+
+		float GetInertia() const { return mInertia; }
 
 		void IsSliding(bool _isSliding) { mIsSliding = _isSliding; }
 
@@ -83,6 +85,8 @@ namespace JamesEngine
 		float mBrakeTorque = 0.f;
 
 		float mWheelAngularVelocity = 0.f;
+
+		float mInertia = 1.f; // Set based on wheel mass and radius at the first frame
 
 		float mWheelRotation = 0.f;
 

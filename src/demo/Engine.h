@@ -35,9 +35,15 @@ namespace JamesEngine
 		void SetAutoClutchEnabled(bool enabled) { mAutoClutchEnabled = enabled; }
 		float GetClutch() { return mClutch; }
 
+		float GetBitePointStart() { return mParams.bitePointStart; }
+		float GetBitePointEnd() { return mParams.bitePointEnd; }
+
         void EngineUpdate(float throttle, float clutch, float wheelRPM, float dt);
 
         float GetRPM() { return mCurrentRPM; }
+		float GetGearRatio() { return mParams.gearRatios[mCurrentGear - 1]; }
+		float GetFinalDrive() { return mParams.finalDrive; }
+
         float GetWheelTorque();
 
     private:
@@ -49,6 +55,8 @@ namespace JamesEngine
 		enum class LaunchState { PreLaunch, Hold, Release };
 		bool mAutoClutchEnabled = true;
 		LaunchState mLaunchState = LaunchState::PreLaunch;
+
+		bool mAntiStallActive = false;
 
         // cached inputs
         float mThrottle = 0.0f;

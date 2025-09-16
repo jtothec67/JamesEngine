@@ -10,6 +10,8 @@ namespace JamesEngine
 
     void Tire::OnAlive()
     {
+        mInertia = 0.5f * mTireParams.wheelMass * mTireParams.tireRadius * mTireParams.tireRadius;
+
         mAudioSource = GetEntity()->AddComponent<AudioSource>();
         mAudioSource->SetSound(GetCore()->GetResources()->Load<Sound>("sounds/tire screech"));
         mAudioSource->SetLooping(true);
@@ -167,7 +169,6 @@ namespace JamesEngine
         }
 
         // === Improved fully-implicit wheel integration (drop-in) ===
-        float inertia = 0.5f * mTireParams.wheelMass * mTireParams.tireRadius * mTireParams.tireRadius;
         const float R = mTireParams.tireRadius;
         const float cVisc = 0.02f;   // small hub viscous loss (0.0–0.05 ok)
         const int iters = 1;       // Newton iterations (usually 1–3 suffice, 8 is safe)
@@ -214,7 +215,7 @@ namespace JamesEngine
             for (int i = 0; i < iters; ++i)
             {
                 float Fx0 = FxAt(omega);
-                float g_eq = omega - omega_n - (dt / inertia) * (tau_app - R * Fx0 - cVisc * omega);
+                float g_eq = omega - omega_n - (dt / mInertia) * (tau_app - R * Fx0 - cVisc * omega);
 
                 float dW = glm::max(0.25f, 0.1f + 0.05f * std::fabs(omega));   // central diff
                 float Fx_p = FxAt(omega + dW);
@@ -222,7 +223,7 @@ namespace JamesEngine
                 float dFx_domega = (Fx_p - Fx_m) / (2.0f * dW);
                 float dTau_domega = -R * dFx_domega;
 
-                float dg = 1.0f - (dt / inertia) * (dTau_domega - cVisc);
+                float dg = 1.0f - (dt / mInertia) * (dTau_domega - cVisc);
                 if (std::fabs(dg) < 1e-8f) break;
 
                 float step = g_eq / dg;
@@ -233,7 +234,7 @@ namespace JamesEngine
                 for (int ls = 0; ls < 3; ++ls)
                 {
                     float Fx_try = FxAt(omega_try);
-                    float g_try = omega_try - omega_n - (dt / inertia) * (tau_app - R * Fx_try - cVisc * omega_try);
+                    float g_try = omega_try - omega_n - (dt / mInertia) * (tau_app - R * Fx_try - cVisc * omega_try);
                     if (std::fabs(g_try) <= 0.9f * std::fabs(g_eq)) break;
                     step *= 0.5f;
                     omega_try = omega - step;

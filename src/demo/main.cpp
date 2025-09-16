@@ -3,6 +3,7 @@
 #include "Tire.h"
 #include "Suspension.h"
 #include "Engine.h"
+#include "Drivetrain.h"
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/norm.hpp>
@@ -294,6 +295,7 @@ struct CarController : public Component
 	//float drivetrainEfficiency = 0.8f;
 
 	Engine mEngine;
+	Drivetrain mDrivetrain;
 
 	float clutchEngagement = 1.0f; // 0 = fully disengaged, 1 = fully engaged
 	float bitePointStart = 0.35f; // Minimum engagement to prevent stalling
@@ -412,7 +414,7 @@ struct CarController : public Component
 			mEngine.SetGear(mEngine.GetCurrentGear() - 1);
 		}
 
-		float wheelAngularVelocity = (RRWheelTire->GetWheelAngularVelocity() + RLWheelTire->GetWheelAngularVelocity()) / 2;
+		float wheelAngularVelocity = (RRWheelTire->GetAngularVelocity() + RLWheelTire->GetAngularVelocity()) / 2;
 		float wheelRPM = glm::degrees(wheelAngularVelocity) / 6.0f;
 
 		// Update engine
@@ -534,10 +536,10 @@ struct CarController : public Component
 			rb->SetVelocity(vec3(0, 0, 0));
 			rb->SetAngularVelocity(vec3(0, 0, 0));
 			rb->SetAngularMomentum(vec3(0, 0, 0));
-			FLWheelTire->SetWheelAngularVelocity(0);
-			FRWheelTire->SetWheelAngularVelocity(0);
-			RLWheelTire->SetWheelAngularVelocity(0);
-			RRWheelTire->SetWheelAngularVelocity(0);
+			FLWheelTire->SetAngularVelocity(0);
+			FRWheelTire->SetAngularVelocity(0);
+			RLWheelTire->SetAngularVelocity(0);
+			RRWheelTire->SetAngularVelocity(0);
 
 			GetCore()->FindComponent<StartFinishLine>()->ResetCar(); 
 		}
@@ -560,9 +562,14 @@ struct CarController : public Component
 		// Engine torque to wheels
 		float wheelTorque = mEngine.GetWheelTorque();
 
-		// Apply wheel torque (/2 split between 2 wheels)
-		RLWheelTire->AddDriveTorque(wheelTorque / 2);
-		RRWheelTire->AddDriveTorque(wheelTorque / 2);
+		// Send engine torque through drivetrain to get torque per driven wheel
+		glm::vec2 perWheelTorque = mDrivetrain.SplitTorque(wheelTorque, glm::vec2(RLWheelTire->GetAngularVelocity(), RRWheelTire->GetAngularVelocity()));
+
+		// Apply wheel torque
+		RLWheelTire->AddDriveTorque(perWheelTorque.x);
+		RRWheelTire->AddDriveTorque(perWheelTorque.y);
+
+		std::cout << "RL wheel torque: " << perWheelTorque.x << " RR wheel torque: " << perWheelTorque.y << std::endl;
 
 
 		// Brake torque to wheels
@@ -605,6 +612,34 @@ struct CarController : public Component
 		float dragForceMag = 0.5f * airDensity * speed * speed * dragCoefficient * frontalArea;
 		glm::vec3 dragForce = dragDirection * dragForceMag;
 		rb->AddForce(dragForce);
+	}
+
+	void OnLateFixedTick()
+	{
+		// After wheels integrate:
+		glm::vec2 wLR = { RLWheelTire->GetAngularVelocity(), RRWheelTire->GetAngularVelocity() };
+		glm::vec2 ILR = { RLWheelTire->GetInertia(), RRWheelTire->GetInertia() };
+
+		// If clutch biting: carrier = engineRPM/(gear*final); else carrier = average
+		bool clutchBiting = mEngine.GetClutch() > mEngine.GetBitePointEnd() && mEngine.GetClutch() < mEngine.GetBitePointStart();
+		float carrierAV;
+		if (clutchBiting)
+		{
+			float gear = mEngine.GetGearRatio();
+			float finalDrive = mEngine.GetFinalDrive();
+
+			float kRpmToRadPerSec = 2.0f * 3.1415f / 60.0f;
+			carrierAV = (mEngine.GetRPM() * kRpmToRadPerSec) / (gear * finalDrive);
+		}
+		else
+		{
+			// clutch open/neutral
+			carrierAV = 0.5f * (wLR.x + wLR.y);
+		}
+
+		glm::vec2 wCorr = mDrivetrain.ApplyOpenDiffKinematics(wLR, ILR, carrierAV);
+		RLWheelTire->SetAngularVelocity(wCorr.x);
+		RRWheelTire->SetAngularVelocity(wCorr.y);
 	}
 
 	std::string FormatTo2DP(float value)
@@ -976,7 +1011,7 @@ struct ChaseCam : Component
 {
 	std::shared_ptr<Entity> target; // The entity the camera is following
 
-	float distance = 5.f;
+	float distance = 2.5f;
 	float height = 2.f;
 	float minSpeedForVelDir = 0.2f;
 	float positionSmoothingTime = 0.12f;
@@ -995,7 +1030,8 @@ struct ChaseCam : Component
 			targetVelDir = glm::normalize(targetVel);
 
 		glm::vec3 desiredPos = targetPos - (targetVelDir * distance) + (target->GetComponent<Transform>()->GetUp() * height);
-		glm::vec3 newPos = glm::mix(GetPosition(), desiredPos, GetCore()->DeltaTime() / positionSmoothingTime);
+		//glm::vec3 newPos = glm::mix(GetPosition(), desiredPos, GetCore()->DeltaTime() / positionSmoothingTime);
+		glm::vec3 newPos = desiredPos;
 		SetPosition(newPos);
 		
 

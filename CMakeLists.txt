@@ -147,6 +147,9 @@ add_executable(demo
 
 	src/demo/Engine.h
 	src/demo/Engine.cpp
+
+	src/demo/Drivetrain.h
+	src/demo/Drivetrain.cpp
 )
 
 option(HIDE_CONSOLE "Build without console window" OFF)
