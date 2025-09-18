@@ -548,15 +548,19 @@ struct CarController : public Component
 	void OnFixedTick()
 	{
 		// Compute slip ratio for each tire and total rumble intensity
-		float FLSlide = glm::clamp(FLWheelTire->GetSlidingAmount(), 0.5f, 1.f);
+		/*float FLSlide = glm::clamp(FLWheelTire->GetSlidingAmount(), 0.5f, 1.f);
 		float FRSlide = glm::clamp(FRWheelTire->GetSlidingAmount(), 0.5f, 1.f);
 		float RLSlide = glm::clamp(RLWheelTire->GetSlidingAmount(), 0.5f, 1.f);
-		float RRSlide = glm::clamp(RRWheelTire->GetSlidingAmount(), 0.5f, 1.f);
+		float RRSlide = glm::clamp(RRWheelTire->GetSlidingAmount(), 0.5f, 1.f);*/
+		float FLSlide = FLWheelTire->GetSlidingAmount();
+		float FRSlide = FRWheelTire->GetSlidingAmount();
+		float RLSlide = RLWheelTire->GetSlidingAmount();
+		float RRSlide = RRWheelTire->GetSlidingAmount();
 
 		float lowFreq = FLSlide + FRSlide + RLSlide + RRSlide;
 
 		// Apply controller rumble based on average slip
-		GetInput()->GetController()->SetRumble((lowFreq / 4) - 0.5f, 0, GetCore()->FixedDeltaTime());
+		GetInput()->GetController()->SetRumble((lowFreq / 4), 0, GetCore()->FixedDeltaTime());
 
 
 		// Engine torque to wheels
@@ -568,8 +572,6 @@ struct CarController : public Component
 		// Apply wheel torque
 		RLWheelTire->AddDriveTorque(perWheelTorque.x);
 		RRWheelTire->AddDriveTorque(perWheelTorque.y);
-
-		std::cout << "RL wheel torque: " << perWheelTorque.x << " RR wheel torque: " << perWheelTorque.y << std::endl;
 
 
 		// Brake torque to wheels
@@ -1103,10 +1105,8 @@ int main()
 	{
 
 		TireParams frontTireParams{};
-		frontTireParams.peakFrictionCoefficient = 1.6f;
-
 		frontTireParams.peakFrictionCoeffLat = 1.6f;
-		frontTireParams.peakFrictionCoeffLong = 1.6f;
+		frontTireParams.peakFrictionCoeffLong = 1.4f;
 
 		frontTireParams.longStiffCoeff = 20;
 		frontTireParams.latStiffCoeff = 60;
@@ -1133,10 +1133,8 @@ int main()
 		frontTireParams.rollingResistance = 0.015f;
 
 		TireParams rearTireParams{};
-		rearTireParams.peakFrictionCoefficient = 1.6f;
-
 		rearTireParams.peakFrictionCoeffLat = 1.6f;
-		rearTireParams.peakFrictionCoeffLong = 1.6f;
+		rearTireParams.peakFrictionCoeffLong = 1.4f;
 
 		rearTireParams.longStiffCoeff = 20;
 		rearTireParams.latStiffCoeff = 60;

@@ -95,6 +95,9 @@ namespace JamesEngine
 		glm::vec3 mInitialRotationOffset = glm::vec3(0.f, 0.f, 0.f);
 
 		float mGripUsage = 0.f; // How much grip is being used. 1 is on limit of grip, over 1 is above limit of grip
+
+		float mLastSlipRatio = 0.f;
+		float mLastSlipAngle = 0.f;
 	};
 
 }

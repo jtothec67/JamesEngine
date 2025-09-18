@@ -270,25 +270,24 @@ namespace JamesEngine
         float wheelCircumferentialSpeed = mWheelAngularVelocity * mTireParams.tireRadius;
 
         float slipRatioDenom = glm::max(std::fabs(Vx), 0.5f);
-        float slipRatio = (wheelCircumferentialSpeed - Vx) / slipRatioDenom;
-        slipRatio = glm::clamp(slipRatio, -3.0f, 3.0f);
+        float mLastSlipRatio = (wheelCircumferentialSpeed - Vx) / slipRatioDenom;
+        mLastSlipRatio = glm::clamp(mLastSlipRatio, -3.0f, 3.0f);
 
-        //std::cout << GetEntity()->GetTag() << " slip ratio: " << slipRatio << std::endl;
+        float slipAngleDenom = glm::max(std::fabs(Vx), 1.0f);
+        float tanSlipAngle = Vy / slipAngleDenom;
+		mLastSlipAngle = std::atan(tanSlipAngle);
 
         // Set tire screech audio based on slip conditions
         float tireScreechVolume = 0.0f;
         if (glm::length(carVel) > 5)
         {
-            if (slipRatio > 0.0f)
-                tireScreechVolume = glm::clamp(slipRatio, 0.f, 1.f);
-            else
-                tireScreechVolume = glm::clamp(-slipRatio * 3, 0.f, 1.f);
-            mAudioSource->SetGain(tireScreechVolume);
+			float slipRatMag = glm::abs(mLastSlipRatio);
+
+			// Tire screech volume increases with slip ratio, reachine 1 at slip ratio ~0.5
+			tireScreechVolume = glm::clamp((slipRatMag - 0.2f) * 2.0f, 0.0f, 1.0f);
         }
-        else
-        {
-            mAudioSource->SetGain(0.0f);
-        }
+
+        mAudioSource->SetGain(tireScreechVolume);
     }
 
     glm::vec2 Tire::BrushTireModel(float Vx, float Vy, float omega, float Fz)
@@ -360,15 +359,12 @@ namespace JamesEngine
             float muX_slide = mTireParams.slidingFrictionFactorLong * muX_peak;
             float muY_slide = mTireParams.slidingFrictionFactorLat * muY_peak;
 
-            float muX_eff = muX_slide + (muX_peak - muX_slide) *
-                std::pow(1.0f - slidingFraction, mTireParams.slidingFrictionFalloffExponentLong);
+            float muX_eff = muX_slide + (muX_peak - muX_slide) * std::pow(1.0f - slidingFraction, mTireParams.slidingFrictionFalloffExponentLong);
 
-            float muY_eff = muY_slide + (muY_peak - muY_slide) *
-                std::pow(1.0f - slidingFraction, mTireParams.slidingFrictionFalloffExponentLat);
+            float muY_eff = muY_slide + (muY_peak - muY_slide) * std::pow(1.0f - slidingFraction, mTireParams.slidingFrictionFalloffExponentLat);
 
             // Effective friction along the current slip direction
-            float muDir_eff = std::sqrt((muX_eff * c) * (muX_eff * c) +
-                (muY_eff * s) * (muY_eff * s));
+            float muDir_eff = std::sqrt((muX_eff * c) * (muX_eff * c) + (muY_eff * s) * (muY_eff * s));
 
             // Sliding contributions over [xs, +a]
             float span = (a - xs);
@@ -402,11 +398,11 @@ namespace JamesEngine
 
     float Tire::GetSlidingAmount()
     {
-        if (mIsSliding)
-        {
-            return glm::length(mCarRb->GetVelocityAtPoint(mSuspension->GetContactPoint()) - mCarRb->GetVelocity());
-        }
-        return 0.f;
+		// 0 = no slip, 1 = full slip
+		// Value increases with slip angle, starts at ~0.2, stops increasing at ~0.4
+		float slipAngleAbs = glm::abs(mLastSlipAngle);
+		float slipAngleFactor = glm::clamp((slipAngleAbs - 0.15f) * 5.0f, 0.0f, 1.0f);
+		return slipAngleFactor;
     }
 
 }
