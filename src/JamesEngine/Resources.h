@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Resource.h"
+
 #include <vector>
 #include <memory>
 #include <string>
@@ -7,7 +9,7 @@
 namespace JamesEngine
 {
 
-	class Resource;
+	//class Resource;
 
 	class Resources
 	{

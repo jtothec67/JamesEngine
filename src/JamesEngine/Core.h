@@ -5,6 +5,7 @@
 #include "GUI.h"
 #include "LightManager.h"
 #include "RaycastSystem.h"
+#include "Entity.h"
 
 #include <memory>
 #include <vector>
@@ -13,7 +14,7 @@ namespace JamesEngine
 {
 
 	class Input;
-	class Entity;
+	//class Entity;
 	class Resources;
 	class Camera;
 	class Skybox;
@@ -131,6 +132,12 @@ namespace JamesEngine
 
 			return nullptr;
 		}
+
+		// Overwrite the file if it already exists
+		bool WriteTextFile(const std::string& _filePath, const std::string& _content);
+
+		// Returns false if the file doesn't exist or couldn't be read
+		bool ReadTextFile(const std::string& _filePath, std::string& _outContent);
 
 		float GetLastFrameTime() const { return mLastFrameTime; }
 		/**

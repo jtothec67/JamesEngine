@@ -5,6 +5,8 @@
 #include "Engine.h"
 #include "Drivetrain.h"
 
+#include "JamesEngine/Timer.h"
+
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/norm.hpp>
 
@@ -95,6 +97,68 @@ struct StartFinishLine : public Component
 		lastSampleIndex = 0;
 	}
 
+	void SaveFastestLap()
+	{
+		ScopedTimer timer("Saving fastest lap");
+		std::ostringstream out;
+		out.setf(std::ios::fixed);
+		out << bestLapTime << " " << fastestLapSamples.size() << "\n";
+		for (auto& s : fastestLapSamples)
+		{
+			out << s.timestamp << " "
+				<< s.position.x << " "
+				<< s.position.y << " "
+				<< s.position.z << "\n";
+		}
+
+		if (!GetCore()->WriteTextFile("save/fastestLap.txt", out.str()))
+		{
+			std::cout << "Failed to save best lap file.\n";
+		}
+		else
+		{
+			std::cout << "Saved best lap: " << bestLapTimeString << "\n";
+		}
+	}
+
+	void OnAlive()
+	{
+		std::string content;
+		if (!GetCore()->ReadTextFile("save/fastestLap.txt", content))
+		{
+			std::cout << "No best lap file found.\n";
+			return;
+		}
+
+		std::istringstream in(content);
+		size_t count = 0;
+		in >> bestLapTime >> count;
+		if (!in)
+		{
+			std::cout << "Bad best lap file.\n";
+			return;
+		}
+
+		bestLapTimeString = FormatLapTime(bestLapTime);
+		fastestLapSamples.clear();
+		fastestLapSamples.reserve(count);
+
+		for (size_t i = 0; i < count; ++i)
+		{
+			sample s;
+			in >> s.timestamp >> s.position.x >> s.position.y >> s.position.z;
+			if (!in)
+			{
+				std::cout << "Malformed best lap file (samples).\n";
+				fastestLapSamples.clear();
+				return;
+			}
+			fastestLapSamples.push_back(s);
+		}
+
+		std::cout << "Loaded best lap: " << bestLapTimeString << " with " << fastestLapSamples.size() << " samples.\n";
+	}
+
 	void OnTick()
 	{
 		if (!onALap)
@@ -163,33 +227,31 @@ struct StartFinishLine : public Component
 		if (_collidedEntity->GetTag() != "carBody")
 			return;
 
-		// 2 second cool down so we only start lap once, can get rid after adding sectors
-		if (onALap && lapTime > 2)
+		if (onALap && lapTime >= 2.f)
 		{
+			// Finish lap
 			lastLapTime = lapTime;
 			lastLapTimeString = FormatLapTime(lastLapTime);
 
-			if (lapTime < bestLapTime || bestLapTime == 0)
+			if (bestLapTime == 0.f || lapTime < bestLapTime)
 			{
 				bestLapTime = lastLapTime;
 				bestLapTimeString = FormatLapTime(bestLapTime);
-
-				fastestLapSamples = currentLapSamples; // Store the fastest lap samples
+				fastestLapSamples = currentLapSamples;
+				SaveFastestLap();
 			}
 
 			lapTime = 0.f;
-
 			currentLapSamples.clear();
 			lastSampleIndex = 0;
 		}
-		else
+		else if (!onALap)
 		{
-			lapTime = 0.f;
+			// Started lap when not on lap (just spawned, reset)
 			onALap = true;
-
-			// Predict how many samples we will take in a lap, reserve space for efficiency
+			lapTime = 0.f;
+			currentLapSamples.clear();
 			currentLapSamples.reserve(110 / recordSamplesEvery);
-			fastestLapSamples.reserve(110 / recordSamplesEvery);
 		}
 	}
 
@@ -264,44 +326,15 @@ struct CarController : public Component
 	// Steering parameters
 	float maxTireSteeringAngle = 25.f; // Maximum tire steering angle
 	float maxSteeringRotation = 360.f; // Maximum steering wheel rotation
-
-	//// Engine and transmission parameters
-	//std::vector<std::pair<float, float>> torqueCurve = {
-	//{1000, 250.0f},
-	//{1500, 400.0f},
-	//{2000, 500.0f},
-	//{2500, 600.0f},
-	//{3000, 620.0f},
-	//{3500, 630.0f},
-	//{4000, 640.0f},
-	//{4500, 645.0f},
-	//{4800, 650.0f},  // Peak torque
-	//{5000, 645.0f},
-	//{5500, 630.0f},
-	//{6000, 610.0f},
-	//{6500, 580.0f},
-	//{7000, 540.0f},
-	//{7500, 480.0f},
-	//{8000, 400.0f},
-	//{8500, 300.0f}  // Redline
-	//};
 	float currentRPM = 0;
 	float maxRPM = 8000;
 	float idleRPM = 1000;
-	//int numGears = 6;
-	//int currentGear = 1;
-	//float gearRatios[6] = { 3, 2.25, 1.75, 1.35, 1.1, 0.9 }; // TEST IN ACC, DRIVE AT SAME RPM IN EACH GEAR AND SEE SPEEDS TO WORK OUT GEAR RATIO!!
-	//float finalDrive = 3.7f;
-	//float drivetrainEfficiency = 0.8f;
 
 	Engine mEngine;
 	Drivetrain mDrivetrain;
 
 	float clutchEngagement = 1.0f; // 0 = fully disengaged, 1 = fully engaged
-	float bitePointStart = 0.35f; // Minimum engagement to prevent stalling
-	float bitePointEnd = 0.65f; // Maximum engagement
 	bool autoClutchEnabled = true;
-	enum class LaunchState { PreLaunch, Hold, Release } launchState = LaunchState::PreLaunch;
 
 	// Brake torques
 	float brakeTorqueCapacity = 15000.f;

@@ -10,6 +10,7 @@
 #include "Texture.h"
 
 #include <iostream>
+#include <filesystem>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/string_cast.hpp>
@@ -483,6 +484,91 @@ namespace JamesEngine
 		std::cout << "No entity with tag " << _tag << " found" << std::endl;
 
 		return nullptr;
+	}
+
+	bool Core::WriteTextFile(const std::string& _filePath, const std::string& _content)
+	{
+		std::filesystem::path p = std::filesystem::path("../assets/") / _filePath;
+
+		// Ensure parent directories exist
+		if (p.has_parent_path())
+		{
+			std::error_code ec;
+			std::filesystem::create_directories(p.parent_path(), ec);
+			if (ec)
+			{
+				std::cout << "Failed to create directories: " << p.parent_path().string() << " (" << ec.message() << ")\n";
+				return false;
+			}
+		}
+
+		// Open for overwrite, creates the file if it doesn't exist
+		std::ofstream out(p, std::ios::binary | std::ios::trunc);
+		if (!out)
+		{
+			std::cout << "Failed to open file for writing: " << p.string() << std::endl;
+			return false;
+		}
+
+		if (!_content.empty())
+		{
+			out.write(_content.data(), static_cast<std::streamsize>(_content.size()));
+		}
+		out.flush();
+
+		if (!out.good())
+		{
+			std::cout << "Write failed: " << p.string() << std::endl;
+			return false;
+		}
+
+		out.close();
+
+		// Confirm the file exists (should be true even for empty content)
+		if (!std::filesystem::exists(p))
+		{
+			std::cout << "File was not created: " << p.string() << std::endl;
+			return false;
+		}
+
+		return true;
+	}
+
+	bool Core::ReadTextFile(const std::string& _filePath, std::string& _outContent)
+	{
+		std::filesystem::path p = std::filesystem::path("../assets/") / _filePath;
+
+		// Open in binary to read exact bytes, returns false if file is missing or can't be opened
+		std::ifstream in(p, std::ios::binary);
+		if (!in)
+		{
+			std::cout << "Failed to open file for reading: " << p.string() << std::endl;
+			_outContent.clear();
+			return false;
+		}
+
+		// Get size via filesystem
+		std::error_code ec;
+		const auto sz = std::filesystem::file_size(p, ec);
+		if (ec)
+		{
+			std::cout << "Failed to get file size: " << p.string() << " (" << ec.message() << ")\n";
+			_outContent.clear();
+			return false;
+		}
+
+		_outContent.resize(static_cast<size_t>(sz));
+		if (sz > 0)
+		{
+			in.read(&_outContent[0], static_cast<std::streamsize>(sz));
+			if (!in)
+			{
+				std::cout << "Read failed: " << p.string() << std::endl;
+				_outContent.clear();
+				return false;
+			}
+		}
+		return true;
 	}
 
 }
