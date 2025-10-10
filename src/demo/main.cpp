@@ -18,7 +18,7 @@ using namespace JamesEngine;
 struct freelookCamController : public Component
 {
 	float normalSpeed = 1.f;
-	float fastSpeed = 3.f;
+	float fastSpeed = 30.f;
 	float slowSpeed = 0.5f;
 	float sensitivity = 0.25f;
 
@@ -73,6 +73,7 @@ struct StartFinishLine : public Component
 	{
 		float timestamp;
 		glm::vec3 position;
+		glm::quat rotation;
 	};
 
 	std::vector<sample> currentLapSamples;
@@ -86,6 +87,9 @@ struct StartFinishLine : public Component
 	int lastSampleIndex = 0;
 
 	std::shared_ptr<Entity> car;
+	std::shared_ptr<Entity> ghostCar;
+
+	int lastGhostIndex = 0;
 
 	void ResetCar()
 	{
@@ -108,7 +112,11 @@ struct StartFinishLine : public Component
 			out << s.timestamp << " "
 				<< s.position.x << " "
 				<< s.position.y << " "
-				<< s.position.z << "\n";
+				<< s.position.z << " "
+				<< s.rotation.x << " "
+				<< s.rotation.y << " "
+				<< s.rotation.z << " "
+				<< s.rotation.w << "\n";
 		}
 
 		if (!GetCore()->WriteTextFile("save/fastestLap.txt", out.str()))
@@ -146,7 +154,7 @@ struct StartFinishLine : public Component
 		for (size_t i = 0; i < count; ++i)
 		{
 			sample s;
-			in >> s.timestamp >> s.position.x >> s.position.y >> s.position.z;
+			in >> s.timestamp >> s.position.x >> s.position.y >> s.position.z >> s.rotation.x >> s.rotation.y >> s.rotation.z >> s.rotation.w;
 			if (!in)
 			{
 				std::cout << "Malformed best lap file (samples).\n";
@@ -176,6 +184,7 @@ struct StartFinishLine : public Component
 			sample s;
 			s.timestamp = lapTime;
 			s.position = car->GetComponent<Transform>()->GetPosition();
+			s.rotation = car->GetComponent<Transform>()->GetQuaternion();
 			currentLapSamples.push_back(s);
 
 			if (!fastestLapSamples.empty())
@@ -219,6 +228,42 @@ struct StartFinishLine : public Component
 
 				currentDelta = lapTime - interpolatedTime;
 			}
+		}
+
+		if (fastestLapSamples.empty())
+		{
+			return; // No fastest lap to update ghost
+		}
+
+		float lapEnd = fastestLapSamples.back().timestamp;
+
+		if (lapEnd > lapTime)
+			lastGhostIndex = 0; // Restart if we haven't completed a lap yet
+
+		if (lapEnd > 0.f)
+		{
+			// Loop time to the ghost lap length
+			float t = std::fmod(lapTime, lapEnd);
+
+			// Walk forward until the next sample is after t
+			int maxIdx = static_cast<int>(fastestLapSamples.size()) - 2;
+			while (lastGhostIndex < maxIdx && t >= fastestLapSamples[lastGhostIndex + 1].timestamp)
+			{
+				++lastGhostIndex;
+			}
+
+			sample& a = fastestLapSamples[lastGhostIndex];
+			sample& b = fastestLapSamples[lastGhostIndex + 1];
+
+			float span = glm::max(1e-6f, b.timestamp - a.timestamp);
+			float alpha = glm::clamp((t - a.timestamp) / span, 0.f, 1.f);
+
+			glm::vec3 pos = glm::mix(a.position, b.position, alpha);
+			glm::quat rot = glm::normalize(glm::slerp(a.rotation, b.rotation, alpha));
+
+			auto tr = ghostCar->GetComponent<Transform>();
+			tr->SetPosition(pos);
+			tr->SetQuaternion(rot);
 		}
 	}
 
@@ -1299,6 +1344,14 @@ int main()
 		carBodyCollider->SetPositionOffset(vec3(0, 0.37, 0.22));
 		std::shared_ptr<Rigidbody> carBodyRB = carBody->AddComponent<Rigidbody>();
 		carBodyRB->SetMass(1230);
+
+		// Ghost car
+		std::shared_ptr<Entity> ghostCar = core->AddEntity();
+		ghostCar->SetTag("ghostCar");
+		std::shared_ptr<ModelRenderer> mercedesGhostMR = ghostCar->AddComponent<ModelRenderer>();
+		mercedesGhostMR->SetRotationOffset(vec3(0, 180, 0));
+		mercedesGhostMR->SetModel(core->GetResources()->Load<Model>("models/Mercedes/RawCar.glb"));
+		startFinishLineComponent->ghostCar = ghostCar;
 
 		std::shared_ptr<Entity> steeringWheel = core->AddEntity();
 		steeringWheel->SetTag("steeringWheel");
