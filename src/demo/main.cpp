@@ -1156,9 +1156,6 @@ struct ChaseCam : Component
 		m[1] = y;
 		m[2] = z;
 
-		// (Optional) sanity: ensure determinant ~ +1 (proper rotation)
-		// assert(glm::abs(glm::determinant(m) - 1.0f) < 1e-3f);
-
 		SetQuaternion(glm::quat_cast(m));
 	}
 };
@@ -1283,6 +1280,12 @@ int main()
 		bonnetCamEntity->GetComponent<Transform>()->SetPosition(vec3(0, 0.767, 0.39));
 		bonnetCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
 
+		std::shared_ptr<Entity> ghostBonnetCamEntity = core->AddEntity();
+		std::shared_ptr<Camera> ghostBonnetCam = ghostBonnetCamEntity->AddComponent<Camera>();
+		ghostBonnetCam->SetPriority(1);
+		ghostBonnetCamEntity->GetComponent<Transform>()->SetPosition(vec3(0, 0.767, 0.39));
+		ghostBonnetCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
+
 		std::shared_ptr<Entity> cockpitCamEntity = core->AddEntity();
 		std::shared_ptr<Camera> cockpitCam = cockpitCamEntity->AddComponent<Camera>();
 		cockpitCam->SetPriority(10);
@@ -1364,6 +1367,7 @@ int main()
 
 		cockpitCamEntity->GetComponent<Transform>()->SetParent(carBody);
 		bonnetCamEntity->GetComponent<Transform>()->SetParent(carBody);
+		ghostBonnetCamEntity->GetComponent<Transform>()->SetParent(ghostCar);
 		thirdPersonCamEntity->GetComponent<Transform>()->SetParent(carBody);
 		wheelCamEntity->GetComponent<Transform>()->SetParent(carBody);
 		chaseCamComp->target = carBody;

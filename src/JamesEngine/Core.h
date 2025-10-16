@@ -3,6 +3,7 @@
 #include "Window.h"
 #include "Audio.h"
 #include "GUI.h"
+#include "SceneRenderer.h"
 #include "LightManager.h"
 #include "RaycastSystem.h"
 #include "Entity.h"
@@ -14,7 +15,6 @@ namespace JamesEngine
 {
 
 	class Input;
-	//class Entity;
 	class Resources;
 	class Camera;
 	class Skybox;
@@ -50,6 +50,7 @@ namespace JamesEngine
 		std::shared_ptr<GUI> GetGUI() const { return mGUI; }
 		std::shared_ptr<LightManager> GetLightManager() const { return mLightManager; }
 		std::shared_ptr<Skybox> GetSkybox() const { return mSkybox; }
+		std::shared_ptr<SceneRenderer> GetSceneRenderer() const { return mSceneRenderer; }
 		std::shared_ptr<RaycastSystem> GetRaycastSystem() const { return mRaycastSystem; }
 
 		/**
@@ -167,6 +168,7 @@ namespace JamesEngine
 		std::shared_ptr<Skybox> mSkybox;
 		std::shared_ptr<RaycastSystem> mRaycastSystem;
 		std::shared_ptr<Resources> mResources;
+		std::shared_ptr<SceneRenderer> mSceneRenderer;
 		std::vector<std::shared_ptr<Entity>> mEntities;
 		std::weak_ptr<Core> mSelf;
 

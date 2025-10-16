@@ -30,9 +30,6 @@ add_library(JamesEngine
 	src/JamesEngine/Window.h
 	src/JamesEngine/Window.cpp
 
-	src/JamesEngine/TriangleRenderer.h
-	src/JamesEngine/TriangleRenderer.cpp
-
 	src/JamesEngine/ModelRenderer.h
 	src/JamesEngine/ModelRenderer.cpp
 
@@ -96,6 +93,9 @@ add_library(JamesEngine
 
 	src/JamesEngine/Camera.h
 	src/JamesEngine/Camera.cpp
+
+	src/JamesEngine/SceneRenderer.h
+	src/JamesEngine/SceneRenderer.cpp
 
 	src/JamesEngine/GUI.h
 	src/JamesEngine/GUI.cpp

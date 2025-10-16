@@ -28,6 +28,7 @@ namespace JamesEngine
 		rtn->mGUI = std::make_shared<GUI>(rtn);
 		rtn->mLightManager = std::make_shared<LightManager>();
 		rtn->mSkybox = std::make_shared<Skybox>(rtn);
+		rtn->mSceneRenderer = std::make_shared<SceneRenderer>(rtn);
 		rtn->mRaycastSystem = std::make_shared<RaycastSystem>(rtn);
 		rtn->mInput = std::make_shared<Input>();
 
@@ -177,6 +178,8 @@ namespace JamesEngine
 	void Core::RenderScene()
 	{
 		//ScopedTimer timer("Core::InternalRenderScene");
+
+		mSceneRenderer->RenderScene(); // Currently does nothing
 
 		if (!mLightManager->ArePreBakedShadowsUploaded())
 		{
