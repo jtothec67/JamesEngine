@@ -50,7 +50,7 @@ namespace JamesEngine
 
 		glm::vec3 mClearColour = glm::vec3(1.0f, 0.0f, 0.0f);
 
-		bool mVSync = true;
+		bool mVSync = false;
 
 		float mVRAMGB = 0.0f;
 

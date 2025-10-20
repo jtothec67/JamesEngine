@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Model.h"
+#include "Shader.h"
 
 namespace JamesEngine
 {
@@ -32,7 +33,7 @@ namespace JamesEngine
 	class SceneRenderer
 	{
 	public:
-		SceneRenderer(std::shared_ptr<Core> _core) { mCore = _core; }
+		SceneRenderer(std::shared_ptr<Core> _core);
 		~SceneRenderer() {}
 
 		void RenderScene();
@@ -45,6 +46,20 @@ namespace JamesEngine
 		std::vector<SubmissionInfo> mSubmissions;
 
 		std::weak_ptr<Core> mCore;
+
+		// Fallback PBR values
+		glm::vec4 mBaseColorStrength{ 1.f };
+		float mMetallicness = 0.0f;
+		float mRoughness = 1.0f;
+		float mAOStrength = 1.0f;
+		glm::vec3 mEmmisive{ 0.0f };
+
+		// Scene information
+		float mAlphaCutoff = 0.5f;
+
+		// Shaders
+		std::shared_ptr<Shader> mDepthShader;
+		std::shared_ptr<Shader> mObjShader;
 	};
 
 }

@@ -264,26 +264,26 @@ namespace JamesEngine
 		else
 			GetCore()->GetSceneRenderer()->AddModel(mModel, model, { ShadowMode::Proxy, mShadowModel }); // Upload model with proxy shadow
 
-		mShader->mShader->uniform("u_Model", model);
+		//mShader->mShader->uniform("u_Model", model);
 
-		// No embedded textures, model is not glTF, upload our own PBR values
-		if (mModel->mModel->GetEmbeddedTextures().empty())
-		{
-			mShader->mShader->uniform("u_BaseColorFactor", 1.f);
-			mShader->mShader->uniform("u_MetallicFactor", 1.f);
-			mShader->mShader->uniform("u_RoughnessFactor", 1.f);
+		//// No embedded textures, model is not glTF, upload our own PBR values
+		//if (mModel->mModel->GetEmbeddedTextures().empty())
+		//{
+		//	mShader->mShader->uniform("u_BaseColorFactor", 1.f);
+		//	mShader->mShader->uniform("u_MetallicFactor", 1.f);
+		//	mShader->mShader->uniform("u_RoughnessFactor", 1.f);
 
-			mShader->mShader->uniform("u_AlbedoFallback", mBaseColorStrength);
-			mShader->mShader->uniform("u_MetallicFallback", mMetallicness);
-			mShader->mShader->uniform("u_RoughnessFallback", mRoughness);
-			mShader->mShader->uniform("u_AOFallback", mAOStrength);
-			mShader->mShader->uniform("u_EmissiveFallback", mEmmisive);
-		}
+		//	mShader->mShader->uniform("u_AlbedoFallback", mBaseColorStrength);
+		//	mShader->mShader->uniform("u_MetallicFallback", mMetallicness);
+		//	mShader->mShader->uniform("u_RoughnessFallback", mRoughness);
+		//	mShader->mShader->uniform("u_AOFallback", mAOStrength);
+		//	mShader->mShader->uniform("u_EmissiveFallback", mEmmisive);
+		//}
 
-		mShader->mShader->uniform("u_SpecStrength", mSpecularStrength);
+		//mShader->mShader->uniform("u_SpecStrength", mSpecularStrength);
 
-		// Call the updated draw function with support for multi-materials
-		mShader->mShader->draw(mModel->mModel.get(), mRawTextures);
+		//// Call the updated draw function with support for multi-materials
+		//mShader->mShader->draw(mModel->mModel.get(), mRawTextures);
 	}
 
 	void ModelRenderer::OnShadowRender(const glm::mat4& _lightSpaceMatrix)

@@ -160,6 +160,8 @@ namespace JamesEngine
 		glm::mat4& GetLightSpaceMatrix() { return mLightSpaceMatrix; }
 
 	private:
+		friend class SceneRenderer;
+
 		std::shared_ptr<Window> mWindow;
 		std::shared_ptr<Audio> mAudio;
 		std::shared_ptr<Input> mInput;

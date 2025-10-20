@@ -34,7 +34,7 @@ public:
 	~ScopedTimer()
 	{
 		float elapsed = mTimer.GetElapsedMilliseconds();
-		std::cout << "ScopedTimer [" << mName << "] took " << elapsed << " mililseconds." << std::endl;
+		std::cout << "ScopedTimer [" << mName << "] took " << elapsed << " milliseconds.\n";
 	}
 private:
 	const char* mName;

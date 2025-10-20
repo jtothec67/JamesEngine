@@ -16,6 +16,7 @@ namespace JamesEngine
 		void OnLoad() { mModel = std::make_shared<Renderer::Model>(GetPath()); }
 
 	private:
+		friend class SceneRenderer;
 		friend class ModelRenderer;
 		friend class ModelCollider;
 		friend class SphereCollider;

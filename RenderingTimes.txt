@@ -1,0 +1,21 @@
+Old "immediate" rendering-
+GPU Scene: 3.39046ms
+GPU Scene: 3.84102ms
+GPU Scene: 3.85126ms
+GPU Scene: 3.37306ms
+GPU Scene: 3.31776ms
+GPU Scene: 3.30342ms
+GPU Scene: 3.31878ms
+GPU Scene: 3.33414ms
+GPU Scene: 3.36896ms
+
+New "triangle soup" rendering-
+GPU Scene: 2.72077ms
+GPU Scene: 2.7351ms
+GPU Scene: 2.72282ms
+GPU Scene: 2.75046ms
+GPU Scene: 2.74534ms
+GPU Scene: 2.72998ms
+GPU Scene: 2.74739ms
+GPU Scene: 2.75661ms
+GPU Scene: 2.74227ms

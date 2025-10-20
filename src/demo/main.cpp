@@ -230,6 +230,45 @@ struct StartFinishLine : public Component
 			}
 		}
 
+		//if (fastestLapSamples.empty())
+		//{
+		//	return; // No fastest lap to update ghost
+		//}
+
+		//float lapEnd = fastestLapSamples.back().timestamp;
+
+		//if (lapEnd > lapTime)
+		//	lastGhostIndex = 0; // Restart if we haven't completed a lap yet
+
+		//if (lapEnd > 0.f)
+		//{
+		//	// Loop time to the ghost lap length
+		//	float t = std::fmod(lapTime, lapEnd);
+
+		//	// Walk forward until the next sample is after t
+		//	int maxIdx = static_cast<int>(fastestLapSamples.size()) - 2;
+		//	while (lastGhostIndex < maxIdx && t >= fastestLapSamples[lastGhostIndex + 1].timestamp)
+		//	{
+		//		++lastGhostIndex;
+		//	}
+
+		//	sample& a = fastestLapSamples[lastGhostIndex];
+		//	sample& b = fastestLapSamples[lastGhostIndex + 1];
+
+		//	float span = glm::max(1e-6f, b.timestamp - a.timestamp);
+		//	float alpha = glm::clamp((t - a.timestamp) / span, 0.f, 1.f);
+
+		//	glm::vec3 pos = glm::mix(a.position, b.position, alpha);
+		//	glm::quat rot = glm::normalize(glm::slerp(a.rotation, b.rotation, alpha));
+
+		//	auto tr = ghostCar->GetComponent<Transform>();
+		//	tr->SetPosition(pos);
+		//	tr->SetQuaternion(rot);
+		//}
+	}
+
+	void OnFixedTick()
+	{
 		if (fastestLapSamples.empty())
 		{
 			return; // No fastest lap to update ghost
@@ -1091,7 +1130,7 @@ struct ChaseCam : Component
 {
 	std::shared_ptr<Entity> target; // The entity the camera is following
 
-	float distance = 2.5f;
+	float distance = 5.f;
 	float height = 2.f;
 	float minSpeedForVelDir = 0.2f;
 	float positionSmoothingTime = 0.12f;

@@ -16,6 +16,7 @@ namespace JamesEngine
 		void OnLoad() { mShader = std::make_shared<Renderer::Shader>(GetPath() + ".vert", GetPath() + ".frag"); }
 
 	private:
+		friend class SceneRenderer;
 		friend class ModelRenderer;
 		friend class Core;
 
