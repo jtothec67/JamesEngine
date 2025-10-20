@@ -193,7 +193,7 @@ namespace JamesEngine
 				GLuint64 ns = 0;
 				glGetQueryObjectui64v(sceneTimeQuery[prev], GL_QUERY_RESULT, &ns);
 				double sceneGpuMs = ns / 1e6; // nanoseconds -> ms
-				//std::cout << "GPU Scene: " << sceneGpuMs << "ms\n";
+				std::cout << "GPU Scene: " << sceneGpuMs << "ms\n";
 			}
 
 			sceneQ = (sceneQ + 1) % 3;
@@ -401,22 +401,27 @@ namespace JamesEngine
 
 	void Core::PreUploadGlobalStaticUniforms()
 	{
-		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_DirLightDirection", mLightManager->GetDirectionalLightDirection()); // Assumes light direction and colour never change, light direction can't change while using pre baked shadows
-		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_DirLightColor", mLightManager->GetDirectionalLightColour());
+		auto objShader = mResources->Load<Shader>("shaders/ObjShader");
+		objShader->mShader->use();
+		objShader->mShader->uniform("u_DirLightDirection", mLightManager->GetDirectionalLightDirection()); // Assumes light direction and colour never change, light direction can't change while using pre baked shadows
+		objShader->mShader->uniform("u_DirLightColor", mLightManager->GetDirectionalLightColour());
 
-		mResources->Load<Shader>("shaders/ObjShader")->mShader->cubemapUniform("u_SkyBox", mSkybox->GetTexture()->mTexture, 29); // Assumes skybox doesn't change
+		objShader->mShader->cubemapUniform("u_SkyBox", mSkybox->GetTexture()->mTexture, 29); // Assumes skybox doesn't change
 
-		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_BRDFLUT", mResources->Load<Texture>("skyboxes/brdf_lut")->mTexture, 28);
+		objShader->mShader->uniform("u_BRDFLUT", mResources->Load<Texture>("skyboxes/brdf_lut")->mTexture, 28);
+		objShader->mShader->unuse();
 	}
 
 	void Core::UploadGlobalUniforms()
 	{
 		std::shared_ptr<Camera> camera = GetCamera();
-		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_Projection", camera->GetProjectionMatrix());
-		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_View", camera->GetViewMatrix());
-		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_ViewPos", camera->GetPosition());
+		auto objShader = mResources->Load<Shader>("shaders/ObjShader");
+		objShader->mShader->use();
+		objShader->mShader->uniform("u_Projection", camera->GetProjectionMatrix());
+		objShader->mShader->uniform("u_View", camera->GetViewMatrix());
+		objShader->mShader->uniform("u_ViewPos", camera->GetPosition());
 
-		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_Ambient", mLightManager->GetAmbient());
+		objShader->mShader->uniform("u_Ambient", mLightManager->GetAmbient());
 
 		// Wanted to upload shadow maps in the UploadGlobalUniforms function, but it needs to be done after the shadow maps are rendered
 		std::vector<std::shared_ptr<Renderer::RenderTexture>> shadowMaps;
@@ -430,11 +435,12 @@ namespace JamesEngine
 			shadowMatrices.emplace_back(cascade.lightSpaceMatrix);
 		}
 
-		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_NumCascades", (int)shadowMaps.size());
-		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_ShadowMaps", shadowMaps, 20);
-		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_LightSpaceMatrices", shadowMatrices);
+		objShader->mShader->uniform("u_NumCascades", (int)shadowMaps.size());
+		objShader->mShader->uniform("u_ShadowMaps", shadowMaps, 20);
+		objShader->mShader->uniform("u_LightSpaceMatrices", shadowMatrices);
 
-		mResources->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_NumPreBaked", 0);
+		objShader->mShader->uniform("u_NumPreBaked", 0);
+		objShader->mShader->unuse();
 	}
 
 	std::shared_ptr<Entity> Core::AddEntity()

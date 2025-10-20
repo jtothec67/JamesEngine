@@ -109,122 +109,90 @@ namespace Renderer
 	{
 		// Find uniform locations
 		GLint loc = glGetUniformLocation(id(), _name.c_str());
-
-		glUseProgram(id());
 		glUniform1i(loc, value);
-		glUseProgram(0);
 	}
 
 	void Shader::uniform(const std::string& _name, int value)
 	{
 		// Find uniform locations
 		GLint loc = glGetUniformLocation(id(), _name.c_str());
-
-		glUseProgram(id());
 		glUniform1i(loc, value);
-		glUseProgram(0);
 	}
 
 	void Shader::uniform(const std::string& _name, float value)
 	{
 		// Find uniform locations
 		GLint loc = glGetUniformLocation(id(), _name.c_str());
-
-		glUseProgram(id());
 		glUniform1f(loc, value);
-		glUseProgram(0);
 	}
 
 	void Shader::uniform(const std::string& _name, const glm::mat4& value)
 	{
 		// Find uniform locations
 		GLint loc = glGetUniformLocation(id(), _name.c_str());
-
-		glUseProgram(id());
 		glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(value));
-		glUseProgram(0);
 	}
 
 	void Shader::uniform(const std::string& _name, const glm::vec3& value)
 	{
 		// Find uniform locations
 		GLint loc = glGetUniformLocation(id(), _name.c_str());
-
-		glUseProgram(id());
 		glUniform3fv(loc, 1, glm::value_ptr(value));
-		glUseProgram(0);
 	}
 
 	void Shader::uniform(const std::string& _name, const glm::vec4& value)
 	{
 		// Find uniform locations
 		GLint loc = glGetUniformLocation(id(), _name.c_str());
-
-		glUseProgram(id());
 		glUniform4fv(loc, 1, glm::value_ptr(value));
-		glUseProgram(0);
 	}
 
 	void Shader::uniform(const std::string& _name, std::vector<int> value)
 	{
 		// Find uniform locations
 		GLint loc = glGetUniformLocation(id(), _name.c_str());
-		glUseProgram(id());
 		glUniform1iv(loc, value.size(), value.data());
-		glUseProgram(0);
 	}
 
 	void Shader::uniform(const std::string& _name, std::vector<float> value)
 	{
 		// Find uniform locations
 		GLint loc = glGetUniformLocation(id(), _name.c_str());
-		glUseProgram(id());
 		glUniform1fv(loc, value.size(), value.data());
-		glUseProgram(0);
 	}
 
 	void Shader::uniform(const std::string& _name, const std::vector<glm::vec2>& value)
 	{
 		// Find uniform locations
 		GLint loc = glGetUniformLocation(id(), _name.c_str());
-		glUseProgram(id());
 		glUniform2fv(loc, value.size(), glm::value_ptr(value[0]));
-		glUseProgram(0);
 	}
 
 	void Shader::uniform(const std::string& _name, const std::vector<glm::vec3>& value)
 	{
 		// Find uniform locations
 		GLint loc = glGetUniformLocation(id(), _name.c_str());
-		glUseProgram(id());
 		glUniform3fv(loc, value.size(), glm::value_ptr(value[0]));
-		glUseProgram(0);
 	}
 
 	void Shader::uniform(const std::string& _name, const std::vector<glm::mat4>& values)
 	{
 		GLint loc = glGetUniformLocation(id(), _name.c_str());
-		glUseProgram(id());
 		glUniformMatrix4fv(loc, static_cast<GLsizei>(values.size()), GL_FALSE, glm::value_ptr(values[0]));
-		glUseProgram(0);
 	}
 
 	void Shader::uniform(const std::string& name, const std::shared_ptr<Texture> texture, int startingTextureUnit)
 	{
-		glUseProgram(id());
 		glActiveTexture(GL_TEXTURE0 + startingTextureUnit);
 		glBindTexture(GL_TEXTURE_2D, texture->id());
 		GLint loc = glGetUniformLocation(id(), name.c_str());
 		glUniform1i(loc, startingTextureUnit);
 		glActiveTexture(GL_TEXTURE0);
-		glUseProgram(0);
 	}
 
 	// Hard coded to cube map for now
 	void Shader::cubemapUniform(const std::string& name, const std::shared_ptr<Texture> texture, int startingTextureUnit)
 	{
-		glUseProgram(id());
-
 		glActiveTexture(GL_TEXTURE0 + startingTextureUnit);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, texture->id());
 
@@ -232,13 +200,10 @@ namespace Renderer
 		glUniform1i(loc, startingTextureUnit);
 
 		glActiveTexture(GL_TEXTURE0);
-		glUseProgram(0);
 	}
 
 	void Shader::uniform(const std::string& name, const std::vector<std::shared_ptr<Renderer::RenderTexture>>& textures, int startingTextureUnit)
 	{
-		glUseProgram(id());
-
 		for (size_t i = 0; i < textures.size(); ++i)
 		{
 			int texUnit = startingTextureUnit + static_cast<int>(i);
@@ -252,14 +217,11 @@ namespace Renderer
 		}
 
 		glActiveTexture(GL_TEXTURE0);
-		glUseProgram(0);
 	}
 
 
 	void Shader::draw(Model* _model, std::vector<Texture*>& _textures)
 	{
-		glUseProgram(id());
-
 		if (!_model->usesMaterials())
 		{
 			if (!_textures.empty())
@@ -579,94 +541,84 @@ namespace Renderer
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindVertexArray(0);
-		glUseProgram(0);
 	}
 
 
+	void Shader::draw(Mesh* _mesh)
+	{
+		glBindVertexArray(_mesh->id());
+		glDrawArrays(GL_TRIANGLES, 0, _mesh->vertex_count());
+		glBindVertexArray(0);
+	}
+
+	void Shader::draw(GLuint _vaoId, GLsizei _vertexCount)
+	{
+		glBindVertexArray(_vaoId);
+		glDrawArrays(GL_TRIANGLES, 0, _vertexCount);
+		glBindVertexArray(0);
+	}
+
 	void Shader::draw(Model* _model, Texture* _tex)
 	{
-		glUseProgram(id());
 		glBindVertexArray(_model->vao_id());
 		glBindTexture(GL_TEXTURE_2D, _tex->id());
 		glUniform1i(glGetUniformLocation(id(), "u_Texture"), 0);
 		glDrawArrays(GL_TRIANGLES, 0, _model->vertex_count());
 		glBindVertexArray(0);
 		glBindTexture(GL_TEXTURE_2D, 0);
-		glUseProgram(0);
-	}
-
-	void Shader::draw(Mesh* _mesh)
-	{
-		glUseProgram(id());
-		glBindVertexArray(_mesh->id());
-		glDrawArrays(GL_TRIANGLES, 0, _mesh->vertex_count());
-		glBindVertexArray(0);
-		glUseProgram(0);
 	}
 
 	void Shader::draw(Mesh* _mesh, Texture* _tex)
 	{
-		glUseProgram(id());
 		glBindVertexArray(_mesh->id());
 		glBindTexture(GL_TEXTURE_2D, _tex->id());
 		glUniform1i(glGetUniformLocation(id(), "u_Texture"), 0);
 		glDrawArrays(GL_TRIANGLES, 0, _mesh->vertex_count());
 		glBindVertexArray(0);
 		glBindTexture(GL_TEXTURE_2D, 0);
-		glUseProgram(0);
 	}
 
 	void Shader::draw(Mesh& _mesh, Texture& _tex)
 	{
-		glUseProgram(id());
 		glBindVertexArray(_mesh.id());
 		glBindTexture(GL_TEXTURE_2D, _tex.id());
 		glUniform1i(glGetUniformLocation(id(), "u_Texture"), 0);
 		glDrawArrays(GL_TRIANGLES, 0, _mesh.vertex_count());
 		glBindVertexArray(0);
 		glBindTexture(GL_TEXTURE_2D, 0);
-		glUseProgram(0);
 	}
 
 	void Shader::draw(Mesh* _mesh, GLuint _texId)
 	{
-		glUseProgram(id());
 		glBindVertexArray(_mesh->id());
 		glBindTexture(GL_TEXTURE_2D, _texId);
 		glUniform1i(glGetUniformLocation(id(), "u_Texture"), 0);
 		glDrawArrays(GL_TRIANGLES, 0, _mesh->vertex_count());
 		glBindVertexArray(0);
-		glUseProgram(0);
 	}
 
 	void Shader::draw(Mesh& _mesh, GLuint _texId)
 	{
-		glUseProgram(id());
 		glBindVertexArray(_mesh.id());
 		glBindTexture(GL_TEXTURE_2D, _texId);
 		glUniform1i(glGetUniformLocation(id(), "u_Texture"), 0);
 		glDrawArrays(GL_TRIANGLES, 0, _mesh.vertex_count());
-		glUseProgram(0);
 	}
 
 	void Shader::draw(Model& _model, Texture& _tex)
 	{
-		glUseProgram(id());
 		glBindVertexArray(_model.vao_id());
 		glBindTexture(GL_TEXTURE_2D, _tex.id());
 		glUniform1i(glGetUniformLocation(id(), "u_Texture"), 0);
 		glDrawArrays(GL_TRIANGLES, 0, _model.vertex_count());
-		glUseProgram(0);
 	}
 
 	void Shader::draw(Model& _model, GLuint _texId)
 	{
-		glUseProgram(id());
 		glBindVertexArray(_model.vao_id());
 		glBindTexture(GL_TEXTURE_2D, _texId);
 		glUniform1i(glGetUniformLocation(id(), "u_Texture"), 0);
 		glDrawArrays(GL_TRIANGLES, 0, _model.vertex_count());
-		glUseProgram(0);
 	}
 
 	void Shader::draw(Model& _model, Texture& _tex, RenderTexture& _renderTex)
@@ -678,11 +630,9 @@ namespace Renderer
 
 		glViewport(0, 0, _renderTex.getWidth(), _renderTex.getHeight());
 
-		glUseProgram(id());
 		glBindVertexArray(_model.vao_id());
 		glBindTexture(GL_TEXTURE_2D, _tex.id());
 		glDrawArrays(GL_TRIANGLES, 0, _model.vertex_count());
-		glUseProgram(0);
 
 		_renderTex.unbind();
 
@@ -698,11 +648,9 @@ namespace Renderer
 
 		glViewport(0, 0, _renderTex.getWidth(), _renderTex.getHeight());
 
-		glUseProgram(id());
 		glBindVertexArray(_mesh.id());
 		glBindTexture(GL_TEXTURE_2D, _tex.id());
 		glDrawArrays(GL_TRIANGLES, 0, _mesh.vertex_count());
-		glUseProgram(0);
 
 		_renderTex.unbind();
 
@@ -715,14 +663,12 @@ namespace Renderer
 		glDepthFunc(GL_LEQUAL);
 		glDepthMask(GL_FALSE);
 
-		glUseProgram(id());
 		glBindTexture(GL_TEXTURE_CUBE_MAP, _tex.id());
 		GLuint textureLocation = glGetUniformLocation(id(), "uTexEnv");
 		glUniform1i(textureLocation, 0);
 		glBindVertexArray(_skyboxMesh.id());
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		glBindVertexArray(0);
-		glUseProgram(0);
 
 		glDepthFunc(GL_LESS);
 		glDepthMask(GL_TRUE);
@@ -734,14 +680,12 @@ namespace Renderer
 		glDepthFunc(GL_LEQUAL);
 		glDepthMask(GL_FALSE);
 
-		glUseProgram(id());
 		glBindTexture(GL_TEXTURE_CUBE_MAP, _tex->id());
 		GLuint textureLocation = glGetUniformLocation(id(), "uTexEnv");
 		glUniform1i(textureLocation, 0);
 		glBindVertexArray(_skyboxMesh->id());
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		glBindVertexArray(0);
-		glUseProgram(0);
 
 		glDepthFunc(GL_LESS);
 		glDepthMask(GL_TRUE);
@@ -752,7 +696,6 @@ namespace Renderer
 		// Call id incase mesh hasn't been generated yet
 		_mesh.id();
 
-		glUseProgram(id());
 		glActiveTexture(GL_TEXTURE0);
 		glBindVertexArray(_mesh.vao());
 
@@ -808,15 +751,12 @@ namespace Renderer
 
 		glBindVertexArray(0);
 		glBindTexture(GL_TEXTURE_2D, 0);
-		glUseProgram(0);
 	}
 
 	void Shader::drawOutline(Model* _model)
 	{
-		glUseProgram(id());
 		glBindVertexArray(_model->vao_id());
 		glDrawArrays(GL_LINE_LOOP, 0, _model->vertex_count());
 		glBindVertexArray(0);
-		glUseProgram(0);
 	}
 }

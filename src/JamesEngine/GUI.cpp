@@ -33,8 +33,13 @@ namespace JamesEngine
 
 	void GUI::PreUploadGlobalStaticUniformsUI()
 	{
+		mShader->use();
 		mShader->uniform("u_View", glm::mat4(1.0f));
+		mShader->unuse();
+
+		mBlendShader->use();
 		mBlendShader->uniform("u_View", glm::mat4(1.0f));
+		mBlendShader->unuse();
 	}
 
 	void GUI::UploadGlobalUniformsUI()
@@ -43,14 +48,25 @@ namespace JamesEngine
 		mCore.lock()->GetWindow()->GetWindowSize(width, height);
 
 		glm::mat4 uiProjection = glm::ortho(0.0f, (float)width, 0.0f, (float)height, 0.0f, 1.0f);
+
+		mShader->use();
 		mShader->uniform("u_Projection", uiProjection);
+		mShader->unuse();
+
+		mBlendShader->use();
 		mBlendShader->uniform("u_Projection", uiProjection);
+		mBlendShader->unuse();
+
+		mFontShader->use();
 		mFontShader->uniform("u_Projection", uiProjection);
+		mFontShader->unuse();
 	}
 
     // Returns 0 if mouse not over button, 1 if mouse over button, 2 if mouse over button and clicked
 	GUI::ButtonState GUI::Button(glm::vec2 _position, glm::vec2 _size, std::shared_ptr<Texture> _texture)
 	{
+		mShader->use();
+
 		// Adjust the position to be the center
 		glm::vec2 adjustedPosition = _position - (_size * 0.5f);
 
@@ -63,6 +79,8 @@ namespace JamesEngine
 		mCore.lock()->GetWindow()->GetWindowSize(width, height);
 
 		mShader->draw(mRect.get(), _texture->mTexture.get());
+
+		mShader->unuse();
 
 		glm::ivec2 mousePos = mCore.lock()->GetInput()->GetMouse()->GetPosition();
 
@@ -90,6 +108,8 @@ namespace JamesEngine
 
 	void GUI::Image(glm::vec2 _position, glm::vec2 _size, std::shared_ptr<Texture> _texture)
 	{
+		mShader->use();
+
 		// Adjust the position to be the center
 		glm::vec2 adjustedPosition = _position - (_size * 0.5f);
 
@@ -103,6 +123,8 @@ namespace JamesEngine
 		// Replaces all images with the shadow map of the directional light (keeping in case of future debugging)
 		//if(mCore.lock()->GetLightManager()->GetShadowMaps()->size() > 0)
 			//mShader->draw(mRect.get(), mCore.lock()->GetLightManager()->GetShadowMaps()->at(1)->getTextureId());
+
+		mShader->unuse();
 	}
 
     void GUI::Text(glm::vec2 _position, float _size, glm::vec3 _colour, std::string _text, std::shared_ptr<Font> _font)
@@ -180,14 +202,19 @@ namespace JamesEngine
 			// Still slightly off but it's close enough.
 		}
 
+		mFontShader->use();
 
         mFontShader->uniform("u_TextColour", _colour);
 
 		mFontShader->drawText(*mTextRect, *_font->mFont.get(), _text, XPos, YPos, adjustedSize);
+
+		mFontShader->unuse();
 	}
 
 	void GUI::BlendImage(glm::vec2 _position, glm::vec2 _size, std::shared_ptr<Texture> _texture1, std::shared_ptr<Texture> _texture2, float _blendFactor)
 	{
+		mBlendShader->use();
+
 		// Adjust the position to be the center
 		glm::vec2 adjustedPosition = _position - (_size * 0.5f);
 
@@ -208,6 +235,8 @@ namespace JamesEngine
 		mBlendShader->uniform("u_Texture2", 1);
 
 		mBlendShader->draw(mRect.get());
+
+		mBlendShader->unuse();
 	}
 
 }

@@ -22,8 +22,12 @@ namespace JamesEngine
 		glm::mat4 view = camera->GetViewMatrix();
 		glm::mat4 invPV = glm::inverse(projection * view);
 
+		mShader->use();
+
 		mShader->uniform("u_InvPV", invPV);
 
 		mShader->drawSkybox(mMesh.get(),mTexture->mTexture.get());
+
+		mShader->unuse();
 	}
 }

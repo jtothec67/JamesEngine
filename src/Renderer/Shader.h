@@ -18,6 +18,9 @@ namespace Renderer
 		Shader(const std::string& _vertpath, const std::string& _fragpath);
 		GLuint id();
 
+		void use() { glUseProgram(id()); }
+		void unuse() { glUseProgram(0); }
+
 		void uniform(const std::string& _name, bool _value);
 		void uniform(const std::string& _name, int _value);
 		void uniform(const std::string& _name, float _value);
@@ -35,6 +38,7 @@ namespace Renderer
 
 		void draw(Model* _model, std::vector<Texture*>& _textures);
 		void draw(Mesh* _mesh);
+		void draw(GLuint _vao, GLsizei _vertexCount);
 		void draw(Model* _model, Texture* _tex);
 		void draw(Mesh* _mesh, Texture* _tex);
 		void draw(Mesh& _mesh, Texture& _tex);

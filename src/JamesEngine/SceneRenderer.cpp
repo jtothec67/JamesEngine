@@ -38,13 +38,32 @@ namespace JamesEngine
 				preBakedShadowMatrices.emplace_back(shadowMap.lightSpaceMatrix);
 			}
 
+			mObjShader->mShader->use();
+
 			mObjShader->mShader->uniform("u_PreBakedShadowMaps", preBakedShadowMaps, 10);
 			mObjShader->mShader->uniform("u_PreBakedLightSpaceMatrices", preBakedShadowMatrices);
+
+			mObjShader->mShader->uniform("u_NumPreBaked", 0); // Might temporarily drop suport for pre-baked shadows, may bring back later
+
+			mObjShader->mShader->unuse();
 
 			core->mLightManager->SetPreBakedShadowsUploaded(true);
 
 			std::cout << "Pre-baked shadows uploaded to shader" << std::endl;
 		}
+
+		// Global uniforms
+
+		mDepthShader->mShader->use();
+		mDepthShader->mShader->uniform("u_AlphaCutoff", mAlphaCutoff);
+		mDepthShader->mShader->unuse();
+
+		mObjShader->mShader->use();
+		mObjShader->mShader->uniform("u_Projection", camera->GetProjectionMatrix());
+		mObjShader->mShader->uniform("u_View", camera->GetViewMatrix());
+		mObjShader->mShader->uniform("u_ViewPos", camera->GetPosition());
+		mObjShader->mShader->uniform("u_Ambient", core->mLightManager->GetAmbient());
+		mObjShader->mShader->unuse();
 
 		if (!core->mLightManager->GetShadowCascades().empty())
 		{
@@ -117,6 +136,8 @@ namespace JamesEngine
 
 			float prevFar = camNear;
 
+			mDepthShader->mShader->use();
+
 			for (int ci = 0; ci < numCascades; ++ci)
 			{
 				ShadowCascade& cascade = cascades[ci];
@@ -160,39 +181,170 @@ namespace JamesEngine
 				// 6) Final matrix for the shader
 				cascade.lightSpaceMatrix = lightProj * lightView;
 
+				mDepthShader->mShader->uniform("u_LightSpaceMatrix", cascade.lightSpaceMatrix);
+
 				// --- Render this cascade ---
 				cascade.renderTexture->clear();
 				cascade.renderTexture->bind();
 				glViewport(0, 0, cascade.renderTexture->getWidth(), cascade.renderTexture->getHeight());
 
-				/*for (size_t ei = 0; ei < mEntities.size(); ++ei)
-				{
-					mEntities[ei]->OnShadowRender(cascade.lightSpaceMatrix);
-				}*/
-
 				for (const auto& submission : mSubmissions)
 				{
+					if (submission.shadowMode == ShadowMode::None)
+						continue;
+
 					std::shared_ptr<Model> modelToRender = submission.model;
 					// If using proxy shadow model, switch to that
 					if (submission.shadowMode == ShadowMode::Proxy)
 						modelToRender = submission.shadowModel;
 
-					glm::mat4 entityModel = submission.transform;
+					mDepthShader->mShader->uniform("u_Model", submission.transform);
 
-					mDepthShader->mShader->uniform("u_Model", entityModel);
+					// Avoids copying or double-deleting the underlying GL object.
+					auto asShared = [](const Renderer::Texture& t) -> std::shared_ptr<Renderer::Texture> {
+						return std::shared_ptr<Renderer::Texture>(const_cast<Renderer::Texture*>(&t), [](Renderer::Texture*) {}); // no-op deleter
+						};
 
-					mDepthShader->mShader->uniform("u_LightSpaceMatrix", cascade.lightSpaceMatrix);
-					mDepthShader->mShader->uniform("u_AlphaCutoff", mAlphaCutoff);
+					// Render each material, will change so that we don't do it blindly e.g. only when in view of camera
+					for (const auto& materialGroup : modelToRender->mModel->GetMaterialGroups())
+					{
+						const auto& pbr = materialGroup.pbr;
+						const auto& embedded = modelToRender->mModel->GetEmbeddedTextures();
 
-					std::vector<Renderer::Texture*> rawTextures; // Legacy, will change when fully implemented and move to fully .glb, function works like this for .glb
-					// Call the updated draw function with support for multi-materials
-					mDepthShader->mShader->draw(modelToRender->mModel.get(), rawTextures);
+						// Culling per material (same as before)
+						GLboolean prevCullEnabled = glIsEnabled(GL_CULL_FACE);
+						if (pbr.doubleSided) glDisable(GL_CULL_FACE);
+						else glEnable(GL_CULL_FACE);
+
+						// Albedo (unit 0)
+						if (pbr.baseColorTexIndex >= 0 && pbr.baseColorTexIndex < (int)embedded.size())
+						{
+							mDepthShader->mShader->uniform("u_AlbedoMap", asShared(embedded[pbr.baseColorTexIndex]), 0);
+							mDepthShader->mShader->uniform("u_HasAlbedoMap", 1);
+						}
+						else
+						{
+							mDepthShader->mShader->uniform("u_HasAlbedoMap", 0);
+						}
+
+						// Normal (unit 1)
+						if (pbr.normalTexIndex >= 0 && pbr.normalTexIndex < (int)embedded.size())
+						{
+							mDepthShader->mShader->uniform("u_NormalMap", asShared(embedded[pbr.normalTexIndex]), 1);
+							mDepthShader->mShader->uniform("u_HasNormalMap", 1);
+						}
+						else
+						{
+							mDepthShader->mShader->uniform("u_HasNormalMap", 0);
+						}
+
+						// Metallic-Roughness (unit 2)
+						if (pbr.metallicRoughnessTexIndex >= 0 && pbr.metallicRoughnessTexIndex < (int)embedded.size())
+						{
+							mDepthShader->mShader->uniform("u_MetallicRoughnessMap", asShared(embedded[pbr.metallicRoughnessTexIndex]), 2);
+							mDepthShader->mShader->uniform("u_HasMetallicRoughnessMap", 1);
+						}
+						else
+						{
+							mDepthShader->mShader->uniform("u_HasMetallicRoughnessMap", 0);
+						}
+
+						// Occlusion (unit 3)
+						if (pbr.occlusionTexIndex >= 0 && pbr.occlusionTexIndex < (int)embedded.size())
+						{
+							mDepthShader->mShader->uniform("u_OcclusionMap", asShared(embedded[pbr.occlusionTexIndex]), 3);
+							mDepthShader->mShader->uniform("u_HasOcclusionMap", 1);
+						}
+						else
+						{
+							mDepthShader->mShader->uniform("u_HasOcclusionMap", 0);
+						}
+
+						// Emissive (unit 4)
+						if (pbr.emissiveTexIndex >= 0 && pbr.emissiveTexIndex < (int)embedded.size())
+						{
+							mDepthShader->mShader->uniform("u_EmissiveMap", asShared(embedded[pbr.emissiveTexIndex]), 4);
+							mDepthShader->mShader->uniform("u_HasEmissiveMap", 1);
+						}
+						else
+						{
+							mDepthShader->mShader->uniform("u_HasEmissiveMap", 0);
+						}
+
+						// Transmission (unit 5)
+						if (pbr.transmissionTexIndex >= 0 && pbr.transmissionTexIndex < (int)embedded.size())
+						{
+							mDepthShader->mShader->uniform("u_TransmissionTex", asShared(embedded[pbr.transmissionTexIndex]), 5);
+							mDepthShader->mShader->uniform("u_HasTransmissionTex", 1);
+						}
+						else
+						{
+							mDepthShader->mShader->uniform("u_HasTransmissionTex", 0);
+						}
+
+						// Material factors
+						mDepthShader->mShader->uniform("u_BaseColorFactor", pbr.baseColorFactor);
+						mDepthShader->mShader->uniform("u_MetallicFactor", pbr.metallicFactor);
+						mDepthShader->mShader->uniform("u_RoughnessFactor", pbr.roughnessFactor);
+						mDepthShader->mShader->uniform("u_NormalScale", pbr.normalScale);
+						mDepthShader->mShader->uniform("u_OcclusionStrength", pbr.occlusionStrength);
+						mDepthShader->mShader->uniform("u_EmissiveFactor", pbr.emissiveFactor);
+						mDepthShader->mShader->uniform("u_TransmissionFactor", pbr.transmissionFactor);
+						mDepthShader->mShader->uniform("u_IOR", pbr.ior);
+
+						// Fallbacks
+						mDepthShader->mShader->uniform("u_AlbedoFallback", mBaseColorStrength);
+						mDepthShader->mShader->uniform("u_MetallicFallback", mMetallicness);
+						mDepthShader->mShader->uniform("u_RoughnessFallback", mRoughness);
+						mDepthShader->mShader->uniform("u_AOFallback", mAOStrength);
+						mDepthShader->mShader->uniform("u_EmissiveFallback", mEmmisive);
+
+						// Alpha
+						int alphaMode = 0;
+						if (pbr.alphaMode == Renderer::Model::PBRMaterial::AlphaMode::AlphaMask)  alphaMode = 1;
+						if (pbr.alphaMode == Renderer::Model::PBRMaterial::AlphaMode::AlphaBlend) alphaMode = 2;
+						mDepthShader->mShader->uniform("u_AlphaMode", alphaMode);
+						mDepthShader->mShader->uniform("u_AlphaCutoff", pbr.alphaCutoff);
+
+						// Draw this material only
+						const GLsizei vertCount = static_cast<GLsizei>(materialGroup.faces.size() * 3);
+						mDepthShader->mShader->draw(materialGroup.vao, vertCount);
+
+						// Restore culling to previous state
+						if (prevCullEnabled) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
+					}
 				}
 
 				cascade.renderTexture->unbind();
 			}
 
+			mDepthShader->mShader->unuse();
+
 			window->ResetGLModes();
+
+			// Want to upload shadow maps at the start, but it needs to be done after the shadow maps are rendered
+			std::vector<std::shared_ptr<Renderer::RenderTexture>> shadowMaps;
+			shadowMaps.reserve(core->mLightManager->GetShadowCascades().size());
+			std::vector<glm::mat4> shadowMatrices;
+			shadowMatrices.reserve(core->mLightManager->GetShadowCascades().size());
+
+			for (const ShadowCascade& cascade : core->mLightManager->GetShadowCascades())
+			{
+				shadowMaps.emplace_back(cascade.renderTexture);
+				shadowMatrices.emplace_back(cascade.lightSpaceMatrix);
+			}
+
+			mObjShader->mShader->use();
+			mObjShader->mShader->uniform("u_NumCascades", (int)shadowMaps.size());
+			mObjShader->mShader->uniform("u_ShadowMaps", shadowMaps, 20);
+			mObjShader->mShader->uniform("u_LightSpaceMatrices", shadowMatrices);
+			mObjShader->mShader->unuse();
+		}
+		else
+		{
+			mObjShader->mShader->use();
+			mObjShader->mShader->uniform("u_NumCascades", 0);
+			mObjShader->mShader->unuse();
 		}
 
 		// Prepare window for rendering
@@ -204,29 +356,7 @@ namespace JamesEngine
 		// Normal rendering of the scene
 		core->mSkybox->RenderSkybox();
 
-		mObjShader->mShader->uniform("u_Projection", camera->GetProjectionMatrix());
-		mObjShader->mShader->uniform("u_View", camera->GetViewMatrix());
-		mObjShader->mShader->uniform("u_ViewPos", camera->GetPosition());
-
-		mObjShader->mShader->uniform("u_Ambient", core->mLightManager->GetAmbient());
-
-		// Wanted to upload shadow maps in the UploadGlobalUniforms function, but it needs to be done after the shadow maps are rendered
-		std::vector<std::shared_ptr<Renderer::RenderTexture>> shadowMaps;
-		shadowMaps.reserve(core->mLightManager->GetShadowCascades().size());
-		std::vector<glm::mat4> shadowMatrices;
-		shadowMatrices.reserve(core->mLightManager->GetShadowCascades().size());
-
-		for (const ShadowCascade& cascade : core->mLightManager->GetShadowCascades())
-		{
-			shadowMaps.emplace_back(cascade.renderTexture);
-			shadowMatrices.emplace_back(cascade.lightSpaceMatrix);
-		}
-
-		mObjShader->mShader->uniform("u_NumCascades", (int)shadowMaps.size());
-		mObjShader->mShader->uniform("u_ShadowMaps", shadowMaps, 20);
-		mObjShader->mShader->uniform("u_LightSpaceMatrices", shadowMatrices);
-
-		mObjShader->mShader->uniform("u_NumPreBaked", 0);
+		mObjShader->mShader->use();
 
 		for (const auto& submission : mSubmissions)
 		{
@@ -234,26 +364,121 @@ namespace JamesEngine
 
 			mObjShader->mShader->uniform("u_Model", submission.transform);
 
-			// No embedded textures, model is not glTF, upload our own PBR values
-			if (modelToRender->mModel->GetEmbeddedTextures().empty())
-			{
-				mObjShader->mShader->uniform("u_BaseColorFactor", 1.f);
-				mObjShader->mShader->uniform("u_MetallicFactor", 1.f);
-				mObjShader->mShader->uniform("u_RoughnessFactor", 1.f);
+			// This avoids copying or double-deleting the underlying GL object.
+			auto asShared = [](const Renderer::Texture& t) -> std::shared_ptr<Renderer::Texture> {
+				return std::shared_ptr<Renderer::Texture>(const_cast<Renderer::Texture*>(&t), [](Renderer::Texture*) {}); // no-op deleter
+				};
 
+			for (const auto& materialGroup : modelToRender->mModel->GetMaterialGroups())
+			{
+				const auto& pbr = materialGroup.pbr;
+				const auto& embedded = modelToRender->mModel->GetEmbeddedTextures();
+
+				// Culling per material (same as before)
+				GLboolean prevCullEnabled = glIsEnabled(GL_CULL_FACE);
+				if (pbr.doubleSided) glDisable(GL_CULL_FACE);
+				else glEnable(GL_CULL_FACE);
+
+				// Albedo (unit 0)
+				if (pbr.baseColorTexIndex >= 0 && pbr.baseColorTexIndex < (int)embedded.size())
+				{
+					mObjShader->mShader->uniform("u_AlbedoMap", asShared(embedded[pbr.baseColorTexIndex]), 0);
+					mObjShader->mShader->uniform("u_HasAlbedoMap", 1);
+				}
+				else
+				{
+					mObjShader->mShader->uniform("u_HasAlbedoMap", 0);
+				}
+
+				// Normal (unit 1)
+				if (pbr.normalTexIndex >= 0 && pbr.normalTexIndex < (int)embedded.size())
+				{
+					mObjShader->mShader->uniform("u_NormalMap", asShared(embedded[pbr.normalTexIndex]), 1);
+					mObjShader->mShader->uniform("u_HasNormalMap", 1);
+				}
+				else
+				{
+					mObjShader->mShader->uniform("u_HasNormalMap", 0);
+				}
+
+				// Metallic-Roughness (unit 2)
+				if (pbr.metallicRoughnessTexIndex >= 0 && pbr.metallicRoughnessTexIndex < (int)embedded.size())
+				{
+					mObjShader->mShader->uniform("u_MetallicRoughnessMap", asShared(embedded[pbr.metallicRoughnessTexIndex]), 2);
+					mObjShader->mShader->uniform("u_HasMetallicRoughnessMap", 1);
+				}
+				else
+				{
+					mObjShader->mShader->uniform("u_HasMetallicRoughnessMap", 0);
+				}
+
+				// Occlusion (unit 3)
+				if (pbr.occlusionTexIndex >= 0 && pbr.occlusionTexIndex < (int)embedded.size())
+				{
+					mObjShader->mShader->uniform("u_OcclusionMap", asShared(embedded[pbr.occlusionTexIndex]), 3);
+					mObjShader->mShader->uniform("u_HasOcclusionMap", 1);
+				}
+				else
+				{
+					mObjShader->mShader->uniform("u_HasOcclusionMap", 0);
+				}
+
+				// Emissive (unit 4)
+				if (pbr.emissiveTexIndex >= 0 && pbr.emissiveTexIndex < (int)embedded.size())
+				{
+					mObjShader->mShader->uniform("u_EmissiveMap", asShared(embedded[pbr.emissiveTexIndex]), 4);
+					mObjShader->mShader->uniform("u_HasEmissiveMap", 1);
+				}
+				else
+				{
+					mObjShader->mShader->uniform("u_HasEmissiveMap", 0);
+				}
+
+				// Transmission (unit 5)
+				if (pbr.transmissionTexIndex >= 0 && pbr.transmissionTexIndex < (int)embedded.size())
+				{
+					mObjShader->mShader->uniform("u_TransmissionTex", asShared(embedded[pbr.transmissionTexIndex]), 5);
+					mObjShader->mShader->uniform("u_HasTransmissionTex", 1);
+				}
+				else
+				{
+					mObjShader->mShader->uniform("u_HasTransmissionTex", 0);
+				}
+
+				// Material factors
+				mObjShader->mShader->uniform("u_BaseColorFactor", pbr.baseColorFactor);
+				mObjShader->mShader->uniform("u_MetallicFactor", pbr.metallicFactor);
+				mObjShader->mShader->uniform("u_RoughnessFactor", pbr.roughnessFactor);
+				mObjShader->mShader->uniform("u_NormalScale", pbr.normalScale);
+				mObjShader->mShader->uniform("u_OcclusionStrength", pbr.occlusionStrength);
+				mObjShader->mShader->uniform("u_EmissiveFactor", pbr.emissiveFactor);
+				mObjShader->mShader->uniform("u_TransmissionFactor", pbr.transmissionFactor);
+				mObjShader->mShader->uniform("u_IOR", pbr.ior);
+
+				// Fallbacks
 				mObjShader->mShader->uniform("u_AlbedoFallback", mBaseColorStrength);
 				mObjShader->mShader->uniform("u_MetallicFallback", mMetallicness);
 				mObjShader->mShader->uniform("u_RoughnessFallback", mRoughness);
 				mObjShader->mShader->uniform("u_AOFallback", mAOStrength);
 				mObjShader->mShader->uniform("u_EmissiveFallback", mEmmisive);
+
+				// Alpha
+				int alphaMode = 0;
+				if (pbr.alphaMode == Renderer::Model::PBRMaterial::AlphaMode::AlphaMask)  alphaMode = 1;
+				if (pbr.alphaMode == Renderer::Model::PBRMaterial::AlphaMode::AlphaBlend) alphaMode = 2;
+				mObjShader->mShader->uniform("u_AlphaMode", alphaMode);
+				mObjShader->mShader->uniform("u_AlphaCutoff", pbr.alphaCutoff);
+
+				// Draw this material only
+				const GLsizei vertCount = static_cast<GLsizei>(materialGroup.faces.size() * 3);
+				mObjShader->mShader->draw(materialGroup.vao, vertCount);
+
+				// Restore culling to previous state
+				if (prevCullEnabled) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
 			}
-
-			mObjShader->mShader->uniform("u_SpecStrength", 1.f); // Pretty sure we don't use anymore, but keeping because I had it before
-
-			std::vector<Renderer::Texture*> rawTextures; // Legacy, will change when fully implemented and move to fully .glb, function works like this for .glb
-			// Call the updated draw function with support for multi-materials
-			mObjShader->mShader->draw(modelToRender->mModel.get(), rawTextures);
 		}
+
+		mObjShader->mShader->unuse();
 
 		window->ResetGLModes();
 
