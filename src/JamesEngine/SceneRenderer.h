@@ -30,6 +30,13 @@ namespace JamesEngine
 		std::shared_ptr<Model> shadowModel = nullptr;
 	};
 
+	struct MaterialRenderInfo
+	{
+		Renderer::Model::MaterialGroup& materialGroup;
+		std::shared_ptr<Model> model; // Reference to the model to get the embedded textures
+		glm::mat4 transform; // Model transform
+	};
+
 	class SceneRenderer
 	{
 	public:
@@ -46,6 +53,9 @@ namespace JamesEngine
 		std::vector<SubmissionInfo> mSubmissions;
 
 		std::weak_ptr<Core> mCore;
+
+		std::vector<MaterialRenderInfo> mOpaqueMaterials;
+		std::vector<MaterialRenderInfo> mTransparentMaterials;
 
 		// Fallback PBR values
 		glm::vec4 mBaseColorStrength{ 1.f };

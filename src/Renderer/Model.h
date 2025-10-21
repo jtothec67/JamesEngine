@@ -95,6 +95,11 @@ namespace Renderer
             std::vector<Face> faces;
             std::string texturePath; // Diffuse texture from the MTL file.
 
+            glm::vec3 boundsCenterMS = glm::vec3(0.0f);
+            glm::vec3 boundsHalfExtentsMS = glm::vec3(0.0f);
+            float boundsSphereRadiusMS = 0.0f;
+
+
             PBRMaterial pbr;
 
             GLuint vao = 0;
@@ -736,6 +741,36 @@ namespace Renderer
                     m_faces.push_back(face);
                 }
             }
+        }
+
+        // Compute model-space bounds per material group (center, half-extents, sphere radius)
+        for (auto& group : m_materialGroups)
+        {
+            if (group.faces.empty())
+                continue;
+
+            bool first = true;
+            glm::vec3 minv(0.0f), maxv(0.0f);
+
+            auto processPos = [&](const glm::vec3& p)
+                {
+                    if (first) { minv = maxv = p; first = false; }
+                    else {
+                        minv = glm::min(minv, p);
+                        maxv = glm::max(maxv, p);
+                    }
+                };
+
+            for (const auto& f : group.faces)
+            {
+                processPos(f.a.position);
+                processPos(f.b.position);
+                processPos(f.c.position);
+            }
+
+            group.boundsCenterMS = 0.5f * (minv + maxv);
+            group.boundsHalfExtentsMS = 0.5f * (maxv - minv);
+            group.boundsSphereRadiusMS = glm::length(group.boundsHalfExtentsMS); // AABB-based sphere
         }
 
         if (!m_useMaterials)

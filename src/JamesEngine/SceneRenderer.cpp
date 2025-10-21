@@ -7,6 +7,8 @@
 #include "Transform.h"
 #include "Skybox.h"
 
+#include <algorithm>
+
 namespace JamesEngine
 {
 
@@ -358,125 +360,431 @@ namespace JamesEngine
 
 		mObjShader->mShader->use();
 
-		for (const auto& submission : mSubmissions)
+		// Build a copy sorted by distance (closest -> furthest)
+		const glm::mat4 V = camera->GetViewMatrix();
+
+		// Type alias for convenience
+		using OpaqueItem = std::decay_t<decltype(mOpaqueMaterials)>::value_type;
+
+		std::vector<std::pair<float, size_t>> keys;
+		keys.reserve(mOpaqueMaterials.size());
+
+		for (size_t i = 0; i < mOpaqueMaterials.size(); ++i)
 		{
-			std::shared_ptr<Model> modelToRender = submission.model;
+			const auto& it = mOpaqueMaterials[i];
+			const glm::mat4 VM = V * it.transform;
 
-			mObjShader->mShader->uniform("u_Model", submission.transform);
+			const glm::vec3 centerVS = glm::vec3(VM * glm::vec4(it.materialGroup.boundsCenterMS, 1.0f));
+			const glm::mat3 A = glm::mat3(VM);
+			const glm::vec3 e = it.materialGroup.boundsHalfExtentsMS;
+			const float projZ = std::abs(A[0][2]) * e.x + std::abs(A[1][2]) * e.y + std::abs(A[2][2]) * e.z;
 
-			// This avoids copying or double-deleting the underlying GL object.
-			auto asShared = [](const Renderer::Texture& t) -> std::shared_ptr<Renderer::Texture> {
-				return std::shared_ptr<Renderer::Texture>(const_cast<Renderer::Texture*>(&t), [](Renderer::Texture*) {}); // no-op deleter
-				};
-
-			for (const auto& materialGroup : modelToRender->mModel->GetMaterialGroups())
-			{
-				const auto& pbr = materialGroup.pbr;
-				const auto& embedded = modelToRender->mModel->GetEmbeddedTextures();
-
-				// Culling per material (same as before)
-				GLboolean prevCullEnabled = glIsEnabled(GL_CULL_FACE);
-				if (pbr.doubleSided) glDisable(GL_CULL_FACE);
-				else glEnable(GL_CULL_FACE);
-
-				// Albedo (unit 0)
-				if (pbr.baseColorTexIndex >= 0 && pbr.baseColorTexIndex < (int)embedded.size())
-				{
-					mObjShader->mShader->uniform("u_AlbedoMap", asShared(embedded[pbr.baseColorTexIndex]), 0);
-					mObjShader->mShader->uniform("u_HasAlbedoMap", 1);
-				}
-				else
-				{
-					mObjShader->mShader->uniform("u_HasAlbedoMap", 0);
-				}
-
-				// Normal (unit 1)
-				if (pbr.normalTexIndex >= 0 && pbr.normalTexIndex < (int)embedded.size())
-				{
-					mObjShader->mShader->uniform("u_NormalMap", asShared(embedded[pbr.normalTexIndex]), 1);
-					mObjShader->mShader->uniform("u_HasNormalMap", 1);
-				}
-				else
-				{
-					mObjShader->mShader->uniform("u_HasNormalMap", 0);
-				}
-
-				// Metallic-Roughness (unit 2)
-				if (pbr.metallicRoughnessTexIndex >= 0 && pbr.metallicRoughnessTexIndex < (int)embedded.size())
-				{
-					mObjShader->mShader->uniform("u_MetallicRoughnessMap", asShared(embedded[pbr.metallicRoughnessTexIndex]), 2);
-					mObjShader->mShader->uniform("u_HasMetallicRoughnessMap", 1);
-				}
-				else
-				{
-					mObjShader->mShader->uniform("u_HasMetallicRoughnessMap", 0);
-				}
-
-				// Occlusion (unit 3)
-				if (pbr.occlusionTexIndex >= 0 && pbr.occlusionTexIndex < (int)embedded.size())
-				{
-					mObjShader->mShader->uniform("u_OcclusionMap", asShared(embedded[pbr.occlusionTexIndex]), 3);
-					mObjShader->mShader->uniform("u_HasOcclusionMap", 1);
-				}
-				else
-				{
-					mObjShader->mShader->uniform("u_HasOcclusionMap", 0);
-				}
-
-				// Emissive (unit 4)
-				if (pbr.emissiveTexIndex >= 0 && pbr.emissiveTexIndex < (int)embedded.size())
-				{
-					mObjShader->mShader->uniform("u_EmissiveMap", asShared(embedded[pbr.emissiveTexIndex]), 4);
-					mObjShader->mShader->uniform("u_HasEmissiveMap", 1);
-				}
-				else
-				{
-					mObjShader->mShader->uniform("u_HasEmissiveMap", 0);
-				}
-
-				// Transmission (unit 5)
-				if (pbr.transmissionTexIndex >= 0 && pbr.transmissionTexIndex < (int)embedded.size())
-				{
-					mObjShader->mShader->uniform("u_TransmissionTex", asShared(embedded[pbr.transmissionTexIndex]), 5);
-					mObjShader->mShader->uniform("u_HasTransmissionTex", 1);
-				}
-				else
-				{
-					mObjShader->mShader->uniform("u_HasTransmissionTex", 0);
-				}
-
-				// Material factors
-				mObjShader->mShader->uniform("u_BaseColorFactor", pbr.baseColorFactor);
-				mObjShader->mShader->uniform("u_MetallicFactor", pbr.metallicFactor);
-				mObjShader->mShader->uniform("u_RoughnessFactor", pbr.roughnessFactor);
-				mObjShader->mShader->uniform("u_NormalScale", pbr.normalScale);
-				mObjShader->mShader->uniform("u_OcclusionStrength", pbr.occlusionStrength);
-				mObjShader->mShader->uniform("u_EmissiveFactor", pbr.emissiveFactor);
-				mObjShader->mShader->uniform("u_TransmissionFactor", pbr.transmissionFactor);
-				mObjShader->mShader->uniform("u_IOR", pbr.ior);
-
-				// Fallbacks
-				mObjShader->mShader->uniform("u_AlbedoFallback", mBaseColorStrength);
-				mObjShader->mShader->uniform("u_MetallicFallback", mMetallicness);
-				mObjShader->mShader->uniform("u_RoughnessFallback", mRoughness);
-				mObjShader->mShader->uniform("u_AOFallback", mAOStrength);
-				mObjShader->mShader->uniform("u_EmissiveFallback", mEmmisive);
-
-				// Alpha
-				int alphaMode = 0;
-				if (pbr.alphaMode == Renderer::Model::PBRMaterial::AlphaMode::AlphaMask)  alphaMode = 1;
-				if (pbr.alphaMode == Renderer::Model::PBRMaterial::AlphaMode::AlphaBlend) alphaMode = 2;
-				mObjShader->mShader->uniform("u_AlphaMode", alphaMode);
-				mObjShader->mShader->uniform("u_AlphaCutoff", pbr.alphaCutoff);
-
-				// Draw this material only
-				const GLsizei vertCount = static_cast<GLsizei>(materialGroup.faces.size() * 3);
-				mObjShader->mShader->draw(materialGroup.vao, vertCount);
-
-				// Restore culling to previous state
-				if (prevCullEnabled) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
-			}
+			const float zMin = centerVS.z - projZ; // nearest face depth in VS
+			keys.emplace_back(zMin, i);
 		}
+
+		// OPAQUE: front->back => zMin ascending (most negative first)
+		std::sort(keys.begin(), keys.end(),
+			[](const auto& a, const auto& b) { return a.first < b.first; });
+
+		std::vector<OpaqueItem> distanceSortedOpaqueMaterials;
+		distanceSortedOpaqueMaterials.reserve(keys.size());
+		for (const auto& kv : keys)
+			distanceSortedOpaqueMaterials.push_back(mOpaqueMaterials[kv.second]);
+
+		// This avoids copying or double-deleting the underlying GL object.
+		auto asShared = [](const Renderer::Texture& t) -> std::shared_ptr<Renderer::Texture> {
+			return std::shared_ptr<Renderer::Texture>(const_cast<Renderer::Texture*>(&t), [](Renderer::Texture*) {}); // no-op deleter
+			};
+
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LESS);
+		glDepthMask(GL_TRUE);
+		glDisable(GL_BLEND);
+
+		// RENDER OPAQUE MATERIALS FIRST
+		for (const auto& opaqueMaterial: distanceSortedOpaqueMaterials)
+		{
+			std::shared_ptr<Model> modelToRender = opaqueMaterial.model;
+
+			const auto& pbr = opaqueMaterial.materialGroup.pbr;
+			const auto& embedded = opaqueMaterial.model->mModel->GetEmbeddedTextures();
+
+			mObjShader->mShader->uniform("u_Model", opaqueMaterial.transform);
+
+			// Albedo (unit 0)
+			if (pbr.baseColorTexIndex >= 0 && pbr.baseColorTexIndex < (int)embedded.size())
+			{
+				mObjShader->mShader->uniform("u_AlbedoMap", asShared(embedded[pbr.baseColorTexIndex]), 0);
+				mObjShader->mShader->uniform("u_HasAlbedoMap", 1);
+			}
+			else
+			{
+				mObjShader->mShader->uniform("u_HasAlbedoMap", 0);
+			}
+
+			// Normal (unit 1)
+			if (pbr.normalTexIndex >= 0 && pbr.normalTexIndex < (int)embedded.size())
+			{
+				mObjShader->mShader->uniform("u_NormalMap", asShared(embedded[pbr.normalTexIndex]), 1);
+				mObjShader->mShader->uniform("u_HasNormalMap", 1);
+			}
+			else
+			{
+				mObjShader->mShader->uniform("u_HasNormalMap", 0);
+			}
+
+			// Metallic-Roughness (unit 2)
+			if (pbr.metallicRoughnessTexIndex >= 0 && pbr.metallicRoughnessTexIndex < (int)embedded.size())
+			{
+				mObjShader->mShader->uniform("u_MetallicRoughnessMap", asShared(embedded[pbr.metallicRoughnessTexIndex]), 2);
+				mObjShader->mShader->uniform("u_HasMetallicRoughnessMap", 1);
+			}
+			else
+			{
+				mObjShader->mShader->uniform("u_HasMetallicRoughnessMap", 0);
+			}
+
+			// Occlusion (unit 3)
+			if (pbr.occlusionTexIndex >= 0 && pbr.occlusionTexIndex < (int)embedded.size())
+			{
+				mObjShader->mShader->uniform("u_OcclusionMap", asShared(embedded[pbr.occlusionTexIndex]), 3);
+				mObjShader->mShader->uniform("u_HasOcclusionMap", 1);
+			}
+			else
+			{
+				mObjShader->mShader->uniform("u_HasOcclusionMap", 0);
+			}
+
+			// Emissive (unit 4)
+			if (pbr.emissiveTexIndex >= 0 && pbr.emissiveTexIndex < (int)embedded.size())
+			{
+				mObjShader->mShader->uniform("u_EmissiveMap", asShared(embedded[pbr.emissiveTexIndex]), 4);
+				mObjShader->mShader->uniform("u_HasEmissiveMap", 1);
+			}
+			else
+			{
+				mObjShader->mShader->uniform("u_HasEmissiveMap", 0);
+			}
+
+			// Transmission (unit 5)
+			if (pbr.transmissionTexIndex >= 0 && pbr.transmissionTexIndex < (int)embedded.size())
+			{
+				mObjShader->mShader->uniform("u_TransmissionTex", asShared(embedded[pbr.transmissionTexIndex]), 5);
+				mObjShader->mShader->uniform("u_HasTransmissionTex", 1);
+			}
+			else
+			{
+				mObjShader->mShader->uniform("u_HasTransmissionTex", 0);
+			}
+
+			// Material factors
+			mObjShader->mShader->uniform("u_BaseColorFactor", pbr.baseColorFactor);
+			mObjShader->mShader->uniform("u_MetallicFactor", pbr.metallicFactor);
+			mObjShader->mShader->uniform("u_RoughnessFactor", pbr.roughnessFactor);
+			mObjShader->mShader->uniform("u_NormalScale", pbr.normalScale);
+			mObjShader->mShader->uniform("u_OcclusionStrength", pbr.occlusionStrength);
+			mObjShader->mShader->uniform("u_EmissiveFactor", pbr.emissiveFactor);
+			mObjShader->mShader->uniform("u_TransmissionFactor", pbr.transmissionFactor);
+			mObjShader->mShader->uniform("u_IOR", pbr.ior);
+
+			// Fallbacks
+			mObjShader->mShader->uniform("u_AlbedoFallback", mBaseColorStrength);
+			mObjShader->mShader->uniform("u_MetallicFallback", mMetallicness);
+			mObjShader->mShader->uniform("u_RoughnessFallback", mRoughness);
+			mObjShader->mShader->uniform("u_AOFallback", mAOStrength);
+			mObjShader->mShader->uniform("u_EmissiveFallback", mEmmisive);
+
+			// Alpha
+			int alphaMode = 0;
+			if (pbr.alphaMode == Renderer::Model::PBRMaterial::AlphaMode::AlphaMask)  alphaMode = 1;
+			if (pbr.alphaMode == Renderer::Model::PBRMaterial::AlphaMode::AlphaBlend) alphaMode = 2;
+			mObjShader->mShader->uniform("u_AlphaMode", alphaMode);
+			mObjShader->mShader->uniform("u_AlphaCutoff", pbr.alphaCutoff);
+
+			if (pbr.doubleSided) glDisable(GL_CULL_FACE);
+			else glEnable(GL_CULL_FACE);
+
+			// Draw this material only
+			const GLsizei vertCount = static_cast<GLsizei>(opaqueMaterial.materialGroup.faces.size() * 3);
+			mObjShader->mShader->draw(opaqueMaterial.materialGroup.vao, vertCount);
+		}
+
+
+		glEnable(GL_BLEND);
+		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+
+		// Type alias for convenience
+		using TransparentItem = std::decay_t<decltype(mTransparentMaterials)>::value_type;
+
+		keys.clear();
+		keys.reserve(mTransparentMaterials.size());
+
+		for (size_t i = 0; i < mTransparentMaterials.size(); ++i)
+		{
+			const auto& it = mTransparentMaterials[i];
+			const glm::mat4 VM = V * it.transform;
+
+			const glm::vec3 centerVS = glm::vec3(VM * glm::vec4(it.materialGroup.boundsCenterMS, 1.0f));
+			const glm::mat3 A = glm::mat3(VM);
+			const glm::vec3 e = it.materialGroup.boundsHalfExtentsMS;
+			const float projZ = std::abs(A[0][2]) * e.x + std::abs(A[1][2]) * e.y + std::abs(A[2][2]) * e.z;
+
+			const float zMin = centerVS.z + projZ; // farthest face
+			keys.emplace_back(zMin, i);
+		}
+
+		std::sort(keys.begin(), keys.end(),
+			[](const auto& a, const auto& b) { return a.first < b.first; });
+
+		std::vector<TransparentItem> distanceSortedTransparentMaterials;
+		distanceSortedTransparentMaterials.reserve(keys.size());
+		for (const auto& kv : keys)
+			distanceSortedTransparentMaterials.push_back(mTransparentMaterials[kv.second]);
+
+		// THEN RENDER TRANSPARENT MATERIALS
+		for (const auto& transparentMaterial : distanceSortedTransparentMaterials)
+		{
+			std::shared_ptr<Model> modelToRender = transparentMaterial.model;
+
+			const auto& pbr = transparentMaterial.materialGroup.pbr;
+			const auto& embedded = transparentMaterial.model->mModel->GetEmbeddedTextures();
+
+			mObjShader->mShader->uniform("u_Model", transparentMaterial.transform);
+
+			// Albedo (unit 0)
+			if (pbr.baseColorTexIndex >= 0 && pbr.baseColorTexIndex < (int)embedded.size())
+			{
+				mObjShader->mShader->uniform("u_AlbedoMap", asShared(embedded[pbr.baseColorTexIndex]), 0);
+				mObjShader->mShader->uniform("u_HasAlbedoMap", 1);
+			}
+			else
+			{
+				mObjShader->mShader->uniform("u_HasAlbedoMap", 0);
+			}
+
+			// Normal (unit 1)
+			if (pbr.normalTexIndex >= 0 && pbr.normalTexIndex < (int)embedded.size())
+			{
+				mObjShader->mShader->uniform("u_NormalMap", asShared(embedded[pbr.normalTexIndex]), 1);
+				mObjShader->mShader->uniform("u_HasNormalMap", 1);
+			}
+			else
+			{
+				mObjShader->mShader->uniform("u_HasNormalMap", 0);
+			}
+
+			// Metallic-Roughness (unit 2)
+			if (pbr.metallicRoughnessTexIndex >= 0 && pbr.metallicRoughnessTexIndex < (int)embedded.size())
+			{
+				mObjShader->mShader->uniform("u_MetallicRoughnessMap", asShared(embedded[pbr.metallicRoughnessTexIndex]), 2);
+				mObjShader->mShader->uniform("u_HasMetallicRoughnessMap", 1);
+			}
+			else
+			{
+				mObjShader->mShader->uniform("u_HasMetallicRoughnessMap", 0);
+			}
+
+			// Occlusion (unit 3)
+			if (pbr.occlusionTexIndex >= 0 && pbr.occlusionTexIndex < (int)embedded.size())
+			{
+				mObjShader->mShader->uniform("u_OcclusionMap", asShared(embedded[pbr.occlusionTexIndex]), 3);
+				mObjShader->mShader->uniform("u_HasOcclusionMap", 1);
+			}
+			else
+			{
+				mObjShader->mShader->uniform("u_HasOcclusionMap", 0);
+			}
+
+			// Emissive (unit 4)
+			if (pbr.emissiveTexIndex >= 0 && pbr.emissiveTexIndex < (int)embedded.size())
+			{
+				mObjShader->mShader->uniform("u_EmissiveMap", asShared(embedded[pbr.emissiveTexIndex]), 4);
+				mObjShader->mShader->uniform("u_HasEmissiveMap", 1);
+			}
+			else
+			{
+				mObjShader->mShader->uniform("u_HasEmissiveMap", 0);
+			}
+
+			// Transmission (unit 5)
+			if (pbr.transmissionTexIndex >= 0 && pbr.transmissionTexIndex < (int)embedded.size())
+			{
+				mObjShader->mShader->uniform("u_TransmissionTex", asShared(embedded[pbr.transmissionTexIndex]), 5);
+				mObjShader->mShader->uniform("u_HasTransmissionTex", 1);
+			}
+			else
+			{
+				mObjShader->mShader->uniform("u_HasTransmissionTex", 0);
+			}
+
+			// Material factors
+			mObjShader->mShader->uniform("u_BaseColorFactor", pbr.baseColorFactor);
+			mObjShader->mShader->uniform("u_MetallicFactor", pbr.metallicFactor);
+			mObjShader->mShader->uniform("u_RoughnessFactor", pbr.roughnessFactor);
+			mObjShader->mShader->uniform("u_NormalScale", pbr.normalScale);
+			mObjShader->mShader->uniform("u_OcclusionStrength", pbr.occlusionStrength);
+			mObjShader->mShader->uniform("u_EmissiveFactor", pbr.emissiveFactor);
+			mObjShader->mShader->uniform("u_TransmissionFactor", pbr.transmissionFactor);
+			mObjShader->mShader->uniform("u_IOR", pbr.ior);
+
+			// Fallbacks
+			mObjShader->mShader->uniform("u_AlbedoFallback", mBaseColorStrength);
+			mObjShader->mShader->uniform("u_MetallicFallback", mMetallicness);
+			mObjShader->mShader->uniform("u_RoughnessFallback", mRoughness);
+			mObjShader->mShader->uniform("u_AOFallback", mAOStrength);
+			mObjShader->mShader->uniform("u_EmissiveFallback", mEmmisive);
+
+			// Alpha
+			int alphaMode = 0;
+			if (pbr.alphaMode == Renderer::Model::PBRMaterial::AlphaMode::AlphaMask)  alphaMode = 1;
+			if (pbr.alphaMode == Renderer::Model::PBRMaterial::AlphaMode::AlphaBlend) alphaMode = 2;
+			mObjShader->mShader->uniform("u_AlphaMode", alphaMode);
+			mObjShader->mShader->uniform("u_AlphaCutoff", pbr.alphaCutoff);
+
+			if (pbr.doubleSided) glDisable(GL_CULL_FACE);
+			else glEnable(GL_CULL_FACE);
+
+			// Draw this material only
+			const GLsizei vertCount = static_cast<GLsizei>(transparentMaterial.materialGroup.faces.size() * 3);
+			mObjShader->mShader->draw(transparentMaterial.materialGroup.vao, vertCount);
+		}
+
+		//for (const auto& submission : mSubmissions)
+		//{
+		//	std::shared_ptr<Model> modelToRender = submission.model;
+
+		//	mObjShader->mShader->uniform("u_Model", submission.transform);
+
+		//	// This avoids copying or double-deleting the underlying GL object.
+		//	auto asShared = [](const Renderer::Texture& t) -> std::shared_ptr<Renderer::Texture> {
+		//		return std::shared_ptr<Renderer::Texture>(const_cast<Renderer::Texture*>(&t), [](Renderer::Texture*) {}); // no-op deleter
+		//		};
+
+		//	for (const auto& materialGroup : modelToRender->mModel->GetMaterialGroups())
+		//	{
+		//		const auto& pbr = materialGroup.pbr;
+		//		const auto& embedded = modelToRender->mModel->GetEmbeddedTextures();
+
+		//		auto opaque = Renderer::Model::PBRMaterial::AlphaMode::AlphaOpaque;
+		//		auto mask = Renderer::Model::PBRMaterial::AlphaMode::AlphaMask;
+		//		auto blend = Renderer::Model::PBRMaterial::AlphaMode::AlphaBlend;
+
+		//		if (pbr.alphaMode == opaque || pbr.alphaMode == mask)
+		//		{
+		//			glEnable(GL_DEPTH_TEST);
+		//			glDepthFunc(GL_LESS);
+		//			glDepthMask(GL_TRUE);
+		//			glDisable(GL_BLEND);
+		//		}
+		//		else if (pbr.alphaMode == blend)
+		//		{
+		//			continue; // Skip blended objects in this pass
+		//		}
+
+		//		// Culling per material (same as before)
+		//		GLboolean prevCullEnabled = glIsEnabled(GL_CULL_FACE);
+		//		if (pbr.doubleSided) glDisable(GL_CULL_FACE);
+		//		else glEnable(GL_CULL_FACE);
+
+		//		// Albedo (unit 0)
+		//		if (pbr.baseColorTexIndex >= 0 && pbr.baseColorTexIndex < (int)embedded.size())
+		//		{
+		//			mObjShader->mShader->uniform("u_AlbedoMap", asShared(embedded[pbr.baseColorTexIndex]), 0);
+		//			mObjShader->mShader->uniform("u_HasAlbedoMap", 1);
+		//		}
+		//		else
+		//		{
+		//			mObjShader->mShader->uniform("u_HasAlbedoMap", 0);
+		//		}
+
+		//		// Normal (unit 1)
+		//		if (pbr.normalTexIndex >= 0 && pbr.normalTexIndex < (int)embedded.size())
+		//		{
+		//			mObjShader->mShader->uniform("u_NormalMap", asShared(embedded[pbr.normalTexIndex]), 1);
+		//			mObjShader->mShader->uniform("u_HasNormalMap", 1);
+		//		}
+		//		else
+		//		{
+		//			mObjShader->mShader->uniform("u_HasNormalMap", 0);
+		//		}
+
+		//		// Metallic-Roughness (unit 2)
+		//		if (pbr.metallicRoughnessTexIndex >= 0 && pbr.metallicRoughnessTexIndex < (int)embedded.size())
+		//		{
+		//			mObjShader->mShader->uniform("u_MetallicRoughnessMap", asShared(embedded[pbr.metallicRoughnessTexIndex]), 2);
+		//			mObjShader->mShader->uniform("u_HasMetallicRoughnessMap", 1);
+		//		}
+		//		else
+		//		{
+		//			mObjShader->mShader->uniform("u_HasMetallicRoughnessMap", 0);
+		//		}
+
+		//		// Occlusion (unit 3)
+		//		if (pbr.occlusionTexIndex >= 0 && pbr.occlusionTexIndex < (int)embedded.size())
+		//		{
+		//			mObjShader->mShader->uniform("u_OcclusionMap", asShared(embedded[pbr.occlusionTexIndex]), 3);
+		//			mObjShader->mShader->uniform("u_HasOcclusionMap", 1);
+		//		}
+		//		else
+		//		{
+		//			mObjShader->mShader->uniform("u_HasOcclusionMap", 0);
+		//		}
+
+		//		// Emissive (unit 4)
+		//		if (pbr.emissiveTexIndex >= 0 && pbr.emissiveTexIndex < (int)embedded.size())
+		//		{
+		//			mObjShader->mShader->uniform("u_EmissiveMap", asShared(embedded[pbr.emissiveTexIndex]), 4);
+		//			mObjShader->mShader->uniform("u_HasEmissiveMap", 1);
+		//		}
+		//		else
+		//		{
+		//			mObjShader->mShader->uniform("u_HasEmissiveMap", 0);
+		//		}
+
+		//		// Transmission (unit 5)
+		//		if (pbr.transmissionTexIndex >= 0 && pbr.transmissionTexIndex < (int)embedded.size())
+		//		{
+		//			mObjShader->mShader->uniform("u_TransmissionTex", asShared(embedded[pbr.transmissionTexIndex]), 5);
+		//			mObjShader->mShader->uniform("u_HasTransmissionTex", 1);
+		//		}
+		//		else
+		//		{
+		//			mObjShader->mShader->uniform("u_HasTransmissionTex", 0);
+		//		}
+
+		//		// Material factors
+		//		mObjShader->mShader->uniform("u_BaseColorFactor", pbr.baseColorFactor);
+		//		mObjShader->mShader->uniform("u_MetallicFactor", pbr.metallicFactor);
+		//		mObjShader->mShader->uniform("u_RoughnessFactor", pbr.roughnessFactor);
+		//		mObjShader->mShader->uniform("u_NormalScale", pbr.normalScale);
+		//		mObjShader->mShader->uniform("u_OcclusionStrength", pbr.occlusionStrength);
+		//		mObjShader->mShader->uniform("u_EmissiveFactor", pbr.emissiveFactor);
+		//		mObjShader->mShader->uniform("u_TransmissionFactor", pbr.transmissionFactor);
+		//		mObjShader->mShader->uniform("u_IOR", pbr.ior);
+
+		//		// Fallbacks
+		//		mObjShader->mShader->uniform("u_AlbedoFallback", mBaseColorStrength);
+		//		mObjShader->mShader->uniform("u_MetallicFallback", mMetallicness);
+		//		mObjShader->mShader->uniform("u_RoughnessFallback", mRoughness);
+		//		mObjShader->mShader->uniform("u_AOFallback", mAOStrength);
+		//		mObjShader->mShader->uniform("u_EmissiveFallback", mEmmisive);
+
+		//		// Alpha
+		//		int alphaMode = 0;
+		//		if (pbr.alphaMode == Renderer::Model::PBRMaterial::AlphaMode::AlphaMask)  alphaMode = 1;
+		//		if (pbr.alphaMode == Renderer::Model::PBRMaterial::AlphaMode::AlphaBlend) alphaMode = 2;
+		//		mObjShader->mShader->uniform("u_AlphaMode", alphaMode);
+		//		mObjShader->mShader->uniform("u_AlphaCutoff", pbr.alphaCutoff);
+
+		//		// Draw this material only
+		//		const GLsizei vertCount = static_cast<GLsizei>(materialGroup.faces.size() * 3);
+		//		mObjShader->mShader->draw(materialGroup.vao, vertCount);
+
+		//		// Restore culling to previous state
+		//		if (prevCullEnabled) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
+		//	}
+		//}
 
 		mObjShader->mShader->unuse();
 
@@ -497,11 +805,31 @@ namespace JamesEngine
 			info.shadowMode = ShadowMode::Default; // User said to use proxy but didn't provide one, fallback to default
 
 		mSubmissions.push_back(info);
+
+		auto opaque = Renderer::Model::PBRMaterial::AlphaMode::AlphaOpaque;
+		auto mask = Renderer::Model::PBRMaterial::AlphaMode::AlphaMask;
+		auto blend = Renderer::Model::PBRMaterial::AlphaMode::AlphaBlend;
+
+		for (const auto& materialGroup : _model->mModel->GetMaterialGroups())
+		{
+			const auto& pbr = materialGroup.pbr;
+
+			if (pbr.alphaMode == opaque || pbr.alphaMode == mask)
+			{
+				mOpaqueMaterials.push_back({ const_cast<Renderer::Model::MaterialGroup&>(materialGroup), _model, _transform });
+			}
+			else if (pbr.alphaMode == blend)
+			{
+				mTransparentMaterials.push_back({ const_cast<Renderer::Model::MaterialGroup&>(materialGroup), _model, _transform });
+			}
+		}
 	}
 
 	void SceneRenderer::ClearScene()
 	{
 		mSubmissions.clear();
+		mOpaqueMaterials.clear();
+		mTransparentMaterials.clear();
 	}
 
 }

@@ -1,10 +1,10 @@
-Opaque first
+Opaque first ✓
 	- Draw materials that aren't transparent first, then transparent ones after
 
-Opaque front to back
+Opaque front to back ✓
 	- Draw materials nearest the camera first. GPU doesn't draw fragments behind something, but this optimises it
 
-Transparent back to front
+Transparent back to front ✓
 	- So that see through materials have the correct geometry behind it
 
 Frustrum culling
