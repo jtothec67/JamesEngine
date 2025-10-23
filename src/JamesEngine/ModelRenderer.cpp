@@ -25,7 +25,7 @@ namespace JamesEngine
 	void ModelRenderer::OnInitialize()
 	{
 		mShader = GetEntity()->GetCore()->GetResources()->Load<Shader>("shaders/ObjShader");
-		mDepthShader = GetEntity()->GetCore()->GetResources()->Load<Shader>("shaders/DepthOnly");
+		mDepthShader = GetEntity()->GetCore()->GetResources()->Load<Shader>("shaders/DepthOnlyAlpha");
 	}
 
 	void ModelRenderer::OnAlive()

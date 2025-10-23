@@ -146,6 +146,8 @@ namespace JamesEngine
                         _normal = triNormal;
                         _penetrationDepth = sphereRadius;
                     }
+
+                    return true;
                 }
             }
         }

@@ -16,6 +16,7 @@
 #include <map>
 #include <stdexcept>
 #include <cstdlib>
+#include <algorithm>
 
 namespace Renderer
 {
@@ -742,6 +743,106 @@ namespace Renderer
                 }
             }
         }
+
+        // Split large material groups into smaller groups
+        // Tunables for material splitting
+        static const glm::vec3 kMaxExtent = glm::vec3(750.0f, 750.0f, 750.0f); // metres in model space
+        static const size_t kMaxFacesPerGroup = 3000000;
+
+        auto BoundsOfFaces = [](const std::vector<Model::Face>& faces)
+            {
+                glm::vec3 mn(FLT_MAX), mx(-FLT_MAX);
+                for (const auto& f : faces) {
+                    mn = glm::min(mn, glm::min(f.a.position, glm::min(f.b.position, f.c.position)));
+                    mx = glm::max(mx, glm::max(f.a.position, glm::max(f.b.position, f.c.position)));
+                }
+                if (faces.empty()) { mn = mx = glm::vec3(0.0f); }
+                return std::pair{ mn, mx };
+            };
+
+        // Returns axis 0/1/2 of largest extent
+        auto LargestAxis = [](const glm::vec3& ext) {
+            int a = (ext.y > ext.x) ? 1 : 0;
+            return (ext.z > ext[a]) ? 2 : a;
+            };
+
+        std::vector<MaterialGroup> splitGroups;
+        splitGroups.reserve(m_materialGroups.size());
+
+        for (const auto& g : m_materialGroups)
+        {
+            if (g.faces.empty()) {
+                splitGroups.push_back(g);
+                continue;
+            }
+
+            // Work queue for recursive splits (faces + cached bounds)
+            struct Bucket { std::vector<Model::Face> faces; glm::vec3 mn, mx; };
+            std::vector<Bucket> queue;
+            queue.reserve(16);
+
+            auto [mn0, mx0] = BoundsOfFaces(g.faces);
+            queue.push_back(Bucket{ g.faces, mn0, mx0 });
+
+            while (!queue.empty())
+            {
+                Bucket cur = std::move(queue.back());
+                queue.pop_back();
+
+                glm::vec3 ext = cur.mx - cur.mn;
+                bool smallEnough =
+                    (cur.faces.size() <= kMaxFacesPerGroup) &&
+                    (ext.x <= kMaxExtent.x && ext.y <= kMaxExtent.y && ext.z <= kMaxExtent.z);
+
+                if (smallEnough || cur.faces.size() < 2)
+                {
+                    // Emit a new material group with same PBR as parent
+                    MaterialGroup child;
+                    child.materialName = g.materialName;        // keep same logical material name
+                    child.pbr = g.pbr;                          // copy PBR/texture indices
+                    child.faces = std::move(cur.faces);         // move faces
+                    // bounds computed later in your existing pass
+                    splitGroups.push_back(std::move(child));
+                    continue;
+                }
+
+                // Split by centroid along largest axis
+                const int axis = LargestAxis(ext);
+
+                // Sort by centroid on that axis
+                std::sort(cur.faces.begin(), cur.faces.end(),
+                    [axis](const Model::Face& a, const Model::Face& b)
+                    {
+                        glm::vec3 ca = (a.a.position + a.b.position + a.c.position) * (1.0f / 3.0f);
+                        glm::vec3 cb = (b.a.position + b.b.position + b.c.position) * (1.0f / 3.0f);
+                        return ca[axis] < cb[axis];
+                    });
+
+                const size_t mid = cur.faces.size() / 2;
+                // Guard against pathological case where all centroids are identical
+                if (mid == 0 || mid == cur.faces.size())
+                {
+                    MaterialGroup child;
+                    child.materialName = g.materialName;
+                    child.pbr = g.pbr;
+                    child.faces = std::move(cur.faces);
+                    splitGroups.push_back(std::move(child));
+                    continue;
+                }
+
+                std::vector<Model::Face> left(cur.faces.begin(), cur.faces.begin() + mid);
+                std::vector<Model::Face> right(cur.faces.begin() + mid, cur.faces.end());
+
+                auto [lmn, lmx] = BoundsOfFaces(left);
+                auto [rmn, rmx] = BoundsOfFaces(right);
+
+                queue.push_back(Bucket{ std::move(left),  lmn, lmx });
+                queue.push_back(Bucket{ std::move(right), rmn, rmx });
+            }
+        }
+
+        // Replace original groups with split groups
+        m_materialGroups.swap(splitGroups);
 
         // Compute model-space bounds per material group (center, half-extents, sphere radius)
         for (auto& group : m_materialGroups)

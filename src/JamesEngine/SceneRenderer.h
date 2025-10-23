@@ -64,10 +64,8 @@ namespace JamesEngine
 		float mAOStrength = 1.0f;
 		glm::vec3 mEmmisive{ 0.0f };
 
-		// Scene information
-		float mAlphaCutoff = 0.5f;
-
 		// Shaders
+		std::shared_ptr<Shader> mDepthAlphaShader;
 		std::shared_ptr<Shader> mDepthShader;
 		std::shared_ptr<Shader> mObjShader;
 	};

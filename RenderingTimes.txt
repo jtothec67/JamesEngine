@@ -19,3 +19,15 @@ GPU Scene: 2.72998ms
 GPU Scene: 2.74739ms
 GPU Scene: 2.75661ms
 GPU Scene: 2.74227ms
+
+Frustum culling-
+GPU Scene: 2.34086ms
+GPU Scene: 2.34394ms
+GPU Scene: 2.71053ms
+GPU Scene: 2.33677ms
+GPU Scene: 2.3296ms
+GPU Scene: 2.40538ms
+GPU Scene: 2.36339ms
+GPU Scene: 2.36237ms
+GPU Scene: 2.35725ms
+GPU Scene: 2.37875ms
