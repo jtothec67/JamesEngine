@@ -84,14 +84,15 @@ namespace JamesEngine
 			const float vfov = glm::radians(camera->GetFov());
 			int winW, winH;
 			window->GetWindowSize(winW, winH);
-			const float aspect = (winH > 0.0f) ? (winW / winH) : 16.0f / 9.0f;
+			const float aspect = (winH > 0) ? (static_cast<float>(winW) / static_cast<float>(winH))
+				: (16.0f / 9.0f);
 			const float camNear = camera->GetNearClip();
 			const float camFar = camera->GetFarClip();
 
 			// Shadow configuration
 			const float shadowDistance = 250;
 			const float lambda = 0.6f; // 0..1 (e.g. 0.6)
-			const glm::vec3 lightDir = glm::normalize(core->mLightManager->GetDirectionalLightDirection());
+			const glm::vec3 lightDir = -glm::normalize(core->mLightManager->GetDirectionalLightDirection()); // Reverse to get light "forward"
 
 			auto& cascades = core->mLightManager->GetShadowCascades();
 			const int numCascades = (int)cascades.size();
@@ -104,7 +105,6 @@ namespace JamesEngine
 				float t = float(i + 1) / float(numCascades);
 				float lin = camNear + (maxShadowZ - camNear) * t;
 				float log = camNear * std::pow(maxShadowZ / camNear, t);
-				// Replace the glm::lerp call with the following implementation
 				splitFar[i] = lin + lambda * (log - lin);
 			}
 
@@ -134,7 +134,7 @@ namespace JamesEngine
 				};
 
 			// Per-cascade margins (world units)
-			const float pcfMarginXY = 5.f;
+			const float pcfMarginXY = 0.0f;
 			const float casterMarginZ = 50.0f;
 
 			float prevFar = camNear;
@@ -155,9 +155,25 @@ namespace JamesEngine
 				for (auto& p : cornersWS) center += p;
 				center *= (1.0f / 8.0f);
 
-				// 2) Light view (look from far along -lightDir toward center)
-				const float eyeDist = 1000.0f; // any large number covering scene depth
-				glm::mat4 lightView = glm::lookAt(center - lightDir * eyeDist, center, glm::vec3(0, 1, 0));
+				// 2) Light view with XY aligned to the camera’s screen axes.
+				// This keeps the ortho rectangle “in front of you” instead of sliding behind
+				// when the view is diagonal relative to the light.
+				const float eyeDist = 1000.0f;
+
+				glm::vec3 z = -glm::normalize(lightDir); // light forward in view space
+				// Project camera right onto plane perpendicular to light to get a stable X
+				glm::vec3 x = camRight - z * glm::dot(camRight, z);
+				if (glm::length(x) < 1e-6f)
+				{
+					// Fallback if camRight ~ parallel to light; use camUp instead
+					x = camUp - z * glm::dot(camUp, z);
+				}
+				x = glm::normalize(x);
+
+				glm::vec3 y = glm::normalize(glm::cross(z, x)); // guaranteed orthogonal and stable
+
+				// Build view matrix anchored at the slice center, using our orthogonal basis
+				glm::mat4 lightView = glm::lookAt(center - z * eyeDist, center, y);
 
 				// 3) Transform corners to light space and fit a tight AABB
 				glm::vec3 minLS(+FLT_MAX), maxLS(-FLT_MAX);
@@ -168,9 +184,17 @@ namespace JamesEngine
 					maxLS = glm::max(maxLS, glm::vec3(q));
 				}
 
-				// 4) Pad for filtering and nearby casters
-				minLS.x -= pcfMarginXY;  maxLS.x += pcfMarginXY;
-				minLS.y -= pcfMarginXY;  maxLS.y += pcfMarginXY;
+				const float resX = float(cascade.renderTexture->getWidth());
+				const float resY = float(cascade.renderTexture->getHeight());
+
+				const float texelX = (maxLS.x - minLS.x) / resX;
+				const float texelY = (maxLS.y - minLS.y) / resY;
+
+				minLS.x = std::floor(minLS.x / texelX) * texelX;
+				minLS.y = std::floor(minLS.y / texelY) * texelY;
+				maxLS.x = std::floor(maxLS.x / texelX) * texelX;
+				maxLS.y = std::floor(maxLS.y / texelY) * texelY;
+
 				minLS.z -= casterMarginZ;     // extend toward the light
 				maxLS.z += casterMarginZ;     // extend away from the light
 
@@ -195,73 +219,209 @@ namespace JamesEngine
 				cascade.renderTexture->bind();
 				glViewport(0, 0, cascade.renderTexture->getWidth(), cascade.renderTexture->getHeight());
 
-				for (const auto& submission : mSubmissions)
-				{
-					if (submission.shadowMode == ShadowMode::None)
-						continue;
+				// Build a copy sorted by distance (closest -> furthest)
+				const glm::mat4 V = lightView;
+				const glm::mat4 P = lightProj;
+				const glm::mat4 VP = cascade.lightSpaceMatrix;
 
-					std::shared_ptr<Model> modelToRender = submission.model;
-					// If using proxy shadow model, switch to that
-					if (submission.shadowMode == ShadowMode::Proxy)
-						modelToRender = submission.shadowModel;
+				// Extract world-space frustum planes from VP (GLM is column-major)
+				struct Plane { glm::vec3 n; float d; }; // plane: n·x + d >= 0  => inside
+				auto getRow = [&](int r) {
+					return glm::vec4(VP[0][r], VP[1][r], VP[2][r], VP[3][r]);
+					};
 
-					mDepthShader->mShader->use();
-					mDepthShader->mShader->uniform("u_Model", submission.transform);
-					mDepthShader->mShader->unuse();
+				const glm::vec4 row0 = getRow(0);
+				const glm::vec4 row1 = getRow(1);
+				const glm::vec4 row2 = getRow(2);
+				const glm::vec4 row3 = getRow(3);
 
-					mDepthAlphaShader->mShader->use();
-					mDepthAlphaShader->mShader->uniform("u_Model", submission.transform);
-					mDepthAlphaShader->mShader->unuse();
-
-					// Avoids copying or double-deleting the underlying GL object.
-					auto asShared = [](const Renderer::Texture& t) -> std::shared_ptr<Renderer::Texture> {
-						return std::shared_ptr<Renderer::Texture>(const_cast<Renderer::Texture*>(&t), [](Renderer::Texture*) {}); // no-op deleter
-						};
-
-					// Render each material, will change so that we don't do it blindly e.g. only when in view of camera
-					for (const auto& materialGroup : modelToRender->mModel->GetMaterialGroups())
-					{
-						const auto& pbr = materialGroup.pbr;
-						const auto& embedded = modelToRender->mModel->GetEmbeddedTextures();
-
-						// Culling per material (same as before)
-						GLboolean prevCullEnabled = glIsEnabled(GL_CULL_FACE);
-						if (pbr.doubleSided) glDisable(GL_CULL_FACE);
-						else glEnable(GL_CULL_FACE);
-
-						if (pbr.alphaMode != Renderer::Model::PBRMaterial::AlphaMode::AlphaOpaque)
-						{
-							mDepthAlphaShader->mShader->use();
-
-							// Upload base texture because may have transparent alpha
-							if (pbr.baseColorTexIndex >= 0 && pbr.baseColorTexIndex < (int)embedded.size())
-							{
-								mDepthAlphaShader->mShader->uniform("u_AlbedoMap", asShared(embedded[pbr.baseColorTexIndex]), 0);
-							}
-
-							mDepthAlphaShader->mShader->uniform("u_AlphaCutoff", pbr.alphaCutoff);
-
-							// Draw this material only
-							const GLsizei vertCount = static_cast<GLsizei>(materialGroup.faces.size() * 3);
-							mDepthAlphaShader->mShader->draw(materialGroup.vao, vertCount);
-
-							mDepthAlphaShader->mShader->unuse();
-						}
-						else
-						{
-							mDepthShader->mShader->use();
-
-							// Draw this material only
-							const GLsizei vertCount = static_cast<GLsizei>(materialGroup.faces.size() * 3);
-							mDepthShader->mShader->draw(materialGroup.vao, vertCount);
-
-							mDepthShader->mShader->unuse();
-						}
-
-						// Restore culling to previous state
-						if (prevCullEnabled) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
-					}
+				Plane planes[6] = {
+					{ glm::vec3(row3 + row0), (row3 + row0).w }, // Left
+					{ glm::vec3(row3 - row0), (row3 - row0).w }, // Right
+					{ glm::vec3(row3 + row1), (row3 + row1).w }, // Bottom
+					{ glm::vec3(row3 - row1), (row3 - row1).w }, // Top
+					{ glm::vec3(row3 + row2), (row3 + row2).w }, // Near
+					{ glm::vec3(row3 - row2), (row3 - row2).w }, // Far
+				};
+				// Normalise planes
+				for (Plane& p : planes) {
+					float invLen = 1.0f / glm::length(p.n);
+					p.n *= invLen;
+					p.d *= invLen;
 				}
+
+				std::vector<std::pair<float, size_t>> keys;
+				keys.reserve(mShadowMaterials.size());
+
+				for (size_t i = 0; i < mShadowMaterials.size(); ++i)
+				{
+					const auto& it = mShadowMaterials[i];
+
+					// --- OBB in WORLD space
+					const glm::mat4  M = it.transform;
+					const glm::vec3  e = it.materialGroup.boundsHalfExtentsMS;
+					const glm::vec3  cW = glm::vec3(M * glm::vec4(it.materialGroup.boundsCenterMS, 1.0f));
+					const glm::mat3  A = glm::mat3(M); // columns are world axes * scale
+
+					// Conservative frustum cull (OBB vs plane SAT, world-space planes)
+					// Inside if n·c + d >= -r, where r = sum |n·axis_i| * e_i
+					bool culled = false;
+					for (const Plane& pl : planes)
+					{
+						const float r =
+							std::abs(glm::dot(pl.n, A[0])) * e.x +
+							std::abs(glm::dot(pl.n, A[1])) * e.y +
+							std::abs(glm::dot(pl.n, A[2])) * e.z;
+
+						const float s = glm::dot(pl.n, cW) + pl.d;
+
+						if (s < -r) { // fully outside this plane -> reject
+							culled = true;
+							break;
+						}
+					}
+					if (culled) continue;
+
+					// Depth key (front-to-back)
+					const glm::mat4 VM = V * M;
+					const glm::vec3 centerVS = glm::vec3(VM * glm::vec4(it.materialGroup.boundsCenterMS, 1.0f));
+					const glm::mat3 AV = glm::mat3(VM);
+					const float projZ = std::abs(AV[0][2]) * e.x + std::abs(AV[1][2]) * e.y + std::abs(AV[2][2]) * e.z;
+					const float zMin = centerVS.z - projZ;
+
+					keys.emplace_back(zMin, i);
+				}
+
+				// OPAQUE: front->back => zMin ascending (most negative first)
+				std::sort(keys.begin(), keys.end(),
+					[](const auto& a, const auto& b) { return a.first < b.first; });
+
+				std::vector<MaterialRenderInfo> distanceSortedShadowMaterials;
+				distanceSortedShadowMaterials.reserve(keys.size());
+				for (const auto& kv : keys)
+					distanceSortedShadowMaterials.push_back(mShadowMaterials[kv.second]);
+
+				// Avoids copying or double-deleting the underlying GL object.
+				auto asShared = [](const Renderer::Texture& t) -> std::shared_ptr<Renderer::Texture> {
+					return std::shared_ptr<Renderer::Texture>(const_cast<Renderer::Texture*>(&t), [](Renderer::Texture*) {});
+					};
+
+				// Render all shadow-casting objects
+				for (const auto& shadowMaterial : distanceSortedShadowMaterials)
+				{
+					const auto& materialGroup = shadowMaterial.materialGroup;
+					const auto& pbr = materialGroup.pbr;
+					const auto& embedded = shadowMaterial.model->mModel->GetEmbeddedTextures();
+
+					// Culling per material (same as before)
+					GLboolean prevCullEnabled = glIsEnabled(GL_CULL_FACE);
+					if (pbr.doubleSided) glDisable(GL_CULL_FACE);
+					else glEnable(GL_CULL_FACE);
+
+					if (pbr.alphaMode != Renderer::Model::PBRMaterial::AlphaMode::AlphaOpaque)
+					{
+						mDepthAlphaShader->mShader->use();
+
+						mDepthAlphaShader->mShader->uniform("u_Model", shadowMaterial.transform);
+
+						// Upload base texture because may have transparent alpha
+						if (pbr.baseColorTexIndex >= 0 && pbr.baseColorTexIndex < (int)embedded.size())
+						{
+							mDepthAlphaShader->mShader->uniform("u_AlbedoMap", asShared(embedded[pbr.baseColorTexIndex]), 0);
+						}
+
+						mDepthAlphaShader->mShader->uniform("u_AlphaCutoff", pbr.alphaCutoff);
+
+						// Draw this material only
+						const GLsizei vertCount = static_cast<GLsizei>(materialGroup.faces.size() * 3);
+						mDepthAlphaShader->mShader->draw(materialGroup.vao, vertCount);
+
+						mDepthAlphaShader->mShader->unuse();
+					}
+					else
+					{
+						mDepthShader->mShader->use();
+
+						mDepthShader->mShader->uniform("u_Model", shadowMaterial.transform);
+
+						const GLsizei vertCount = static_cast<GLsizei>(materialGroup.faces.size() * 3);
+						mDepthShader->mShader->draw(materialGroup.vao, vertCount);
+
+						mDepthShader->mShader->unuse();
+					}
+
+					// Restore culling
+					if (prevCullEnabled) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
+				}
+
+				//// Old rendering code for shadows (to be replaced with per-material rendering above)
+				//for (const auto& submission : mSubmissions)
+				//{
+				//	if (submission.shadowMode == ShadowMode::None)
+				//		continue;
+
+				//	std::shared_ptr<Model> modelToRender = submission.model;
+				//	// If using proxy shadow model, switch to that
+				//	if (submission.shadowMode == ShadowMode::Proxy)
+				//		modelToRender = submission.shadowModel;
+
+				//	mDepthShader->mShader->use();
+				//	mDepthShader->mShader->uniform("u_Model", submission.transform);
+				//	mDepthShader->mShader->unuse();
+
+				//	mDepthAlphaShader->mShader->use();
+				//	mDepthAlphaShader->mShader->uniform("u_Model", submission.transform);
+				//	mDepthAlphaShader->mShader->unuse();
+
+				//	// Avoids copying or double-deleting the underlying GL object.
+				//	auto asShared = [](const Renderer::Texture& t) -> std::shared_ptr<Renderer::Texture> {
+				//		return std::shared_ptr<Renderer::Texture>(const_cast<Renderer::Texture*>(&t), [](Renderer::Texture*) {}); // no-op deleter
+				//		};
+
+				//	// Render each material, will change so that we don't do it blindly e.g. only when in view of camera
+				//	for (const auto& materialGroup : modelToRender->mModel->GetMaterialGroups())
+				//	{
+				//		const auto& pbr = materialGroup.pbr;
+				//		const auto& embedded = modelToRender->mModel->GetEmbeddedTextures();
+
+				//		// Culling per material (same as before)
+				//		GLboolean prevCullEnabled = glIsEnabled(GL_CULL_FACE);
+				//		if (pbr.doubleSided) glDisable(GL_CULL_FACE);
+				//		else glEnable(GL_CULL_FACE);
+
+				//		if (pbr.alphaMode != Renderer::Model::PBRMaterial::AlphaMode::AlphaOpaque)
+				//		{
+				//			mDepthAlphaShader->mShader->use();
+
+				//			// Upload base texture because may have transparent alpha
+				//			if (pbr.baseColorTexIndex >= 0 && pbr.baseColorTexIndex < (int)embedded.size())
+				//			{
+				//				mDepthAlphaShader->mShader->uniform("u_AlbedoMap", asShared(embedded[pbr.baseColorTexIndex]), 0);
+				//			}
+
+				//			mDepthAlphaShader->mShader->uniform("u_AlphaCutoff", pbr.alphaCutoff);
+
+				//			// Draw this material only
+				//			const GLsizei vertCount = static_cast<GLsizei>(materialGroup.faces.size() * 3);
+				//			mDepthAlphaShader->mShader->draw(materialGroup.vao, vertCount);
+
+				//			mDepthAlphaShader->mShader->unuse();
+				//		}
+				//		else
+				//		{
+				//			mDepthShader->mShader->use();
+
+				//			// Draw this material only
+				//			const GLsizei vertCount = static_cast<GLsizei>(materialGroup.faces.size() * 3);
+				//			mDepthShader->mShader->draw(materialGroup.vao, vertCount);
+
+				//			mDepthShader->mShader->unuse();
+				//		}
+
+				//		// Restore culling to previous state
+				//		if (prevCullEnabled) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
+				//	}
+				//}
 
 				cascade.renderTexture->unbind();
 			}
@@ -309,7 +469,7 @@ namespace JamesEngine
 		const glm::mat4 P = camera->GetProjectionMatrix();
 		const glm::mat4 VP = P * V;
 
-		// --- NEW: extract world-space frustum planes from VP (GLM is column-major)
+		// Extract world-space frustum planes from VP (GLM is column-major)
 		struct Plane { glm::vec3 n; float d; }; // plane: n·x + d >= 0  => inside
 		auto getRow = [&](int r) {
 			return glm::vec4(VP[0][r], VP[1][r], VP[2][r], VP[3][r]);
@@ -347,7 +507,7 @@ namespace JamesEngine
 			const glm::vec3  cW = glm::vec3(M * glm::vec4(it.materialGroup.boundsCenterMS, 1.0f));
 			const glm::mat3  A = glm::mat3(M); // columns are world axes * scale
 
-			// --- NEW: conservative frustum cull (OBB vs plane SAT, world-space planes)
+			// Conservative frustum cull (OBB vs plane SAT, world-space planes)
 			// Inside if n·c + d >= -r, where r = sum |n·axis_i| * e_i
 			bool culled = false;
 			for (const Plane& pl : planes)
@@ -700,6 +860,19 @@ namespace JamesEngine
 			{
 				mTransparentMaterials.push_back({ const_cast<Renderer::Model::MaterialGroup&>(materialGroup), _model, _transform });
 			}
+
+			if (info.shadowMode != ShadowMode::Proxy)
+			{
+				mShadowMaterials.push_back({ const_cast<Renderer::Model::MaterialGroup&>(materialGroup), _model, _transform });
+			}
+		}
+
+		if (info.shadowMode == ShadowMode::Proxy)
+		{
+			for (const auto& materialGroup : info.shadowModel->mModel->GetMaterialGroups())
+			{
+				mShadowMaterials.push_back({ const_cast<Renderer::Model::MaterialGroup&>(materialGroup), info.shadowModel, _transform });
+			}
 		}
 	}
 
@@ -708,6 +881,7 @@ namespace JamesEngine
 		mSubmissions.clear();
 		mOpaqueMaterials.clear();
 		mTransparentMaterials.clear();
+		mShadowMaterials.clear();
 	}
 
 }

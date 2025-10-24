@@ -7,7 +7,7 @@ Opaque front to back ✓
 Transparent back to front ✓
 	- So that see through materials have the correct geometry behind it
 
-Frustrum culling
+Frustrum culling ✓
 	- Calculate bounding volume of materials as they're read and don't render if a material is outside the view frustrum
 
 Dynamic near/far plane

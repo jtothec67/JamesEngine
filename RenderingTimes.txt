@@ -31,3 +31,15 @@ GPU Scene: 2.36339ms
 GPU Scene: 2.36237ms
 GPU Scene: 2.35725ms
 GPU Scene: 2.37875ms
+
+Shadow map fustrum culling-
+GPU Scene: 1.27898ms
+GPU Scene: 1.31379ms
+GPU Scene: 1.27488ms
+GPU Scene: 1.27386ms
+GPU Scene: 1.28102ms
+GPU Scene: 1.27795ms
+GPU Scene: 1.30253ms
+GPU Scene: 1.3056ms
+GPU Scene: 1.3015ms
+GPU Scene: 1.32506ms

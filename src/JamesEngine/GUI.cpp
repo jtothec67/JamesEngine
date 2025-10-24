@@ -122,7 +122,7 @@ namespace JamesEngine
 
 		// Replaces all images with the shadow map of the directional light (keeping in case of future debugging)
 		if(mCore.lock()->GetLightManager()->GetShadowMaps()->size() > 0)
-			mShader->draw(mRect.get(), mCore.lock()->GetLightManager()->GetShadowMaps()->at(1)->getTextureId());
+			mShader->draw(mRect.get(), mCore.lock()->GetLightManager()->GetShadowMaps()->at(0)->getTextureId());
 
 		mShader->unuse();
 	}

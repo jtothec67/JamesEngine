@@ -56,6 +56,7 @@ namespace JamesEngine
 
 		std::vector<MaterialRenderInfo> mOpaqueMaterials;
 		std::vector<MaterialRenderInfo> mTransparentMaterials;
+		std::vector<MaterialRenderInfo> mShadowMaterials;
 
 		// Fallback PBR values
 		glm::vec4 mBaseColorStrength{ 1.f };
