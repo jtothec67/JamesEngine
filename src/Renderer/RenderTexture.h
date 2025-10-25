@@ -27,6 +27,8 @@ namespace Renderer
 
 		void clear();
 
+		GLuint getFBO() { return m_fboId; }
+
 	private:
 		GLuint m_fboId = 0;
 		GLuint m_texId = 0;

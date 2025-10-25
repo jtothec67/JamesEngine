@@ -43,3 +43,15 @@ GPU Scene: 1.30253ms
 GPU Scene: 1.3056ms
 GPU Scene: 1.3015ms
 GPU Scene: 1.32506ms
+
+Depth pre pass-
+GPU Scene: 1.57901ms
+GPU Scene: 1.58822ms
+GPU Scene: 1.58515ms
+GPU Scene: 2.45965ms
+GPU Scene: 1.60256ms
+GPU Scene: 1.58822ms
+GPU Scene: 2.44838ms
+GPU Scene: 1.59027ms
+GPU Scene: 1.61587ms
+GPU Scene: 1.61997ms

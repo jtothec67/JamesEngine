@@ -6,6 +6,7 @@
 #include "Camera.h"
 #include "Transform.h"
 #include "Skybox.h"
+#include "Timer.h"
 
 #include <algorithm>
 
@@ -18,6 +19,8 @@ namespace JamesEngine
 		mDepthShader = mCore.lock()->GetResources()->Load<Shader>("shaders/DepthOnly");
 		mDepthAlphaShader = mCore.lock()->GetResources()->Load<Shader>("shaders/DepthOnlyAlpha");
 		mObjShader = mCore.lock()->GetResources()->Load<Shader>("shaders/ObjShader");
+
+		mDepthPrePassTexture = std::make_shared<Renderer::RenderTexture>(2560, 1440, Renderer::RenderTextureType::Depth);
 	}
 
 	void SceneRenderer::RenderScene()
@@ -354,75 +357,6 @@ namespace JamesEngine
 					if (prevCullEnabled) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
 				}
 
-				//// Old rendering code for shadows (to be replaced with per-material rendering above)
-				//for (const auto& submission : mSubmissions)
-				//{
-				//	if (submission.shadowMode == ShadowMode::None)
-				//		continue;
-
-				//	std::shared_ptr<Model> modelToRender = submission.model;
-				//	// If using proxy shadow model, switch to that
-				//	if (submission.shadowMode == ShadowMode::Proxy)
-				//		modelToRender = submission.shadowModel;
-
-				//	mDepthShader->mShader->use();
-				//	mDepthShader->mShader->uniform("u_Model", submission.transform);
-				//	mDepthShader->mShader->unuse();
-
-				//	mDepthAlphaShader->mShader->use();
-				//	mDepthAlphaShader->mShader->uniform("u_Model", submission.transform);
-				//	mDepthAlphaShader->mShader->unuse();
-
-				//	// Avoids copying or double-deleting the underlying GL object.
-				//	auto asShared = [](const Renderer::Texture& t) -> std::shared_ptr<Renderer::Texture> {
-				//		return std::shared_ptr<Renderer::Texture>(const_cast<Renderer::Texture*>(&t), [](Renderer::Texture*) {}); // no-op deleter
-				//		};
-
-				//	// Render each material, will change so that we don't do it blindly e.g. only when in view of camera
-				//	for (const auto& materialGroup : modelToRender->mModel->GetMaterialGroups())
-				//	{
-				//		const auto& pbr = materialGroup.pbr;
-				//		const auto& embedded = modelToRender->mModel->GetEmbeddedTextures();
-
-				//		// Culling per material (same as before)
-				//		GLboolean prevCullEnabled = glIsEnabled(GL_CULL_FACE);
-				//		if (pbr.doubleSided) glDisable(GL_CULL_FACE);
-				//		else glEnable(GL_CULL_FACE);
-
-				//		if (pbr.alphaMode != Renderer::Model::PBRMaterial::AlphaMode::AlphaOpaque)
-				//		{
-				//			mDepthAlphaShader->mShader->use();
-
-				//			// Upload base texture because may have transparent alpha
-				//			if (pbr.baseColorTexIndex >= 0 && pbr.baseColorTexIndex < (int)embedded.size())
-				//			{
-				//				mDepthAlphaShader->mShader->uniform("u_AlbedoMap", asShared(embedded[pbr.baseColorTexIndex]), 0);
-				//			}
-
-				//			mDepthAlphaShader->mShader->uniform("u_AlphaCutoff", pbr.alphaCutoff);
-
-				//			// Draw this material only
-				//			const GLsizei vertCount = static_cast<GLsizei>(materialGroup.faces.size() * 3);
-				//			mDepthAlphaShader->mShader->draw(materialGroup.vao, vertCount);
-
-				//			mDepthAlphaShader->mShader->unuse();
-				//		}
-				//		else
-				//		{
-				//			mDepthShader->mShader->use();
-
-				//			// Draw this material only
-				//			const GLsizei vertCount = static_cast<GLsizei>(materialGroup.faces.size() * 3);
-				//			mDepthShader->mShader->draw(materialGroup.vao, vertCount);
-
-				//			mDepthShader->mShader->unuse();
-				//		}
-
-				//		// Restore culling to previous state
-				//		if (prevCullEnabled) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
-				//	}
-				//}
-
 				cascade.renderTexture->unbind();
 			}
 
@@ -459,10 +393,7 @@ namespace JamesEngine
 
 		window->ResetGLModes();
 
-		// Normal rendering of the scene
 		core->mSkybox->RenderSkybox();
-
-		mObjShader->mShader->use();
 
 		// Build a copy sorted by distance (closest -> furthest)
 		const glm::mat4 V = camera->GetViewMatrix();
@@ -494,18 +425,19 @@ namespace JamesEngine
 			p.d *= invLen;
 		}
 		
-		std::vector<std::pair<float, size_t>> keys;
-		keys.reserve(mOpaqueMaterials.size());
+		// Frustum cull and sort OPAQUE materials back-to-front
+		std::vector<std::pair<float, size_t>> opaqueKeys;
+		opaqueKeys.reserve(mOpaqueMaterials.size());
 
 		for (size_t i = 0; i < mOpaqueMaterials.size(); ++i)
 		{
 			const auto& it = mOpaqueMaterials[i];
 
-			// --- OBB in WORLD space
+			// OBB in WORLD space
 			const glm::mat4  M = it.transform;
 			const glm::vec3  e = it.materialGroup.boundsHalfExtentsMS;
 			const glm::vec3  cW = glm::vec3(M * glm::vec4(it.materialGroup.boundsCenterMS, 1.0f));
-			const glm::mat3  A = glm::mat3(M); // columns are world axes * scale
+			const glm::mat3  A = glm::mat3(M);
 
 			// Conservative frustum cull (OBB vs plane SAT, world-space planes)
 			// Inside if n·c + d >= -r, where r = sum |n·axis_i| * e_i
@@ -519,7 +451,7 @@ namespace JamesEngine
 
 				const float s = glm::dot(pl.n, cW) + pl.d;
 
-				if (s < -r) { // fully outside this plane -> reject
+				if (s < -r) { // Fully outside this plane -> reject
 					culled = true;
 					break;
 				}
@@ -533,27 +465,199 @@ namespace JamesEngine
 			const float projZ = std::abs(AV[0][2]) * e.x + std::abs(AV[1][2]) * e.y + std::abs(AV[2][2]) * e.z;
 			const float zMin = centerVS.z - projZ;
 
-			keys.emplace_back(zMin, i);
+			opaqueKeys.emplace_back(zMin, i);
 		}
 
 		// OPAQUE: front->back => zMin ascending (most negative first)
-		std::sort(keys.begin(), keys.end(),
+		std::sort(opaqueKeys.begin(), opaqueKeys.end(),
 			[](const auto& a, const auto& b) { return a.first < b.first; });
 
 		std::vector<MaterialRenderInfo> distanceSortedOpaqueMaterials;
-		distanceSortedOpaqueMaterials.reserve(keys.size());
-		for (const auto& kv : keys)
+		distanceSortedOpaqueMaterials.reserve(opaqueKeys.size());
+		for (const auto& kv : opaqueKeys)
 			distanceSortedOpaqueMaterials.push_back(mOpaqueMaterials[kv.second]);
+
+		// Frustum cull and sort TRANSPARENT materials back-to-front
+		std::vector<std::pair<float, size_t>> transparentKeys;
+		transparentKeys.reserve(mTransparentMaterials.size());
+
+		for (size_t i = 0; i < mTransparentMaterials.size(); ++i)
+		{
+			const auto& it = mTransparentMaterials[i];
+
+			// OBB in WORLD space
+			const glm::mat4  M = it.transform;
+			const glm::vec3  e = it.materialGroup.boundsHalfExtentsMS;
+			const glm::vec3  cW = glm::vec3(M * glm::vec4(it.materialGroup.boundsCenterMS, 1.0f));
+			const glm::mat3  A = glm::mat3(M);
+
+			// Conservative frustum cull (OBB vs plane SAT, world-space planes)
+			// Inside if n·c + d >= -r, where r = sum |n·axis_i| * e_i
+			bool culled = false;
+			for (const Plane& pl : planes)
+			{
+				const float r =
+					std::abs(glm::dot(pl.n, A[0])) * e.x +
+					std::abs(glm::dot(pl.n, A[1])) * e.y +
+					std::abs(glm::dot(pl.n, A[2])) * e.z;
+
+				const float s = glm::dot(pl.n, cW) + pl.d;
+
+				if (s < -r) { // Fully outside this plane -> reject
+					culled = true;
+					break;
+				}
+			}
+			if (culled) continue;
+
+			// Depth key (front-to-back)
+			const glm::mat4 VM = V * M;
+			const glm::vec3 centerVS = glm::vec3(VM * glm::vec4(it.materialGroup.boundsCenterMS, 1.0f));
+			const glm::mat3 AV = glm::mat3(VM);
+			const float projZ = std::abs(AV[0][2]) * e.x + std::abs(AV[1][2]) * e.y + std::abs(AV[2][2]) * e.z;
+			const float zMin = centerVS.z + projZ;
+			transparentKeys.emplace_back(zMin, i);
+		}
+
+		std::sort(transparentKeys.begin(), transparentKeys.end(),
+			[](const auto& a, const auto& b) { return a.first < b.first; });
+
+		std::vector<MaterialRenderInfo> distanceSortedTransparentMaterials;
+		distanceSortedTransparentMaterials.reserve(transparentKeys.size());
+		for (const auto& kv : transparentKeys)
+			distanceSortedTransparentMaterials.push_back(mTransparentMaterials[kv.second]);
 
 		// This avoids copying or double-deleting the underlying GL object.
 		auto asShared = [](const Renderer::Texture& t) -> std::shared_ptr<Renderer::Texture> {
 			return std::shared_ptr<Renderer::Texture>(const_cast<Renderer::Texture*>(&t), [](Renderer::Texture*) {}); // no-op deleter
 			};
 
+		// Depth pre-pass
+		mDepthPrePassTexture->clear();
+		mDepthPrePassTexture->bind();
+		glViewport(0, 0, mDepthPrePassTexture->getWidth(), mDepthPrePassTexture->getHeight());
+
+		glEnable(GL_POLYGON_OFFSET_FILL);
+		glPolygonOffset(0.5f, 0.5f);
+
+		// Depth-only state
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
 		glDepthMask(GL_TRUE);
 		glDisable(GL_BLEND);
+		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+		glDisable(GL_MULTISAMPLE);
+		glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+
+		// OPAQUES (front-to-back already)
+		for (const auto& opaqueMaterial : distanceSortedOpaqueMaterials)
+		{
+			const auto& pbr = opaqueMaterial.materialGroup.pbr;
+			GLboolean prevCullEnabled = glIsEnabled(GL_CULL_FACE);
+			if (pbr.doubleSided) glDisable(GL_CULL_FACE);
+			else glEnable(GL_CULL_FACE);
+
+			if (pbr.alphaMode == Renderer::Model::PBRMaterial::AlphaMode::AlphaOpaque)
+			{
+				mDepthShader->mShader->use();
+				// Reuse the same uniform name the depth shader expects
+				mDepthShader->mShader->uniform("u_LightSpaceMatrix", VP);
+				mDepthShader->mShader->uniform("u_Model", opaqueMaterial.transform);
+
+				const GLsizei vertCount = static_cast<GLsizei>(opaqueMaterial.materialGroup.faces.size() * 3);
+				mDepthShader->mShader->draw(opaqueMaterial.materialGroup.vao, vertCount);
+				mDepthShader->mShader->unuse();
+			}
+			else
+			{
+				mDepthAlphaShader->mShader->use();
+				mDepthAlphaShader->mShader->uniform("u_LightSpaceMatrix", VP);
+				mDepthAlphaShader->mShader->uniform("u_Model", opaqueMaterial.transform);
+				mDepthAlphaShader->mShader->uniform("u_AlphaCutoff", pbr.alphaCutoff);
+
+				// BaseColor for alpha test if present
+				const auto& embedded = opaqueMaterial.model->mModel->GetEmbeddedTextures();
+				if (pbr.baseColorTexIndex >= 0 && pbr.baseColorTexIndex < (int)embedded.size())
+				{
+					mDepthAlphaShader->mShader->uniform("u_AlbedoMap", asShared(embedded[pbr.baseColorTexIndex]), 0);
+				}
+
+				const GLsizei vertCount = static_cast<GLsizei>(opaqueMaterial.materialGroup.faces.size() * 3);
+				mDepthAlphaShader->mShader->draw(opaqueMaterial.materialGroup.vao, vertCount);
+				mDepthAlphaShader->mShader->unuse();
+			}
+
+			if (prevCullEnabled) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
+		}
+
+		glEnable(GL_BLEND);
+		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+
+		for (const auto& transparentMaterial : distanceSortedTransparentMaterials)
+		{
+			const auto& pbr = transparentMaterial.materialGroup.pbr;
+			/*if (pbr.alphaMode != Renderer::Model::PBRMaterial::AlphaMode::AlphaMask)
+				continue;*/
+
+			GLboolean prevCullEnabled = glIsEnabled(GL_CULL_FACE);
+			if (pbr.doubleSided) glDisable(GL_CULL_FACE);
+			else glEnable(GL_CULL_FACE);
+
+			mDepthAlphaShader->mShader->use();
+			mDepthAlphaShader->mShader->uniform("u_LightSpaceMatrix", VP);
+			mDepthAlphaShader->mShader->uniform("u_Model", transparentMaterial.transform);
+			mDepthAlphaShader->mShader->uniform("u_AlphaCutoff", pbr.alphaCutoff);
+
+			// BaseColor for alpha test if present
+			const auto& embedded = transparentMaterial.model->mModel->GetEmbeddedTextures();
+			if (pbr.baseColorTexIndex >= 0 && pbr.baseColorTexIndex < (int)embedded.size())
+			{
+				mDepthAlphaShader->mShader->uniform("u_AlbedoMap", asShared(embedded[pbr.baseColorTexIndex]), 0);
+			}
+
+			const GLsizei vertCount = static_cast<GLsizei>(transparentMaterial.materialGroup.faces.size() * 3);
+			mDepthAlphaShader->mShader->draw(transparentMaterial.materialGroup.vao, vertCount);
+			mDepthAlphaShader->mShader->unuse();
+
+			if (prevCullEnabled) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
+		}
+
+		mDepthPrePassTexture->unbind();
+
+		// Blit the depth from the pre-pass RT into the default framebuffer so early-Z works for shading
+		{
+			// Acquire FBO ids (add accessors if you don't have them)
+			GLuint readFBO = mDepthPrePassTexture->getFBO();
+			GLint winW = 0, winH = 0; window->GetWindowSize(winW, winH);
+
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, readFBO);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+			glBlitFramebuffer(
+				0, 0, mDepthPrePassTexture->getWidth(), mDepthPrePassTexture->getHeight(),
+				0, 0, winW, winH,
+				GL_DEPTH_BUFFER_BIT,
+				GL_NEAREST
+			);
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		}
+
+		glDisable(GL_POLYGON_OFFSET_FILL);
+
+		// Restore color writes for the shading pass
+		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
+		/*glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LESS);
+		glDepthMask(GL_TRUE);
+		glDisable(GL_BLEND);*/
+
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LEQUAL);
+		glDepthMask(GL_FALSE);
+		glDisable(GL_BLEND);
+
+		mObjShader->mShader->use();
 
 		// Fallbacks
 		mObjShader->mShader->uniform("u_AlbedoFallback", mBaseColorStrength);
@@ -663,55 +767,6 @@ namespace JamesEngine
 			mObjShader->mShader->draw(opaqueMaterial.materialGroup.vao, vertCount);
 		}
 
-
-		keys.clear();
-		keys.reserve(mTransparentMaterials.size());
-
-		for (size_t i = 0; i < mTransparentMaterials.size(); ++i)
-		{
-			const auto& it = mTransparentMaterials[i];
-
-			// --- OBB in WORLD space
-			const glm::mat4  M = it.transform;
-			const glm::vec3  e = it.materialGroup.boundsHalfExtentsMS;
-			const glm::vec3  cW = glm::vec3(M * glm::vec4(it.materialGroup.boundsCenterMS, 1.0f));
-			const glm::mat3  A = glm::mat3(M); // columns are world axes * scale
-
-			// --- NEW: conservative frustum cull (OBB vs plane SAT, world-space planes)
-			// Inside if n·c + d >= -r, where r = sum |n·axis_i| * e_i
-			bool culled = false;
-			for (const Plane& pl : planes)
-			{
-				const float r =
-					std::abs(glm::dot(pl.n, A[0])) * e.x +
-					std::abs(glm::dot(pl.n, A[1])) * e.y +
-					std::abs(glm::dot(pl.n, A[2])) * e.z;
-
-				const float s = glm::dot(pl.n, cW) + pl.d;
-
-				if (s < -r) { // fully outside this plane -> reject
-					culled = true;
-					break;
-				}
-			}
-			if (culled) continue;
-
-			// Depth key (front-to-back)
-			const glm::mat4 VM = V * M;
-			const glm::vec3 centerVS = glm::vec3(VM * glm::vec4(it.materialGroup.boundsCenterMS, 1.0f));
-			const glm::mat3 AV = glm::mat3(VM);
-			const float projZ = std::abs(AV[0][2]) * e.x + std::abs(AV[1][2]) * e.y + std::abs(AV[2][2]) * e.z;
-			const float zMin = centerVS.z + projZ;
-			keys.emplace_back(zMin, i);
-		}
-
-		std::sort(keys.begin(), keys.end(),
-			[](const auto& a, const auto& b) { return a.first < b.first; });
-
-		std::vector<MaterialRenderInfo> distanceSortedTransparentMaterials;
-		distanceSortedTransparentMaterials.reserve(keys.size());
-		for (const auto& kv : keys)
-			distanceSortedTransparentMaterials.push_back(mTransparentMaterials[kv.second]);
 
 		glEnable(GL_BLEND);
 		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
