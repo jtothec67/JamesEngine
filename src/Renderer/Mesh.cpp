@@ -86,6 +86,7 @@ namespace Renderer
 				glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(data.at(0)), &data.at(0), GL_STATIC_DRAW);
 				glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+				glGenVertexArrays(1, &m_vaoid);
 				glBindVertexArray(m_vaoid);
 				glBindBuffer(GL_ARRAY_BUFFER, m_vboid);
 

@@ -38,7 +38,7 @@ namespace JamesEngine
 		CameraType mType = CameraType::Perspective;
 
 		float mNearClip = 0.3f;
-		float mFarClip = 1500.f;
+		float mFarClip = 1000.f;
 
 		float mFov = 60.f;
 

@@ -11,6 +11,20 @@ namespace JamesEngine
 	Skybox::Skybox(std::shared_ptr<Core> _core)
 	{
 		mCore = _core;
+
+		mBRDFLUT->clear();
+		mBRDFLUT->bind();
+
+
+
+		mBRDFLUT->unbind();
+	}
+
+	void Skybox::SetTexture(std::shared_ptr<SkyboxTexture> _texture)
+	{
+		mTexture = _texture;
+
+
 	}
 
 	void Skybox::RenderSkybox()

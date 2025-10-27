@@ -5,6 +5,8 @@
 #include "Texture.h"
 #include "Font.h"
 
+#include "Resources.h"
+
 namespace JamesEngine
 {
 
@@ -125,7 +127,10 @@ namespace JamesEngine
 		//	mShader->draw(mRect.get(), mCore.lock()->GetLightManager()->GetShadowMaps()->at(0)->getTextureId());
 
 		// Replaces all images with the depth pre pass (keeping in case of future debugging)
-		mShader->draw(mRect.get(), mCore.lock()->GetSceneRenderer()->GetDepthPrePassTexture().getTextureId());
+		//mShader->draw(mRect.get(), mCore.lock()->GetSceneRenderer()->GetDepthPrePassTexture().getTextureId());
+
+		// Replaces all images with the BRDF LUT (keeping in case of future debugging)
+		//mShader->draw(mRect.get(), mCore.lock()->GetResources()->Load<Texture>("skyboxes/brdf_lut")->mTexture.get());
 
 		mShader->unuse();
 	}

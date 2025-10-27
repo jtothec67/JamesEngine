@@ -190,8 +190,8 @@ float DistributionGGX(vec3 N, vec3 H, float roughness)
 
 float GeometrySchlickGGX(float NdotV, float roughness)
 {
-    float r = roughness + 1.0;
-    float k = (r * r) / 8.0;
+    float a = roughness*roughness;
+    float k = (a + 1)*(a + 1) / 8;
     return NdotV / (NdotV * (1.0 - k) + k);
 }
 
@@ -327,7 +327,9 @@ void main()
     vec3 Fibl = FresnelSchlickRoughness(NdotV, F0, roughness);
 
     // Specular IBL
-    vec2 brdf = textureLod(u_BRDFLUT, vec2(roughness, 1.0 - NdotV), 0.0).rg;
+    //vec2 brdf = textureLod(u_BRDFLUT, vec2(roughness, 1.0 - NdotV), 0.0).rg;
+    vec2 brdf = textureLod(u_BRDFLUT, vec2(NdotV, roughness), 0.0).rg;
+    brdf = vec2(0, 0);
     vec3 specularIBL = envColor * (Fibl * brdf.x + brdf.y);
 
     vec3 ambient;

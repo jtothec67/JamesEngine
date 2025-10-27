@@ -9,6 +9,7 @@ namespace Renderer
 	{
 		ColourAndDepth,
 		Depth,
+		BRDF_LUT
 	};
 
 	class RenderTexture

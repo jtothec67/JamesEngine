@@ -60,6 +60,8 @@ namespace JamesEngine
 		std::vector<MaterialRenderInfo> mTransparentMaterials;
 		std::vector<MaterialRenderInfo> mShadowMaterials;
 
+		bool mDoDepthPrePass = false;
+
 		// Fallback PBR values
 		glm::vec4 mBaseColorStrength{ 1.f };
 		float mMetallicness = 0.0f;

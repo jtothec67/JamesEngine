@@ -3,6 +3,7 @@
 #include "SkyboxTexture.h"
 #include "Renderer/Mesh.h"
 #include "Renderer/Shader.h"
+#include "Renderer/RenderTexture.h"
 
 namespace JamesEngine
 {
@@ -16,13 +17,19 @@ namespace JamesEngine
 
 		void RenderSkybox();
 
-		void SetTexture(std::shared_ptr<SkyboxTexture> _texture) { mTexture = _texture; }
+		void SetTexture(std::shared_ptr<SkyboxTexture> _texture);
 		std::shared_ptr<SkyboxTexture> GetTexture() { return mTexture; }
 
 	private:
 		std::shared_ptr<SkyboxTexture> mTexture;
 		std::shared_ptr<Renderer::Mesh> mMesh = std::make_shared<Renderer::Mesh>("skybox");
 		std::shared_ptr<Renderer::Shader> mShader = std::make_shared<Renderer::Shader>("../assets/shaders/SkyboxShader.vert", "../assets/shaders/SkyboxShader.frag");
+
+		std::shared_ptr<Renderer::RenderTexture> mBRDFLUT = std::make_shared<Renderer::RenderTexture>(512, 512, Renderer::RenderTextureType::BRDF_LUT);
+		std::shared_ptr<Renderer::Shader> mBRDFLUTShader = std::make_shared<Renderer::Shader>("../assets/shaders/GenerateBRDFLUT.vert", "../assets/shaders/GenerateBRDFLUT.frag");
+
+		std::shared_ptr<Renderer::RenderTexture> mIrradianceMap;
+		std::shared_ptr<Renderer::RenderTexture> mPrefilteredEnvMap;
 
 		std::weak_ptr<Core> mCore;
 	};

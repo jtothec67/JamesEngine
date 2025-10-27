@@ -20,7 +20,7 @@ namespace JamesEngine
 		mDepthAlphaShader = mCore.lock()->GetResources()->Load<Shader>("shaders/DepthOnlyAlpha");
 		mObjShader = mCore.lock()->GetResources()->Load<Shader>("shaders/ObjShader");
 
-		mDepthPrePassTexture = std::make_shared<Renderer::RenderTexture>(2560, 1440, Renderer::RenderTextureType::Depth);
+		mDepthPrePassTexture = std::make_shared<Renderer::RenderTexture>(2560, 1440, Renderer::RenderTextureType::Depth); // Need to be able to resize render textures
 	}
 
 	void SceneRenderer::RenderScene()
@@ -424,7 +424,7 @@ namespace JamesEngine
 			p.n *= invLen;
 			p.d *= invLen;
 		}
-		
+
 		// Frustum cull and sort OPAQUE materials back-to-front
 		std::vector<std::pair<float, size_t>> opaqueKeys;
 		opaqueKeys.reserve(mOpaqueMaterials.size());
@@ -463,14 +463,14 @@ namespace JamesEngine
 			const glm::vec3 centerVS = glm::vec3(VM * glm::vec4(it.materialGroup.boundsCenterMS, 1.0f));
 			const glm::mat3 AV = glm::mat3(VM);
 			const float projZ = std::abs(AV[0][2]) * e.x + std::abs(AV[1][2]) * e.y + std::abs(AV[2][2]) * e.z;
-			const float zMin = centerVS.z - projZ;
+			const float zMax = centerVS.z + projZ;
 
-			opaqueKeys.emplace_back(zMin, i);
+			opaqueKeys.emplace_back(zMax, i);
 		}
 
 		// OPAQUE: front->back => zMin ascending (most negative first)
 		std::sort(opaqueKeys.begin(), opaqueKeys.end(),
-			[](const auto& a, const auto& b) { return a.first < b.first; });
+			[](const auto& a, const auto& b) { return a.first > b.first; });
 
 		std::vector<MaterialRenderInfo> distanceSortedOpaqueMaterials;
 		distanceSortedOpaqueMaterials.reserve(opaqueKeys.size());
@@ -515,7 +515,7 @@ namespace JamesEngine
 			const glm::vec3 centerVS = glm::vec3(VM * glm::vec4(it.materialGroup.boundsCenterMS, 1.0f));
 			const glm::mat3 AV = glm::mat3(VM);
 			const float projZ = std::abs(AV[0][2]) * e.x + std::abs(AV[1][2]) * e.y + std::abs(AV[2][2]) * e.z;
-			const float zMin = centerVS.z + projZ;
+			const float zMin = centerVS.z - projZ;
 			transparentKeys.emplace_back(zMin, i);
 		}
 
@@ -532,129 +532,130 @@ namespace JamesEngine
 			return std::shared_ptr<Renderer::Texture>(const_cast<Renderer::Texture*>(&t), [](Renderer::Texture*) {}); // no-op deleter
 			};
 
-		// Depth pre-pass
-		mDepthPrePassTexture->clear();
-		mDepthPrePassTexture->bind();
-		glViewport(0, 0, mDepthPrePassTexture->getWidth(), mDepthPrePassTexture->getHeight());
-
-		glEnable(GL_POLYGON_OFFSET_FILL);
-		glPolygonOffset(0.5f, 0.5f);
-
-		// Depth-only state
-		glEnable(GL_DEPTH_TEST);
-		glDepthFunc(GL_LESS);
-		glDepthMask(GL_TRUE);
-		glDisable(GL_BLEND);
-		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-		glDisable(GL_MULTISAMPLE);
-		glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-
-		// OPAQUES (front-to-back already)
-		for (const auto& opaqueMaterial : distanceSortedOpaqueMaterials)
+		if (mDoDepthPrePass)
 		{
-			const auto& pbr = opaqueMaterial.materialGroup.pbr;
-			GLboolean prevCullEnabled = glIsEnabled(GL_CULL_FACE);
-			if (pbr.doubleSided) glDisable(GL_CULL_FACE);
-			else glEnable(GL_CULL_FACE);
+			// Depth pre-pass
+			mDepthPrePassTexture->clear();
+			mDepthPrePassTexture->bind();
+			glViewport(0, 0, mDepthPrePassTexture->getWidth(), mDepthPrePassTexture->getHeight());
 
-			if (pbr.alphaMode == Renderer::Model::PBRMaterial::AlphaMode::AlphaOpaque)
+			glEnable(GL_POLYGON_OFFSET_FILL);
+			glPolygonOffset(0.5f, 0.5f);
+
+			// Depth-only state
+			glEnable(GL_DEPTH_TEST);
+			glDepthFunc(GL_LESS);
+			glDepthMask(GL_TRUE);
+			glDisable(GL_BLEND);
+			glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+			glDisable(GL_MULTISAMPLE);
+			glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+
+			// OPAQUES (front-to-back already)
+			for (const auto& opaqueMaterial : distanceSortedOpaqueMaterials)
 			{
-				mDepthShader->mShader->use();
-				// Reuse the same uniform name the depth shader expects
-				mDepthShader->mShader->uniform("u_LightSpaceMatrix", VP);
-				mDepthShader->mShader->uniform("u_Model", opaqueMaterial.transform);
+				const auto& pbr = opaqueMaterial.materialGroup.pbr;
+				GLboolean prevCullEnabled = glIsEnabled(GL_CULL_FACE);
+				if (pbr.doubleSided) glDisable(GL_CULL_FACE);
+				else glEnable(GL_CULL_FACE);
 
-				const GLsizei vertCount = static_cast<GLsizei>(opaqueMaterial.materialGroup.faces.size() * 3);
-				mDepthShader->mShader->draw(opaqueMaterial.materialGroup.vao, vertCount);
-				mDepthShader->mShader->unuse();
+				if (pbr.alphaMode == Renderer::Model::PBRMaterial::AlphaMode::AlphaOpaque)
+				{
+					mDepthShader->mShader->use();
+					// Reuse the same uniform name the depth shader expects
+					mDepthShader->mShader->uniform("u_LightSpaceMatrix", VP);
+					mDepthShader->mShader->uniform("u_Model", opaqueMaterial.transform);
+
+					const GLsizei vertCount = static_cast<GLsizei>(opaqueMaterial.materialGroup.faces.size() * 3);
+					mDepthShader->mShader->draw(opaqueMaterial.materialGroup.vao, vertCount);
+					mDepthShader->mShader->unuse();
+				}
+				else
+				{
+					mDepthAlphaShader->mShader->use();
+					mDepthAlphaShader->mShader->uniform("u_LightSpaceMatrix", VP);
+					mDepthAlphaShader->mShader->uniform("u_Model", opaqueMaterial.transform);
+					mDepthAlphaShader->mShader->uniform("u_AlphaCutoff", pbr.alphaCutoff);
+
+					// BaseColor for alpha test if present
+					const auto& embedded = opaqueMaterial.model->mModel->GetEmbeddedTextures();
+					if (pbr.baseColorTexIndex >= 0 && pbr.baseColorTexIndex < (int)embedded.size())
+					{
+						mDepthAlphaShader->mShader->uniform("u_AlbedoMap", asShared(embedded[pbr.baseColorTexIndex]), 0);
+					}
+
+					const GLsizei vertCount = static_cast<GLsizei>(opaqueMaterial.materialGroup.faces.size() * 3);
+					mDepthAlphaShader->mShader->draw(opaqueMaterial.materialGroup.vao, vertCount);
+					mDepthAlphaShader->mShader->unuse();
+				}
+
+				if (prevCullEnabled) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
 			}
-			else
+
+			glEnable(GL_BLEND);
+			glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+
+			for (const auto& transparentMaterial : distanceSortedTransparentMaterials)
 			{
+				const auto& pbr = transparentMaterial.materialGroup.pbr;
+				/*if (pbr.alphaMode != Renderer::Model::PBRMaterial::AlphaMode::AlphaMask)
+					continue;*/
+
+				GLboolean prevCullEnabled = glIsEnabled(GL_CULL_FACE);
+				if (pbr.doubleSided) glDisable(GL_CULL_FACE);
+				else glEnable(GL_CULL_FACE);
+
 				mDepthAlphaShader->mShader->use();
 				mDepthAlphaShader->mShader->uniform("u_LightSpaceMatrix", VP);
-				mDepthAlphaShader->mShader->uniform("u_Model", opaqueMaterial.transform);
+				mDepthAlphaShader->mShader->uniform("u_Model", transparentMaterial.transform);
 				mDepthAlphaShader->mShader->uniform("u_AlphaCutoff", pbr.alphaCutoff);
 
 				// BaseColor for alpha test if present
-				const auto& embedded = opaqueMaterial.model->mModel->GetEmbeddedTextures();
+				const auto& embedded = transparentMaterial.model->mModel->GetEmbeddedTextures();
 				if (pbr.baseColorTexIndex >= 0 && pbr.baseColorTexIndex < (int)embedded.size())
 				{
 					mDepthAlphaShader->mShader->uniform("u_AlbedoMap", asShared(embedded[pbr.baseColorTexIndex]), 0);
 				}
 
-				const GLsizei vertCount = static_cast<GLsizei>(opaqueMaterial.materialGroup.faces.size() * 3);
-				mDepthAlphaShader->mShader->draw(opaqueMaterial.materialGroup.vao, vertCount);
+				const GLsizei vertCount = static_cast<GLsizei>(transparentMaterial.materialGroup.faces.size() * 3);
+				mDepthAlphaShader->mShader->draw(transparentMaterial.materialGroup.vao, vertCount);
 				mDepthAlphaShader->mShader->unuse();
+
+				if (prevCullEnabled) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
 			}
 
-			if (prevCullEnabled) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
-		}
+			mDepthPrePassTexture->unbind();
 
-		glEnable(GL_BLEND);
-		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-
-		for (const auto& transparentMaterial : distanceSortedTransparentMaterials)
-		{
-			const auto& pbr = transparentMaterial.materialGroup.pbr;
-			/*if (pbr.alphaMode != Renderer::Model::PBRMaterial::AlphaMode::AlphaMask)
-				continue;*/
-
-			GLboolean prevCullEnabled = glIsEnabled(GL_CULL_FACE);
-			if (pbr.doubleSided) glDisable(GL_CULL_FACE);
-			else glEnable(GL_CULL_FACE);
-
-			mDepthAlphaShader->mShader->use();
-			mDepthAlphaShader->mShader->uniform("u_LightSpaceMatrix", VP);
-			mDepthAlphaShader->mShader->uniform("u_Model", transparentMaterial.transform);
-			mDepthAlphaShader->mShader->uniform("u_AlphaCutoff", pbr.alphaCutoff);
-
-			// BaseColor for alpha test if present
-			const auto& embedded = transparentMaterial.model->mModel->GetEmbeddedTextures();
-			if (pbr.baseColorTexIndex >= 0 && pbr.baseColorTexIndex < (int)embedded.size())
+			// Blit the depth from the pre-pass RT into the default framebuffer so early-Z works for shading
 			{
-				mDepthAlphaShader->mShader->uniform("u_AlbedoMap", asShared(embedded[pbr.baseColorTexIndex]), 0);
+				// Acquire FBO ids (add accessors if you don't have them)
+				GLuint readFBO = mDepthPrePassTexture->getFBO();
+				GLint winW = 0, winH = 0; window->GetWindowSize(winW, winH);
+
+				glBindFramebuffer(GL_READ_FRAMEBUFFER, readFBO);
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+				glBlitFramebuffer(
+					0, 0, mDepthPrePassTexture->getWidth(), mDepthPrePassTexture->getHeight(),
+					0, 0, winW, winH,
+					GL_DEPTH_BUFFER_BIT,
+					GL_NEAREST
+				);
+				glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 			}
 
-			const GLsizei vertCount = static_cast<GLsizei>(transparentMaterial.materialGroup.faces.size() * 3);
-			mDepthAlphaShader->mShader->draw(transparentMaterial.materialGroup.vao, vertCount);
-			mDepthAlphaShader->mShader->unuse();
+			glDisable(GL_POLYGON_OFFSET_FILL);
 
-			if (prevCullEnabled) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
+			// Restore color writes for the shading pass
+			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 		}
-
-		mDepthPrePassTexture->unbind();
-
-		// Blit the depth from the pre-pass RT into the default framebuffer so early-Z works for shading
-		{
-			// Acquire FBO ids (add accessors if you don't have them)
-			GLuint readFBO = mDepthPrePassTexture->getFBO();
-			GLint winW = 0, winH = 0; window->GetWindowSize(winW, winH);
-
-			glBindFramebuffer(GL_READ_FRAMEBUFFER, readFBO);
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-			glBlitFramebuffer(
-				0, 0, mDepthPrePassTexture->getWidth(), mDepthPrePassTexture->getHeight(),
-				0, 0, winW, winH,
-				GL_DEPTH_BUFFER_BIT,
-				GL_NEAREST
-			);
-			glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-		}
-
-		glDisable(GL_POLYGON_OFFSET_FILL);
-
-		// Restore color writes for the shading pass
-		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-
-		/*glEnable(GL_DEPTH_TEST);
-		glDepthFunc(GL_LESS);
-		glDepthMask(GL_TRUE);
-		glDisable(GL_BLEND);*/
 
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LEQUAL);
-		glDepthMask(GL_FALSE);
+		if (mDoDepthPrePass)
+			glDepthMask(GL_FALSE);
+		else
+			glDepthMask(GL_TRUE);
 		glDisable(GL_BLEND);
 
 		mObjShader->mShader->use();

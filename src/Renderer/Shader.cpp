@@ -571,6 +571,7 @@ namespace Renderer
 	void Shader::draw(Mesh* _mesh, Texture* _tex)
 	{
 		glBindVertexArray(_mesh->id());
+		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, _tex->id());
 		glUniform1i(glGetUniformLocation(id(), "u_Texture"), 0);
 		glDrawArrays(GL_TRIANGLES, 0, _mesh->vertex_count());
