@@ -9,6 +9,8 @@ namespace Renderer
 	{
 		ColourAndDepth,
 		Depth,
+		IrradianceCubeMap,
+		PrefilteredEnvCubeMap,
 		BRDF_LUT
 	};
 
@@ -25,6 +27,10 @@ namespace Renderer
 
 		int getWidth() { return m_width; }
 		int getHeight() { return m_height; }
+
+		void bindFace(int face, int level = 0);
+		int  widthForLevel(int level) const { return m_width >> level; }
+		int  heightForLevel(int level) const { return m_height >> level; }
 
 		void clear();
 

@@ -126,6 +126,13 @@ namespace Renderer
 		glUniform1f(loc, value);
 	}
 
+	void Shader::uniform(const std::string& _name, const glm::mat3& value)
+	{
+		// Find uniform locations
+		GLint loc = glGetUniformLocation(id(), _name.c_str());
+		glUniformMatrix3fv(loc, 1, GL_FALSE, glm::value_ptr(value));
+	}
+
 	void Shader::uniform(const std::string& _name, const glm::mat4& value)
 	{
 		// Find uniform locations
@@ -190,11 +197,31 @@ namespace Renderer
 		glActiveTexture(GL_TEXTURE0);
 	}
 
+	void Shader::uniform(const std::string& name, const std::shared_ptr<RenderTexture> texture, int startingTextureUnit)
+	{
+		glActiveTexture(GL_TEXTURE0 + startingTextureUnit);
+		glBindTexture(GL_TEXTURE_2D, texture->getTextureId());
+		GLint loc = glGetUniformLocation(id(), name.c_str());
+		glUniform1i(loc, startingTextureUnit);
+		glActiveTexture(GL_TEXTURE0);
+	}
+
 	// Hard coded to cube map for now
 	void Shader::cubemapUniform(const std::string& name, const std::shared_ptr<Texture> texture, int startingTextureUnit)
 	{
 		glActiveTexture(GL_TEXTURE0 + startingTextureUnit);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, texture->id());
+
+		GLint loc = glGetUniformLocation(id(), name.c_str());
+		glUniform1i(loc, startingTextureUnit);
+
+		glActiveTexture(GL_TEXTURE0);
+	}
+
+	void Shader::cubemapUniform(const std::string& name, const std::shared_ptr<RenderTexture> texture, int startingTextureUnit)
+	{
+		glActiveTexture(GL_TEXTURE0 + startingTextureUnit);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, texture->getTextureId());
 
 		GLint loc = glGetUniformLocation(id(), name.c_str());
 		glUniform1i(loc, startingTextureUnit);

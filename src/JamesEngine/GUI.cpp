@@ -6,6 +6,7 @@
 #include "Font.h"
 
 #include "Resources.h"
+#include "Skybox.h"
 
 namespace JamesEngine
 {
@@ -130,7 +131,7 @@ namespace JamesEngine
 		//mShader->draw(mRect.get(), mCore.lock()->GetSceneRenderer()->GetDepthPrePassTexture().getTextureId());
 
 		// Replaces all images with the BRDF LUT (keeping in case of future debugging)
-		//mShader->draw(mRect.get(), mCore.lock()->GetResources()->Load<Texture>("skyboxes/brdf_lut")->mTexture.get());
+		//mShader->draw(mRect.get(), mCore.lock()->GetSkybox()->GetBRDFLUT()->getTextureId());
 
 		mShader->unuse();
 	}

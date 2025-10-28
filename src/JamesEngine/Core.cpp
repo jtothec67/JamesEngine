@@ -234,12 +234,10 @@ namespace JamesEngine
 	{
 		auto objShader = mResources->Load<Shader>("shaders/ObjShader");
 		objShader->mShader->use();
-		objShader->mShader->uniform("u_DirLightDirection", mLightManager->GetDirectionalLightDirection()); // Assumes light direction and colour never change, light direction can't change while using pre baked shadows
+
+		// Can move these into SceneRenderer, along with the rest of the light system
+		objShader->mShader->uniform("u_DirLightDirection", mLightManager->GetDirectionalLightDirection());
 		objShader->mShader->uniform("u_DirLightColor", mLightManager->GetDirectionalLightColour());
-
-		objShader->mShader->cubemapUniform("u_SkyBox", mSkybox->GetTexture()->mTexture, 29); // Assumes skybox doesn't change
-
-		objShader->mShader->uniform("u_BRDFLUT", mResources->Load<Texture>("skyboxes/brdf_lut")->mTexture, 28);
 		objShader->mShader->unuse();
 	}
 

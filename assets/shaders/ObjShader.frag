@@ -65,7 +65,9 @@ uniform sampler2D u_PreBakedShadowMaps[MAX_NUM_PREBAKED];
 uniform mat4 u_PreBakedLightSpaceMatrices[MAX_NUM_PREBAKED];
 
 // IBL
-uniform samplerCube u_SkyBox;
+uniform samplerCube u_IrradianceCube;
+uniform samplerCube u_PrefilterEnv;
+uniform float u_PrefilterMaxLOD;
 uniform sampler2D u_BRDFLUT;
 
 out vec4 FragColor;
@@ -236,11 +238,14 @@ void main()
     // Metallic/Roughness (G=roughness, B=metallic)
     float roughnessTex;
     float metallicTex;
-    if (u_HasMetallicRoughnessMap) {
+    if (u_HasMetallicRoughnessMap)
+    {
         vec2 mr = texture(u_MetallicRoughnessMap, v_TexCoord).gb;
         roughnessTex = mr.x;
         metallicTex  = mr.y;
-    } else {
+    }
+    else
+    {
         roughnessTex = u_RoughnessFallback;
         metallicTex  = u_MetallicFallback;
     }
@@ -258,7 +263,8 @@ void main()
     // Normal mapping
     vec3 Ngeom = normalize(v_Normal);
     vec3 N = Ngeom ;
-    if (u_HasNormalMap) {
+    if (u_HasNormalMap)
+    {
         vec3 dp1 = dFdx(v_FragPos);
         vec3 dp2 = dFdy(v_FragPos);
         vec2 duv1 = dFdx(v_TexCoord);
@@ -310,40 +316,32 @@ void main()
     vec3 radiance = u_DirLightColor;
     vec3 direct = (kD * albedo / 3.14159 + specular) * radiance * NdotL * (1.0 - shadow);
 
-    // IBL (single skybox)
+    // IBL
     float NdotV = max(dot(N, V), 0.0);
 
     // Diffuse IBL: sample skybox at a high LOD along the normal (approx irradiance)
-    const float DIFFUSE_LOD = float(MAX_IBL_LOD);
-    vec3 diffuseEnv = textureLod(u_SkyBox, N, DIFFUSE_LOD).rgb;
+    vec3 diffuseEnv = texture(u_IrradianceCube, N).rgb;
     vec3 diffuseIBL = diffuseEnv * (kD * albedo);
 
     // Specular IBL: prefiltered skybox via roughness-based LOD
     vec3 R = reflect(-V, N);
-    float lod = roughness * float(MAX_IBL_LOD);
-    vec3 envColor = textureLod(u_SkyBox, R, lod).rgb;
+    float lod = roughness * u_PrefilterMaxLOD;
+    vec3  envColor = textureLod(u_PrefilterEnv, R, lod).rgb;
 
-    // Roughness-aware Fresnel for IBL
     vec3 Fibl = FresnelSchlickRoughness(NdotV, F0, roughness);
+    vec2 brdf = texture(u_BRDFLUT, vec2(NdotV, roughness)).rg;
 
-    // Specular IBL
-    //vec2 brdf = textureLod(u_BRDFLUT, vec2(roughness, 1.0 - NdotV), 0.0).rg;
-    vec2 brdf = textureLod(u_BRDFLUT, vec2(NdotV, roughness), 0.0).rg;
-    brdf = vec2(0, 0);
     vec3 specularIBL = envColor * (Fibl * brdf.x + brdf.y);
 
     vec3 ambient;
     if (isGlass)
     {
         // Thin-surface transmission via refracted IBL
-        float eta = max(u_IOR, 1.0001); // avoid divide-by-zero
-        vec3 Tdir = refract(-V, N, 1.0 / eta);
-        vec3 envT = textureLod(u_SkyBox, Tdir, lod).rgb;
+        float eta  = max(u_IOR, 1.0001);
+        vec3  Tdir = refract(-V, N, 1.0 / eta);
+        vec3  envT = textureLod(u_PrefilterEnv, Tdir, lod).rgb;
 
-        // Energy split: what isn't reflected can transmit, tint by baseColor
-        vec3 transIBL = envT * (1.0 - Fibl) * transmission * albedo;
-
-        // No AO on specular/transmission
+        vec3 transIBL = envT * (1.0 - Fibl) * transmission * albedo; // energy split
         ambient = specularIBL + transIBL;
     }
     else
@@ -359,7 +357,7 @@ void main()
 
     if (u_AlphaMode == 2)
     {
-        float transVis = transmission * (1.0 - Fibl.r);      // how much isn't reflected
+        float transVis = transmission * (1.0 - Fibl.r);
         float roughBoost = mix(0.0, 0.3, clamp(roughness, 0.0, 1.0));
         float coverage = clamp(0.02 + 0.65 * (transVis + roughBoost), 0.05, 0.7);
         outAlpha = max(alpha, coverage);

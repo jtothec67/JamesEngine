@@ -24,6 +24,7 @@ namespace Renderer
 		void uniform(const std::string& _name, bool _value);
 		void uniform(const std::string& _name, int _value);
 		void uniform(const std::string& _name, float _value);
+		void uniform(const std::string& _name, const glm::mat3& _value);
 		void uniform(const std::string& _name, const glm::mat4& _value);
 		void uniform(const std::string& _name, const glm::vec3& _value);
 		void uniform(const std::string& _name, const glm::vec4& _value);
@@ -33,7 +34,9 @@ namespace Renderer
 		void uniform(const std::string& _name, const std::vector<glm::vec3>& _value);
 		void uniform(const std::string& _name, const std::vector<glm::mat4>& values);
 		void uniform(const std::string& name, const std::shared_ptr<Texture> texture, int startingTextureUnit = 0);
+		void uniform(const std::string& name, const std::shared_ptr<RenderTexture> texture, int startingTextureUnit = 0);
 		void cubemapUniform(const std::string& name, const std::shared_ptr<Texture> texture, int startingTextureUnit = 0);
+		void cubemapUniform(const std::string& name, const std::shared_ptr<RenderTexture> texture, int startingTextureUnit = 0);
 		void uniform(const std::string& name, const std::vector<std::shared_ptr<RenderTexture>>& textures, int startingTextureUnit = 0);
 
 		void draw(Model* _model, std::vector<Texture*>& _textures);

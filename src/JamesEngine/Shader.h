@@ -18,6 +18,7 @@ namespace JamesEngine
 	private:
 		friend class SceneRenderer;
 		friend class ModelRenderer;
+		friend class Skybox;
 		friend class Core;
 
 		std::shared_ptr<Renderer::Shader> mShader;
