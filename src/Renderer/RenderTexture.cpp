@@ -5,148 +5,167 @@
 
 namespace Renderer
 {
-	RenderTexture::RenderTexture(int _width, int _height, RenderTextureType _type)
-		: m_fboId(0)
-		, m_texId(0)
-		, m_rboId(0)
-		, m_type(_type)
-	{
-		m_width = _width;
-		m_height = _height;
+    void RenderTexture::destroyGL()
+    {
+        if (m_rboId) { glDeleteRenderbuffers(1, &m_rboId); m_rboId = 0; }
+        if (m_texId) { glDeleteTextures(1, &m_texId); m_texId = 0; }
+        if (m_fboId) { glDeleteFramebuffers(1, &m_fboId);  m_fboId = 0; }
+    }
 
-		glGenFramebuffers(1, &m_fboId);
-		glBindFramebuffer(GL_FRAMEBUFFER, m_fboId);
-		if (!m_fboId)
-		{
-			std::cout << "Failed to generate render textures frame buffer id." << std::endl;
-			throw std::exception();
-		}
-		
-		glGenTextures(1, &m_texId);
-		glBindTexture(GL_TEXTURE_2D, m_texId);
+    void RenderTexture::allocate()
+    {
+        if (m_width <= 0 || m_height <= 0)
+        {
+            std::cout << "RenderTexture allocate(): invalid size " << m_width << "x" << m_height << "\n";
+            throw std::exception();
+        }
 
-		if (_type == RenderTextureType::Depth)
-		{
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, m_width, m_height, 0,
-				GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glGenFramebuffers(1, &m_fboId);
+        glBindFramebuffer(GL_FRAMEBUFFER, m_fboId);
+        if (!m_fboId)
+        {
+            std::cout << "Failed to generate render textures frame buffer id." << std::endl;
+            throw std::exception();
+        }
 
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
+        glGenTextures(1, &m_texId);
 
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_texId, 0);
-			glDrawBuffer(GL_NONE);
-			glReadBuffer(GL_NONE);
-		}
-		else if (_type == RenderTextureType::ColourAndDepth)
-		{
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_width, m_height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texId, 0);
+        if (m_type == RenderTextureType::Depth)
+        {
+            glBindTexture(GL_TEXTURE_2D, m_texId);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, m_width, m_height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
 
-			glGenRenderbuffers(1, &m_rboId);
-			glBindRenderbuffer(GL_RENDERBUFFER, m_rboId);
-			glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_width, m_height);
-			glBindRenderbuffer(GL_RENDERBUFFER, 0);
-			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_rboId);
-		}
-		else if (_type == RenderTextureType::IrradianceCubeMap)
-		{
-			// Color-only cubemap target (RGB16F), no mips
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_texId, 0);
+            glDrawBuffer(GL_NONE);
+            glReadBuffer(GL_NONE);
+        }
+        else if (m_type == RenderTextureType::ColourAndDepth)
+        {
+			glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_texId);
+			glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_RGB8, m_width, m_height, GL_TRUE); // Hardcoded 4x MSAA, same as window
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, m_texId, 0);
 
-			glDeleteTextures(1, &m_texId);
-			glGenTextures(1, &m_texId);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, m_texId);
+            glGenRenderbuffers(1, &m_rboId);
+            glBindRenderbuffer(GL_RENDERBUFFER, m_rboId);
+            glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH24_STENCIL8, m_width, m_height);
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_rboId);
 
-			for (int face = 0; face < 6; ++face)
-			{
-				glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, 0, GL_RGB16F, m_width, m_height, 0, GL_RGB, GL_FLOAT, nullptr);
-			}
+            GLenum buf = GL_COLOR_ATTACHMENT0;
+            glDrawBuffers(1, &buf);
+        }
+        else if (m_type == RenderTextureType::IrradianceCubeMap)
+        {
+            // Color-only cubemap target (RGB16F), no mips
+            glBindTexture(GL_TEXTURE_CUBE_MAP, m_texId);
+            for (int face = 0; face < 6; ++face)
+            {
+                glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, 0, GL_RGB16F, m_width, m_height, 0, GL_RGB, GL_FLOAT, nullptr);
+            }
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BASE_LEVEL, 0);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, 0);
 
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+            // Attach one face so FBO is complete
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X, m_texId, 0);
+            GLenum buf = GL_COLOR_ATTACHMENT0;
+            glDrawBuffers(1, &buf);
+        }
+        else if (m_type == RenderTextureType::PrefilteredEnvCubeMap)
+        {
+            glBindTexture(GL_TEXTURE_CUBE_MAP, m_texId);
 
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BASE_LEVEL, 0);
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, 0);
+            int numMips = 1 + (int)std::floor(std::log2(std::max(m_width, m_height)));
+            for (int level = 0; level < numMips; ++level)
+            {
+                int w = std::max(1, m_width >> level);
+                int h = std::max(1, m_height >> level);
+                for (int face = 0; face < 6; ++face)
+                {
+                    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, level, GL_RGB16F, w, h, 0, GL_RGB, GL_FLOAT, nullptr);
+                }
+            }
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BASE_LEVEL, 0);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, numMips - 1);
 
-			// Attach one face temporarily so the FBO is complete now
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X, m_texId, 0);
-			GLenum buf = GL_COLOR_ATTACHMENT0;
-			glDrawBuffers(1, &buf);
-		}
-		else if (_type == RenderTextureType::PrefilteredEnvCubeMap)
-		{
-			glDeleteTextures(1, &m_texId);
-			glGenTextures(1, &m_texId);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, m_texId);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X, m_texId, 0);
+            GLenum buf = GL_COLOR_ATTACHMENT0;
+            glDrawBuffers(1, &buf);
+        }
+        else if (m_type == RenderTextureType::BRDF_LUT)
+        {
+            glBindTexture(GL_TEXTURE_2D, m_texId);
 
-			int numMips = 1 + (int)std::floor(std::log2(std::max(m_width, m_height)));
-			for (int level = 0; level < numMips; ++level)
-			{
-				int w = std::max(1, m_width >> level);
-				int h = std::max(1, m_height >> level);
-				for (int face = 0; face < 6; ++face)
-					glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, level,
-						GL_RGB16F, w, h, 0, GL_RGB, GL_FLOAT, nullptr);
-			}
+            // Allocate RG16F for BRDF LUT (two channels, high precision)
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, m_width, m_height, 0, GL_RG, GL_HALF_FLOAT, nullptr);
 
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BASE_LEVEL, 0);
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, numMips - 1);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-				GL_TEXTURE_CUBE_MAP_POSITIVE_X, m_texId, 0);
-			GLenum buf = GL_COLOR_ATTACHMENT0;
-			glDrawBuffers(1, &buf);
-		}
-		else if (_type == RenderTextureType::BRDF_LUT)
-		{
-			glBindTexture(GL_TEXTURE_2D, m_texId);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texId, 0);
+            GLenum drawBuf = GL_COLOR_ATTACHMENT0;
+            glDrawBuffers(1, &drawBuf);
+        }
 
-			// Allocate RG16F for BRDF LUT (two channels, high precision)
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, m_width, m_height, 0, GL_RG, GL_HALF_FLOAT, nullptr);
+        // Verify FBO completeness
+        GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        if (status != GL_FRAMEBUFFER_COMPLETE)
+        {
+            std::cout << "RenderTexture FBO incomplete: 0x" << std::hex << status << std::dec << std::endl;
+            throw std::exception();
+        }
 
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
 
-			// No mipmaps for BRDF LUT — only level 0
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+    RenderTexture::RenderTexture(int _width, int _height, RenderTextureType _type)
+        : m_fboId(0)
+        , m_texId(0)
+        , m_rboId(0)
+        , m_type(_type)
+        , m_width(_width)
+        , m_height(_height)
+    {
+        allocate();
+    }
 
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texId, 0);
-			GLenum drawBuf = GL_COLOR_ATTACHMENT0;
-			glDrawBuffers(1, &drawBuf);
-		}
+    RenderTexture::~RenderTexture()
+    {
+        destroyGL();
+    }
 
-		// Verify FBO completeness
-		GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-		if (status != GL_FRAMEBUFFER_COMPLETE)
-		{
-			std::cout << "RenderTexture FBO incomplete: 0x" << std::hex << status << std::dec << std::endl;
-			throw std::exception();
-		}
+    bool RenderTexture::resize(int newWidth, int newHeight)
+    {
+        if (newWidth <= 0 || newHeight <= 0)
+            return false;
 
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	}
+        if (newWidth == m_width && newHeight == m_height)
+            return false;
 
-	RenderTexture::~RenderTexture()
-	{
-		glDeleteFramebuffers(1, &m_fboId);
-		glDeleteTextures(1, &m_texId);
-		glDeleteRenderbuffers(1, &m_rboId);
-	}
+        // Destroy and reallocate with same type and new size
+        destroyGL();
+        m_width = newWidth;
+        m_height = newHeight;
+        allocate();
+        return true;
+    }
 
 	void RenderTexture::bind()
 	{

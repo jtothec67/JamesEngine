@@ -124,8 +124,8 @@ namespace JamesEngine
 		mShader->draw(mRect.get(), _texture->mTexture.get());
 
 		//// Replaces all images with the shadow map of the directional light (keeping in case of future debugging)
-		//if(mCore.lock()->GetLightManager()->GetShadowMaps()->size() > 0)
-		//	mShader->draw(mRect.get(), mCore.lock()->GetLightManager()->GetShadowMaps()->at(0)->getTextureId());
+		if(mCore.lock()->GetLightManager()->GetShadowMaps()->size() > 0)
+			mShader->draw(mRect.get(), mCore.lock()->GetLightManager()->GetShadowMaps()->at(0)->getTextureId());
 
 		// Replaces all images with the depth pre pass (keeping in case of future debugging)
 		//mShader->draw(mRect.get(), mCore.lock()->GetSceneRenderer()->GetDepthPrePassTexture().getTextureId());

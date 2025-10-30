@@ -53,6 +53,15 @@ struct freelookCamController : public Component
 		if (GetKeyboard()->IsKey(SDLK_RIGHT))
 			GetTransform()->Rotate(vec3(0, -sensitivity, 0 * GetCore()->GetLastFrameTime()));
 	}
+
+	void OnGUI()
+	{
+		int width, height;
+		GetCore()->GetWindow()->GetWindowSize(width, height);
+
+		// For shadow map debugging
+		//GetGUI()->Image(vec2(width-300, height-300), vec2(600, 600), GetCore()->GetResources()->Load<Texture>("images/mouse"));
+	}
 };
 
 struct StartFinishLine : public Component
@@ -359,9 +368,6 @@ struct StartFinishLine : public Component
 		GetGUI()->Text(vec2(width - 200, height - 50), 40, vec3(0, 0, 0), "Last lap: \n" + lastLapTimeString, GetCore()->GetResources()->Load<Font>("fonts/munro"));
 
 		GetGUI()->Text(vec2(width - 200, height - 200), 40, vec3(0, 0, 0), "Best lap: \n" + bestLapTimeString, GetCore()->GetResources()->Load<Font>("fonts/munro"));
-
-		// For shadow map debugging
-		//GetGUI()->Image(vec2(width-300, height-300), vec2(600, 600), GetCore()->GetResources()->Load<Texture>("images/mouse"));
 	}
 
 	std::string FormatLapTime(float time)
@@ -1305,275 +1311,286 @@ int main()
 		core->GetLightManager()->SetAmbient(vec3(0.3f));
 		core->GetLightManager()->SetupDefault3Cascades();
 
+		// Sponza test
+		std::shared_ptr<Entity> sponza = core->AddEntity();
+		sponza->SetTag("sponza");
+		sponza->GetComponent<Transform>()->SetPosition(vec3(0, 0, 0));
+		sponza->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
+		sponza->GetComponent<Transform>()->SetScale(vec3(0.1f));
+		std::shared_ptr<ModelRenderer> sponzaMR = sponza->AddComponent<ModelRenderer>();
+		sponzaMR->SetModel(core->GetResources()->Load<Model>("models/Sponza2.glb"));
+		sponza->AddComponent<CameraController>();
+
 		// Cameras
 		std::shared_ptr<Entity> freeCamEntity = core->AddEntity();
 		std::shared_ptr<Camera> freeCam = freeCamEntity->AddComponent<Camera>();
 		freeCam->SetPriority(10);
-		freeCamEntity->GetComponent<Transform>()->SetPosition(vec3(647.479, -65.4695, -252.504));
+		//freeCamEntity->GetComponent<Transform>()->SetPosition(vec3(647.479, -65.4695, -252.504));
+		freeCamEntity->GetComponent<Transform>()->SetPosition(vec3(0, 0, 0));
 		freeCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
 		freeCamEntity->AddComponent<freelookCamController>();
 
-		std::shared_ptr<Entity> bonnetCamEntity = core->AddEntity();
-		std::shared_ptr<Camera> bonnetCam = bonnetCamEntity->AddComponent<Camera>();
-		bonnetCam->SetPriority(1);
-		bonnetCamEntity->GetComponent<Transform>()->SetPosition(vec3(0, 0.767, 0.39));
-		bonnetCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
+		//std::shared_ptr<Entity> bonnetCamEntity = core->AddEntity();
+		//std::shared_ptr<Camera> bonnetCam = bonnetCamEntity->AddComponent<Camera>();
+		//bonnetCam->SetPriority(1);
+		//bonnetCamEntity->GetComponent<Transform>()->SetPosition(vec3(0, 0.767, 0.39));
+		//bonnetCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
 
-		std::shared_ptr<Entity> ghostBonnetCamEntity = core->AddEntity();
-		std::shared_ptr<Camera> ghostBonnetCam = ghostBonnetCamEntity->AddComponent<Camera>();
-		ghostBonnetCam->SetPriority(1);
-		ghostBonnetCamEntity->GetComponent<Transform>()->SetPosition(vec3(0, 0.767, 0.39));
-		ghostBonnetCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
+		//std::shared_ptr<Entity> ghostBonnetCamEntity = core->AddEntity();
+		//std::shared_ptr<Camera> ghostBonnetCam = ghostBonnetCamEntity->AddComponent<Camera>();
+		//ghostBonnetCam->SetPriority(1);
+		//ghostBonnetCamEntity->GetComponent<Transform>()->SetPosition(vec3(0, 0.767, 0.39));
+		//ghostBonnetCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
 
-		std::shared_ptr<Entity> cockpitCamEntity = core->AddEntity();
-		std::shared_ptr<Camera> cockpitCam = cockpitCamEntity->AddComponent<Camera>();
-		cockpitCam->SetPriority(10);
-		cockpitCamEntity->GetComponent<Transform>()->SetPosition(vec3(0.390911, 0.611829, -0.526169));
-		cockpitCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
-		cockpitCamEntity->AddComponent<CameraController>();
+		//std::shared_ptr<Entity> cockpitCamEntity = core->AddEntity();
+		//std::shared_ptr<Camera> cockpitCam = cockpitCamEntity->AddComponent<Camera>();
+		//cockpitCam->SetPriority(10);
+		//cockpitCamEntity->GetComponent<Transform>()->SetPosition(vec3(0.390911, 0.611829, -0.526169));
+		//cockpitCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
+		//cockpitCamEntity->AddComponent<CameraController>();
 
-		std::shared_ptr<Entity> thirdPersonCamEntity = core->AddEntity();
-		std::shared_ptr<Camera> thirdPersonCam = thirdPersonCamEntity->AddComponent<Camera>();
-		thirdPersonCam->SetPriority(1);
-		thirdPersonCamEntity->GetComponent<Transform>()->SetPosition(vec3(0, 1.66, -5.98));
-		thirdPersonCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
+		//std::shared_ptr<Entity> thirdPersonCamEntity = core->AddEntity();
+		//std::shared_ptr<Camera> thirdPersonCam = thirdPersonCamEntity->AddComponent<Camera>();
+		//thirdPersonCam->SetPriority(1);
+		//thirdPersonCamEntity->GetComponent<Transform>()->SetPosition(vec3(0, 1.66, -5.98));
+		//thirdPersonCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
 
-		std::shared_ptr<Entity> wheelCamEntity = core->AddEntity();
-		std::shared_ptr<Camera> wheelCam = wheelCamEntity->AddComponent<Camera>();
-		wheelCam->SetPriority(1);
-		wheelCamEntity->GetComponent<Transform>()->SetPosition(vec3(-1.36, 0.246, -1.63));
-		wheelCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 183.735, 0));
+		//std::shared_ptr<Entity> wheelCamEntity = core->AddEntity();
+		//std::shared_ptr<Camera> wheelCam = wheelCamEntity->AddComponent<Camera>();
+		//wheelCam->SetPriority(1);
+		//wheelCamEntity->GetComponent<Transform>()->SetPosition(vec3(-1.36, 0.246, -1.63));
+		//wheelCamEntity->GetComponent<Transform>()->SetRotation(vec3(0, 183.735, 0));
 
-		std::shared_ptr<Entity> chaseCamEntity = core->AddEntity();
-		std::shared_ptr<Camera> chaseCam = chaseCamEntity->AddComponent<Camera>();
-		chaseCam->SetPriority(1);
-		std::shared_ptr<ChaseCam> chaseCamComp = chaseCamEntity->AddComponent<ChaseCam>();
-
-
-		// Track, Imola
-		std::shared_ptr<Entity> track = core->AddEntity();
-		track->SetTag("track");
-		track->GetComponent<Transform>()->SetPosition(vec3(0, 0, 0));
-		track->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
-		std::shared_ptr<ModelRenderer> trackMR = track->AddComponent<ModelRenderer>();
-		trackMR->SetModel(core->GetResources()->Load<Model>("models/Imola/Imola.glb"));
-		trackMR->SetShadowModel(core->GetResources()->Load<Model>("models/Imola/ImolaShadow.glb"));
-		std::shared_ptr<ModelCollider> trackCollider = track->AddComponent<ModelCollider>();
-		trackCollider->SetModel(core->GetResources()->Load<Model>("models/Imola/ImolaCollision.glb"));
-		trackCollider->SetDebugVisual(false);
-
-		// Start/finish line
-		std::shared_ptr<Entity> startFinishLine = core->AddEntity();
-		startFinishLine->SetTag("startFinishLine");
-		startFinishLine->GetComponent<Transform>()->SetPosition(vec3(204.75, -84.9107, -384.765));
-		startFinishLine->GetComponent<Transform>()->SetRotation(vec3(0, 1, 0));
-		std::shared_ptr<BoxCollider> startFinishLineCollider = startFinishLine->AddComponent<BoxCollider>();
-		startFinishLineCollider->SetSize(vec3(0.1, 6, 60));
-		startFinishLineCollider->IsTrigger(true);
-		std::shared_ptr <StartFinishLine> startFinishLineComponent = startFinishLine->AddComponent<StartFinishLine>();
-
-		// Car Body
-		std::shared_ptr<Entity> carBody = core->AddEntity();
-		carBody->SetTag("carBody");
-		carBody->GetComponent<Transform>()->SetPosition(vec3(647.479, -65.4695, -252.504));
-		carBody->GetComponent<Transform>()->SetRotation(vec3(177.438, 48.71, -179.937));
-		carBody->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
-		std::shared_ptr<ModelRenderer> mercedesMR = carBody->AddComponent<ModelRenderer>();
-		mercedesMR->SetRotationOffset(vec3(0, 180, 0));
-		mercedesMR->SetModel(core->GetResources()->Load<Model>("models/Mercedes/RawCar.glb"));
-		std::shared_ptr<BoxCollider> carBodyCollider = carBody->AddComponent<BoxCollider>();
-		carBodyCollider->SetSize(vec3(1.97, 0.9, 4.52));
-		carBodyCollider->SetPositionOffset(vec3(0, 0.37, 0.22));
-		std::shared_ptr<Rigidbody> carBodyRB = carBody->AddComponent<Rigidbody>();
-		carBodyRB->SetMass(1230);
-
-		// Ghost car
-		std::shared_ptr<Entity> ghostCar = core->AddEntity();
-		ghostCar->SetTag("ghostCar");
-		std::shared_ptr<ModelRenderer> mercedesGhostMR = ghostCar->AddComponent<ModelRenderer>();
-		mercedesGhostMR->SetRotationOffset(vec3(0, 180, 0));
-		mercedesGhostMR->SetModel(core->GetResources()->Load<Model>("models/Mercedes/RawCar.glb"));
-		startFinishLineComponent->ghostCar = ghostCar;
-
-		std::shared_ptr<Entity> steeringWheel = core->AddEntity();
-		steeringWheel->SetTag("steeringWheel");
-		steeringWheel->GetComponent<Transform>()->SetPosition(vec3(0.4007, 0.3745, 0.174));
-		steeringWheel->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
-		std::shared_ptr<ModelRenderer> steeringWheelMR = steeringWheel->AddComponent<ModelRenderer>();
-		steeringWheelMR->SetModel(core->GetResources()->Load<Model>("models/Mercedes/SteeringWheel.glb"));
-		steeringWheel->GetComponent<Transform>()->SetParent(carBody);
+		//std::shared_ptr<Entity> chaseCamEntity = core->AddEntity();
+		//std::shared_ptr<Camera> chaseCam = chaseCamEntity->AddComponent<Camera>();
+		//chaseCam->SetPriority(1);
+		//std::shared_ptr<ChaseCam> chaseCamComp = chaseCamEntity->AddComponent<ChaseCam>();
 
 
-		cockpitCamEntity->GetComponent<Transform>()->SetParent(carBody);
-		bonnetCamEntity->GetComponent<Transform>()->SetParent(carBody);
-		ghostBonnetCamEntity->GetComponent<Transform>()->SetParent(ghostCar);
-		thirdPersonCamEntity->GetComponent<Transform>()->SetParent(carBody);
-		wheelCamEntity->GetComponent<Transform>()->SetParent(carBody);
-		chaseCamComp->target = carBody;
+		//// Track, Imola
+		//std::shared_ptr<Entity> track = core->AddEntity();
+		//track->SetTag("track");
+		//track->GetComponent<Transform>()->SetPosition(vec3(0, 0, 0));
+		//track->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
+		//std::shared_ptr<ModelRenderer> trackMR = track->AddComponent<ModelRenderer>();
+		//trackMR->SetModel(core->GetResources()->Load<Model>("models/Imola/Imola.glb"));
+		//trackMR->SetShadowModel(core->GetResources()->Load<Model>("models/Imola/ImolaShadow.glb"));
+		//std::shared_ptr<ModelCollider> trackCollider = track->AddComponent<ModelCollider>();
+		//trackCollider->SetModel(core->GetResources()->Load<Model>("models/Imola/ImolaCollision.glb"));
+		//trackCollider->SetDebugVisual(false);
 
-		//freeCamEntity->GetComponent<Transform>()->SetParent(carBody);
+		//// Start/finish line
+		//std::shared_ptr<Entity> startFinishLine = core->AddEntity();
+		//startFinishLine->SetTag("startFinishLine");
+		//startFinishLine->GetComponent<Transform>()->SetPosition(vec3(204.75, -84.9107, -384.765));
+		//startFinishLine->GetComponent<Transform>()->SetRotation(vec3(0, 1, 0));
+		//std::shared_ptr<BoxCollider> startFinishLineCollider = startFinishLine->AddComponent<BoxCollider>();
+		//startFinishLineCollider->SetSize(vec3(0.1, 6, 60));
+		//startFinishLineCollider->IsTrigger(true);
+		//std::shared_ptr <StartFinishLine> startFinishLineComponent = startFinishLine->AddComponent<StartFinishLine>();
 
-		startFinishLineComponent->car = carBody;
+		//// Car Body
+		//std::shared_ptr<Entity> carBody = core->AddEntity();
+		//carBody->SetTag("carBody");
+		//carBody->GetComponent<Transform>()->SetPosition(vec3(647.479, -65.4695, -252.504));
+		//carBody->GetComponent<Transform>()->SetRotation(vec3(177.438, 48.71, -179.937));
+		//carBody->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
+		//std::shared_ptr<ModelRenderer> mercedesMR = carBody->AddComponent<ModelRenderer>();
+		//mercedesMR->SetRotationOffset(vec3(0, 180, 0));
+		//mercedesMR->SetModel(core->GetResources()->Load<Model>("models/Mercedes/RawCar.glb"));
+		//std::shared_ptr<BoxCollider> carBodyCollider = carBody->AddComponent<BoxCollider>();
+		//carBodyCollider->SetSize(vec3(1.97, 0.9, 4.52));
+		//carBodyCollider->SetPositionOffset(vec3(0, 0.37, 0.22));
+		//std::shared_ptr<Rigidbody> carBodyRB = carBody->AddComponent<Rigidbody>();
+		//carBodyRB->SetMass(1230);
 
-		std::shared_ptr<Entity> rearDownForcePos = core->AddEntity();
-		rearDownForcePos->SetTag("rear downforce pos");
-		rearDownForcePos->GetComponent<Transform>()->SetPosition(vec3(0, 0.83, -1.86));
-		rearDownForcePos->GetComponent<Transform>()->SetParent(carBody);
+		//// Ghost car
+		//std::shared_ptr<Entity> ghostCar = core->AddEntity();
+		//ghostCar->SetTag("ghostCar");
+		//std::shared_ptr<ModelRenderer> mercedesGhostMR = ghostCar->AddComponent<ModelRenderer>();
+		//mercedesGhostMR->SetRotationOffset(vec3(0, 180, 0));
+		//mercedesGhostMR->SetModel(core->GetResources()->Load<Model>("models/Mercedes/RawCar.glb"));
+		//startFinishLineComponent->ghostCar = ghostCar;
 
-		std::shared_ptr<Entity> frontDownForcePos = core->AddEntity();
-		frontDownForcePos->SetTag("front downforce pos");
-		frontDownForcePos->GetComponent<Transform>()->SetPosition(vec3(0, 0.278, 2.4));
-		frontDownForcePos->GetComponent<Transform>()->SetParent(carBody);
-
-
-		// Wheel Anchors
-		std::shared_ptr<Entity> FLWheelAnchor = core->AddEntity();
-		FLWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(0.856, 0.38, 1.6));
-		FLWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.01, 0.01, 0.01));
-		FLWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
-
-		std::shared_ptr<Entity> FRWheelAnchor = core->AddEntity();
-		FRWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(-0.856, 0.38, 1.6));
-		FRWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.01, 0.01, 0.01));
-		FRWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
-
-		std::shared_ptr<Entity> RLWheelAnchor = core->AddEntity();
-		RLWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(0.863, 0.38, -1.027));
-		RLWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.01, 0.01, 0.01));
-		RLWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
-
-		std::shared_ptr<Entity> RRWheelAnchor = core->AddEntity();
-		RRWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(-0.863, 0.38, -1.027));
-		RRWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.01, 0.01, 0.01));
-		RRWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
+		//std::shared_ptr<Entity> steeringWheel = core->AddEntity();
+		//steeringWheel->SetTag("steeringWheel");
+		//steeringWheel->GetComponent<Transform>()->SetPosition(vec3(0.4007, 0.3745, 0.174));
+		//steeringWheel->GetComponent<Transform>()->SetRotation(vec3(0, 180, 0));
+		//std::shared_ptr<ModelRenderer> steeringWheelMR = steeringWheel->AddComponent<ModelRenderer>();
+		//steeringWheelMR->SetModel(core->GetResources()->Load<Model>("models/Mercedes/SteeringWheel.glb"));
+		//steeringWheel->GetComponent<Transform>()->SetParent(carBody);
 
 
-		// Front Left Wheel
-		std::shared_ptr<Entity> FLWheel = core->AddEntity();
-		FLWheel->SetTag("FLwheel");
-		FLWheel->GetComponent<Transform>()->SetPosition(vec3(0.8767, 0.793 - 0.45, -14.3998));
-		FLWheel->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
-		FLWheel->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
-		std::shared_ptr<ModelRenderer> FLWheelMR = FLWheel->AddComponent<ModelRenderer>();
-		FLWheelMR->SetModel(core->GetResources()->Load<Model>("models/Mercedes/WheelNoBrake.glb"));
-		FLWheelMR->SetRotationOffset(vec3(0, -90, 0));
-		std::shared_ptr<Suspension> FLWheelSuspension = FLWheel->AddComponent<Suspension>();
-		FLWheelSuspension->SetWheel(FLWheel);
-		FLWheelSuspension->SetCarBody(carBody);
-		FLWheelSuspension->SetAnchorPoint(FLWheelAnchor);
-		FLWheelSuspension->SetSuspensionParams(frontSuspensionParams);
-		std::shared_ptr<Tire> FLWheelTire = FLWheel->AddComponent<Tire>();
-		FLWheelTire->SetCarBody(carBody);
-		FLWheelTire->SetAnchorPoint(FLWheelAnchor);
-		FLWheelTire->SetTireParams(frontTireParams);
-		FLWheelTire->SetInitialRotationOffset(vec3(0, -90, 0));
+		//cockpitCamEntity->GetComponent<Transform>()->SetParent(carBody);
+		//bonnetCamEntity->GetComponent<Transform>()->SetParent(carBody);
+		//ghostBonnetCamEntity->GetComponent<Transform>()->SetParent(ghostCar);
+		//thirdPersonCamEntity->GetComponent<Transform>()->SetParent(carBody);
+		//wheelCamEntity->GetComponent<Transform>()->SetParent(carBody);
+		//chaseCamComp->target = carBody;
 
-		std::shared_ptr<Entity> FLWheelBrake = core->AddEntity();
-		FLWheelBrake->SetTag("FLwheelBrake");
-		std::shared_ptr<ModelRenderer> FLBrakeMR = FLWheelBrake->AddComponent<ModelRenderer>();
-		FLBrakeMR->SetModel(core->GetResources()->Load<Model>("models/Mercedes/FrontBrake.glb"));
-		FLWheelBrake->GetComponent<Transform>()->SetParent(FLWheel);
-		FLWheelBrake->GetComponent<Transform>()->SetRotation(vec3(0, 90, 0));
+		////freeCamEntity->GetComponent<Transform>()->SetParent(carBody);
 
-		// Front Right Wheel
-		std::shared_ptr<Entity> FRWheel = core->AddEntity();
-		FRWheel->SetTag("FRwheel");
-		FRWheel->GetComponent<Transform>()->SetPosition(vec3(-0.8767, 0.793 - 0.45, -14.3998));
-		FRWheel->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
-		FRWheel->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
-		std::shared_ptr<ModelRenderer> FRWheelMR = FRWheel->AddComponent<ModelRenderer>();
-		FRWheelMR->SetModel(core->GetResources()->Load<Model>("models/Mercedes/WheelNoBrake.glb"));
-		FRWheelMR->SetRotationOffset(vec3(0, 90, 0));
-		std::shared_ptr<Suspension> FRWheelSuspension = FRWheel->AddComponent<Suspension>();
-		FRWheelSuspension->SetWheel(FRWheel);
-		FRWheelSuspension->SetCarBody(carBody);
-		FRWheelSuspension->SetAnchorPoint(FRWheelAnchor);
-		FRWheelSuspension->SetSuspensionParams(frontSuspensionParams);
-		std::shared_ptr<Tire> FRWheelTire = FRWheel->AddComponent<Tire>();
-		FRWheelTire->SetCarBody(carBody);
-		FRWheelTire->SetAnchorPoint(FRWheelAnchor);
-		FRWheelTire->SetTireParams(frontTireParams);
-		FRWheelTire->SetInitialRotationOffset(vec3(0, 90, 0));
+		//startFinishLineComponent->car = carBody;
 
-		std::shared_ptr<Entity> FRWheelBrake = core->AddEntity();
-		FRWheelBrake->SetTag("FRwheelBrake");
-		std::shared_ptr<ModelRenderer> FRBrakeMR = FRWheelBrake->AddComponent<ModelRenderer>();
-		FRBrakeMR->SetModel(core->GetResources()->Load<Model>("models/Mercedes/FrontBrake.glb"));
-		FRWheelBrake->GetComponent<Transform>()->SetParent(FRWheel);
-		FRWheelBrake->GetComponent<Transform>()->SetRotation(vec3(0, 90, 0));
+		//std::shared_ptr<Entity> rearDownForcePos = core->AddEntity();
+		//rearDownForcePos->SetTag("rear downforce pos");
+		//rearDownForcePos->GetComponent<Transform>()->SetPosition(vec3(0, 0.83, -1.86));
+		//rearDownForcePos->GetComponent<Transform>()->SetParent(carBody);
 
-		// Rear Left Wheel
-		std::shared_ptr<Entity> RLWheel = core->AddEntity();
-		RLWheel->SetTag("RLwheel");
-		RLWheel->GetComponent<Transform>()->SetPosition(vec3(0.8767, 0.8003 - 0.45, -17.025));
-		RLWheel->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
-		RLWheel->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
-		std::shared_ptr<ModelRenderer> RLWheelMR = RLWheel->AddComponent<ModelRenderer>();
-		RLWheelMR->SetModel(core->GetResources()->Load<Model>("models/Mercedes/WheelNoBrake.glb"));
-		RLWheelMR->SetRotationOffset(vec3(0, -90, 0));
-		std::shared_ptr<Suspension> RLWheelSuspension = RLWheel->AddComponent<Suspension>();
-		RLWheelSuspension->SetWheel(RLWheel);
-		RLWheelSuspension->SetCarBody(carBody);
-		RLWheelSuspension->SetAnchorPoint(RLWheelAnchor);
-		RLWheelSuspension->SetSuspensionParams(rearSuspensionParams);
-		std::shared_ptr<Tire> RLWheelTire = RLWheel->AddComponent<Tire>();
-		RLWheelTire->SetCarBody(carBody);
-		RLWheelTire->SetAnchorPoint(RLWheelAnchor);
-		RLWheelTire->SetTireParams(rearTireParams);
-		RLWheelTire->SetInitialRotationOffset(vec3(0, -90, 0));
+		//std::shared_ptr<Entity> frontDownForcePos = core->AddEntity();
+		//frontDownForcePos->SetTag("front downforce pos");
+		//frontDownForcePos->GetComponent<Transform>()->SetPosition(vec3(0, 0.278, 2.4));
+		//frontDownForcePos->GetComponent<Transform>()->SetParent(carBody);
 
-		std::shared_ptr<Entity> RLWheelBrake = core->AddEntity();
-		RLWheelBrake->SetTag("RLwheelBrake");
-		std::shared_ptr<ModelRenderer> RLBrakeMR = RLWheelBrake->AddComponent<ModelRenderer>();
-		RLBrakeMR->SetModel(core->GetResources()->Load<Model>("models/Mercedes/RearBrake.glb"));
-		RLWheelBrake->GetComponent<Transform>()->SetParent(RLWheel);
-		RLWheelBrake->GetComponent<Transform>()->SetRotation(vec3(0, -90, 0));
 
-		// Rear Right Wheel
-		std::shared_ptr<Entity> RRWheel = core->AddEntity();
-		RRWheel->SetTag("RRwheel");
-		RRWheel->GetComponent<Transform>()->SetPosition(vec3(-0.8767, 0.8003 - 0.45, -17.025));
-		RRWheel->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
-		RRWheel->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
-		std::shared_ptr<ModelRenderer> RRWheelMR = RRWheel->AddComponent<ModelRenderer>();
-		RRWheelMR->SetModel(core->GetResources()->Load<Model>("models/Mercedes/WheelNoBrake.glb"));
-		RRWheelMR->SetRotationOffset(vec3(0, 90, 0));
-		std::shared_ptr<Suspension> RRWheelSuspension = RRWheel->AddComponent<Suspension>();
-		RRWheelSuspension->SetWheel(RRWheel);
-		RRWheelSuspension->SetCarBody(carBody);
-		RRWheelSuspension->SetAnchorPoint(RRWheelAnchor);
-		RRWheelSuspension->SetSuspensionParams(rearSuspensionParams);
-		std::shared_ptr<Tire> RRWheelTire = RRWheel->AddComponent<Tire>();
-		RRWheelTire->SetCarBody(carBody);
-		RRWheelTire->SetAnchorPoint(RRWheelAnchor);
-		RRWheelTire->SetTireParams(rearTireParams);
-		RRWheelTire->SetInitialRotationOffset(vec3(0, 90, 0));
+		//// Wheel Anchors
+		//std::shared_ptr<Entity> FLWheelAnchor = core->AddEntity();
+		//FLWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(0.856, 0.38, 1.6));
+		//FLWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.01, 0.01, 0.01));
+		//FLWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
 
-		std::shared_ptr<Entity> RRWheelBrake = core->AddEntity();
-		RRWheelBrake->SetTag("RRwheelBrake");
-		std::shared_ptr<ModelRenderer> RRBrakeMR = RRWheelBrake->AddComponent<ModelRenderer>();
-		RRBrakeMR->SetModel(core->GetResources()->Load<Model>("models/Mercedes/RearBrake.glb"));
-		RRWheelBrake->GetComponent<Transform>()->SetParent(RRWheel);
-		RRWheelBrake->GetComponent<Transform>()->SetRotation(vec3(0, -90, 0));
+		//std::shared_ptr<Entity> FRWheelAnchor = core->AddEntity();
+		//FRWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(-0.856, 0.38, 1.6));
+		//FRWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.01, 0.01, 0.01));
+		//FRWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
 
-		FLWheelSuspension->SetOppositeAxelSuspension(FRWheelSuspension);
-		FRWheelSuspension->SetOppositeAxelSuspension(FLWheelSuspension);
-		RLWheelSuspension->SetOppositeAxelSuspension(RRWheelSuspension);
-		RRWheelSuspension->SetOppositeAxelSuspension(RLWheelSuspension);
+		//std::shared_ptr<Entity> RLWheelAnchor = core->AddEntity();
+		//RLWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(0.863, 0.38, -1.027));
+		//RLWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.01, 0.01, 0.01));
+		//RLWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
 
-		std::shared_ptr<CarController> carController = carBody->AddComponent<CarController>();
-		carController->rb = carBodyRB;
-		carController->FLWheelSuspension = FLWheelSuspension;
-		carController->FRWheelSuspension = FRWheelSuspension;
-		carController->RLWheelSuspension = RLWheelSuspension;
-		carController->RRWheelSuspension = RRWheelSuspension;
-		carController->FLWheelTire = FLWheelTire;
-		carController->FRWheelTire = FRWheelTire;
-		carController->RLWheelTire = RLWheelTire;
-		carController->RRWheelTire = RRWheelTire;
-		carController->frontDownforcePos = frontDownForcePos;
-		carController->rearDownforcePos = rearDownForcePos;
-		carController->steeringWheel = steeringWheel;
+		//std::shared_ptr<Entity> RRWheelAnchor = core->AddEntity();
+		//RRWheelAnchor->GetComponent<Transform>()->SetPosition(vec3(-0.863, 0.38, -1.027));
+		//RRWheelAnchor->GetComponent<Transform>()->SetScale(vec3(0.01, 0.01, 0.01));
+		//RRWheelAnchor->GetComponent<Transform>()->SetParent(carBody);
+
+
+		//// Front Left Wheel
+		//std::shared_ptr<Entity> FLWheel = core->AddEntity();
+		//FLWheel->SetTag("FLwheel");
+		//FLWheel->GetComponent<Transform>()->SetPosition(vec3(0.8767, 0.793 - 0.45, -14.3998));
+		//FLWheel->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
+		//FLWheel->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
+		//std::shared_ptr<ModelRenderer> FLWheelMR = FLWheel->AddComponent<ModelRenderer>();
+		//FLWheelMR->SetModel(core->GetResources()->Load<Model>("models/Mercedes/WheelNoBrake.glb"));
+		//FLWheelMR->SetRotationOffset(vec3(0, -90, 0));
+		//std::shared_ptr<Suspension> FLWheelSuspension = FLWheel->AddComponent<Suspension>();
+		//FLWheelSuspension->SetWheel(FLWheel);
+		//FLWheelSuspension->SetCarBody(carBody);
+		//FLWheelSuspension->SetAnchorPoint(FLWheelAnchor);
+		//FLWheelSuspension->SetSuspensionParams(frontSuspensionParams);
+		//std::shared_ptr<Tire> FLWheelTire = FLWheel->AddComponent<Tire>();
+		//FLWheelTire->SetCarBody(carBody);
+		//FLWheelTire->SetAnchorPoint(FLWheelAnchor);
+		//FLWheelTire->SetTireParams(frontTireParams);
+		//FLWheelTire->SetInitialRotationOffset(vec3(0, -90, 0));
+
+		//std::shared_ptr<Entity> FLWheelBrake = core->AddEntity();
+		//FLWheelBrake->SetTag("FLwheelBrake");
+		//std::shared_ptr<ModelRenderer> FLBrakeMR = FLWheelBrake->AddComponent<ModelRenderer>();
+		//FLBrakeMR->SetModel(core->GetResources()->Load<Model>("models/Mercedes/FrontBrake.glb"));
+		//FLWheelBrake->GetComponent<Transform>()->SetParent(FLWheel);
+		//FLWheelBrake->GetComponent<Transform>()->SetRotation(vec3(0, 90, 0));
+
+		//// Front Right Wheel
+		//std::shared_ptr<Entity> FRWheel = core->AddEntity();
+		//FRWheel->SetTag("FRwheel");
+		//FRWheel->GetComponent<Transform>()->SetPosition(vec3(-0.8767, 0.793 - 0.45, -14.3998));
+		//FRWheel->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
+		//FRWheel->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
+		//std::shared_ptr<ModelRenderer> FRWheelMR = FRWheel->AddComponent<ModelRenderer>();
+		//FRWheelMR->SetModel(core->GetResources()->Load<Model>("models/Mercedes/WheelNoBrake.glb"));
+		//FRWheelMR->SetRotationOffset(vec3(0, 90, 0));
+		//std::shared_ptr<Suspension> FRWheelSuspension = FRWheel->AddComponent<Suspension>();
+		//FRWheelSuspension->SetWheel(FRWheel);
+		//FRWheelSuspension->SetCarBody(carBody);
+		//FRWheelSuspension->SetAnchorPoint(FRWheelAnchor);
+		//FRWheelSuspension->SetSuspensionParams(frontSuspensionParams);
+		//std::shared_ptr<Tire> FRWheelTire = FRWheel->AddComponent<Tire>();
+		//FRWheelTire->SetCarBody(carBody);
+		//FRWheelTire->SetAnchorPoint(FRWheelAnchor);
+		//FRWheelTire->SetTireParams(frontTireParams);
+		//FRWheelTire->SetInitialRotationOffset(vec3(0, 90, 0));
+
+		//std::shared_ptr<Entity> FRWheelBrake = core->AddEntity();
+		//FRWheelBrake->SetTag("FRwheelBrake");
+		//std::shared_ptr<ModelRenderer> FRBrakeMR = FRWheelBrake->AddComponent<ModelRenderer>();
+		//FRBrakeMR->SetModel(core->GetResources()->Load<Model>("models/Mercedes/FrontBrake.glb"));
+		//FRWheelBrake->GetComponent<Transform>()->SetParent(FRWheel);
+		//FRWheelBrake->GetComponent<Transform>()->SetRotation(vec3(0, 90, 0));
+
+		//// Rear Left Wheel
+		//std::shared_ptr<Entity> RLWheel = core->AddEntity();
+		//RLWheel->SetTag("RLwheel");
+		//RLWheel->GetComponent<Transform>()->SetPosition(vec3(0.8767, 0.8003 - 0.45, -17.025));
+		//RLWheel->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
+		//RLWheel->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
+		//std::shared_ptr<ModelRenderer> RLWheelMR = RLWheel->AddComponent<ModelRenderer>();
+		//RLWheelMR->SetModel(core->GetResources()->Load<Model>("models/Mercedes/WheelNoBrake.glb"));
+		//RLWheelMR->SetRotationOffset(vec3(0, -90, 0));
+		//std::shared_ptr<Suspension> RLWheelSuspension = RLWheel->AddComponent<Suspension>();
+		//RLWheelSuspension->SetWheel(RLWheel);
+		//RLWheelSuspension->SetCarBody(carBody);
+		//RLWheelSuspension->SetAnchorPoint(RLWheelAnchor);
+		//RLWheelSuspension->SetSuspensionParams(rearSuspensionParams);
+		//std::shared_ptr<Tire> RLWheelTire = RLWheel->AddComponent<Tire>();
+		//RLWheelTire->SetCarBody(carBody);
+		//RLWheelTire->SetAnchorPoint(RLWheelAnchor);
+		//RLWheelTire->SetTireParams(rearTireParams);
+		//RLWheelTire->SetInitialRotationOffset(vec3(0, -90, 0));
+
+		//std::shared_ptr<Entity> RLWheelBrake = core->AddEntity();
+		//RLWheelBrake->SetTag("RLwheelBrake");
+		//std::shared_ptr<ModelRenderer> RLBrakeMR = RLWheelBrake->AddComponent<ModelRenderer>();
+		//RLBrakeMR->SetModel(core->GetResources()->Load<Model>("models/Mercedes/RearBrake.glb"));
+		//RLWheelBrake->GetComponent<Transform>()->SetParent(RLWheel);
+		//RLWheelBrake->GetComponent<Transform>()->SetRotation(vec3(0, -90, 0));
+
+		//// Rear Right Wheel
+		//std::shared_ptr<Entity> RRWheel = core->AddEntity();
+		//RRWheel->SetTag("RRwheel");
+		//RRWheel->GetComponent<Transform>()->SetPosition(vec3(-0.8767, 0.8003 - 0.45, -17.025));
+		//RRWheel->GetComponent<Transform>()->SetRotation(vec3(0, 0, 0));
+		//RRWheel->GetComponent<Transform>()->SetScale(vec3(1, 1, 1));
+		//std::shared_ptr<ModelRenderer> RRWheelMR = RRWheel->AddComponent<ModelRenderer>();
+		//RRWheelMR->SetModel(core->GetResources()->Load<Model>("models/Mercedes/WheelNoBrake.glb"));
+		//RRWheelMR->SetRotationOffset(vec3(0, 90, 0));
+		//std::shared_ptr<Suspension> RRWheelSuspension = RRWheel->AddComponent<Suspension>();
+		//RRWheelSuspension->SetWheel(RRWheel);
+		//RRWheelSuspension->SetCarBody(carBody);
+		//RRWheelSuspension->SetAnchorPoint(RRWheelAnchor);
+		//RRWheelSuspension->SetSuspensionParams(rearSuspensionParams);
+		//std::shared_ptr<Tire> RRWheelTire = RRWheel->AddComponent<Tire>();
+		//RRWheelTire->SetCarBody(carBody);
+		//RRWheelTire->SetAnchorPoint(RRWheelAnchor);
+		//RRWheelTire->SetTireParams(rearTireParams);
+		//RRWheelTire->SetInitialRotationOffset(vec3(0, 90, 0));
+
+		//std::shared_ptr<Entity> RRWheelBrake = core->AddEntity();
+		//RRWheelBrake->SetTag("RRwheelBrake");
+		//std::shared_ptr<ModelRenderer> RRBrakeMR = RRWheelBrake->AddComponent<ModelRenderer>();
+		//RRBrakeMR->SetModel(core->GetResources()->Load<Model>("models/Mercedes/RearBrake.glb"));
+		//RRWheelBrake->GetComponent<Transform>()->SetParent(RRWheel);
+		//RRWheelBrake->GetComponent<Transform>()->SetRotation(vec3(0, -90, 0));
+
+		//FLWheelSuspension->SetOppositeAxelSuspension(FRWheelSuspension);
+		//FRWheelSuspension->SetOppositeAxelSuspension(FLWheelSuspension);
+		//RLWheelSuspension->SetOppositeAxelSuspension(RRWheelSuspension);
+		//RRWheelSuspension->SetOppositeAxelSuspension(RLWheelSuspension);
+
+		//std::shared_ptr<CarController> carController = carBody->AddComponent<CarController>();
+		//carController->rb = carBodyRB;
+		//carController->FLWheelSuspension = FLWheelSuspension;
+		//carController->FRWheelSuspension = FRWheelSuspension;
+		//carController->RLWheelSuspension = RLWheelSuspension;
+		//carController->RRWheelSuspension = RRWheelSuspension;
+		//carController->FLWheelTire = FLWheelTire;
+		//carController->FRWheelTire = FRWheelTire;
+		//carController->RLWheelTire = RLWheelTire;
+		//carController->RRWheelTire = RRWheelTire;
+		//carController->frontDownforcePos = frontDownForcePos;
+		//carController->rearDownforcePos = rearDownForcePos;
+		//carController->steeringWheel = steeringWheel;
 
 	}
 

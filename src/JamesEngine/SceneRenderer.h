@@ -47,7 +47,7 @@ namespace JamesEngine
 
 		void AddModel(std::shared_ptr<Model> _model, const glm::mat4& _transform = glm::mat4(1.0f), const ShadowOverride& _shadow = {});
 
-		Renderer::RenderTexture& GetDepthPrePassTexture() { return *mDepthPrePassTexture; }
+		Renderer::RenderTexture& GetDepthPrePassTexture() { return *mDepthPrePass; }
 
 	private:
 		void ClearScene(); // Clears all models from the scene for next frame
@@ -60,7 +60,7 @@ namespace JamesEngine
 		std::vector<MaterialRenderInfo> mTransparentMaterials;
 		std::vector<MaterialRenderInfo> mShadowMaterials;
 
-		bool mDoDepthPrePass = false;
+		bool mDoDepthPrePass = true;
 
 		// Fallback PBR values
 		glm::vec4 mBaseColorStrength{ 1.f };
@@ -75,7 +75,11 @@ namespace JamesEngine
 		std::shared_ptr<Shader> mObjShader;
 
 		// Textures
-		std::shared_ptr<Renderer::RenderTexture> mDepthPrePassTexture;
+		std::shared_ptr<Renderer::RenderTexture> mShadingPass;
+		std::shared_ptr<Renderer::RenderTexture> mDepthPrePass;
+
+		// Misc
+		glm::ivec2 mLastViewportSize{ 1,1 };
 	};
 
 }
