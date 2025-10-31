@@ -26,6 +26,7 @@ namespace Renderer
 		void uniform(const std::string& _name, float _value);
 		void uniform(const std::string& _name, const glm::mat3& _value);
 		void uniform(const std::string& _name, const glm::mat4& _value);
+		void uniform(const std::string& _name, const glm::vec2& _value);
 		void uniform(const std::string& _name, const glm::vec3& _value);
 		void uniform(const std::string& _name, const glm::vec4& _value);
 		void uniform(const std::string& _name, std::vector<int> _value);

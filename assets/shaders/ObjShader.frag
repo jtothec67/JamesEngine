@@ -70,6 +70,16 @@ uniform samplerCube u_PrefilterEnv;
 uniform float u_PrefilterMaxLOD;
 uniform sampler2D u_BRDFLUT;
 
+// Post process (but it isn't because we are doing it while processing)
+in vec2 v_ScreenUV;
+
+// SSAO
+uniform sampler2D u_SSAO;        // AO texture: 1=open, 0=occluded
+uniform float u_AOStrength;  // 0..1 (how much to dim diffuse IBL)
+uniform float u_AOSpecScale; // 0..1 (gentler dim on specular IBL)
+uniform float u_AOMin;       // 0..1 (floor to avoid pitch-black, e.g. 0.05)
+uniform vec2 u_InvColorResolution; // 1/width, 1/height of color buffer
+
 out vec4 FragColor;
 
 const int NUM_POISSON_SAMPLES = 12;
@@ -333,6 +343,12 @@ void main()
 
     vec3 specularIBL = envColor * (Fibl * brdf.x + brdf.y);
 
+    // Sample SSAO and build attenuation terms
+    vec2 aoUV = gl_FragCoord.xy * u_InvColorResolution;
+    float ssao = texture(u_SSAO, aoUV).r;
+    float aoDiffuse = mix(1.0, max(ssao, u_AOMin), u_AOStrength);
+    float aoSpec = mix(1.0, sqrt(ssao), u_AOSpecScale);
+
     vec3 ambient;
     if (isGlass)
     {
@@ -347,7 +363,7 @@ void main()
     else
     {
         // AO only affects diffuse, not specular
-        ambient = ao * diffuseIBL + specularIBL;
+        ambient = (ao * aoDiffuse) * diffuseIBL + (aoSpec) * specularIBL;
     }
 
     vec3 color = ambient + direct + emissive;

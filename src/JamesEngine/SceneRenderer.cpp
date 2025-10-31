@@ -16,13 +16,33 @@ namespace JamesEngine
 	SceneRenderer::SceneRenderer(std::shared_ptr<Core> _core)
 		: mCore(_core)
 	{
+		mObjShader = mCore.lock()->GetResources()->Load<Shader>("shaders/ObjShader");
 		mDepthShader = mCore.lock()->GetResources()->Load<Shader>("shaders/DepthOnly");
 		mDepthAlphaShader = mCore.lock()->GetResources()->Load<Shader>("shaders/DepthOnlyAlpha");
-		mObjShader = mCore.lock()->GetResources()->Load<Shader>("shaders/ObjShader");
+		mSSAOShader = mCore.lock()->GetResources()->Load<Shader>("shaders/SSAOShader");
 
 		// Size of 1,1 just to initialize
 		mShadingPass = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::ColourAndDepth);
-		mDepthPrePass = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::Depth);
+		mDepthPass = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::Depth);
+		mAORaw = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::PostProcessTarget);
+
+		Renderer::Face face;
+		face.a.m_position = glm::vec3(1.0f, 0.0f, 0.0f);
+		face.b.m_position = glm::vec3(0.0f, 1.0f, 0.0f);
+		face.c.m_position = glm::vec3(0.0f, 0.0f, 0.0f);
+		face.a.m_texcoords = glm::vec2(1.0f, 0.0f);
+		face.b.m_texcoords = glm::vec2(0.0f, 1.0f);
+		face.c.m_texcoords = glm::vec2(0.0f, 0.0f);
+		mRect->add(face);
+
+		Renderer::Face face2;
+		face2.a.m_position = glm::vec3(1.0f, 0.0f, 0.0f);
+		face2.b.m_position = glm::vec3(1.0f, 1.0f, 0.0f);
+		face2.c.m_position = glm::vec3(0.0f, 1.0f, 0.0f);
+		face2.a.m_texcoords = glm::vec2(1.0f, 0.0f);
+		face2.b.m_texcoords = glm::vec2(1.0f, 1.0f);
+		face2.c.m_texcoords = glm::vec2(0.0f, 1.0f);
+		mRect->add(face2);
 	}
 
 	void SceneRenderer::RenderScene()
@@ -40,7 +60,8 @@ namespace JamesEngine
 		{
 			// Resize textures
 			mShadingPass->resize(winW, winH);
-			mDepthPrePass->resize(winW, winH);
+			mDepthPass->resize(winW, winH);
+			mAORaw->resize(winW * 0.75, winH * 0.75);
 
 			mLastViewportSize = glm::ivec2(winW, winH);
 		}
@@ -407,9 +428,9 @@ namespace JamesEngine
 		window->ResetGLModes();
 
 		// Build a copy sorted by distance (closest -> furthest)
-		const glm::mat4 V = camera->GetViewMatrix();
-		const glm::mat4 P = camera->GetProjectionMatrix();
-		const glm::mat4 VP = P * V;
+		const glm::mat4 camView = camera->GetViewMatrix();
+		const glm::mat4 camProj = camera->GetProjectionMatrix();
+		const glm::mat4 VP = camProj * camView;
 
 		// Extract world-space frustum planes from VP (GLM is column-major)
 		struct Plane { glm::vec3 n; float d; }; // plane: n·x + d >= 0  => inside
@@ -470,7 +491,7 @@ namespace JamesEngine
 			if (culled) continue;
 
 			// Depth key (front-to-back)
-			const glm::mat4 VM = V * M;
+			const glm::mat4 VM = camView * M;
 			const glm::vec3 centerVS = glm::vec3(VM * glm::vec4(it.materialGroup.boundsCenterMS, 1.0f));
 			const glm::mat3 AV = glm::mat3(VM);
 			const float projZ = std::abs(AV[0][2]) * e.x + std::abs(AV[1][2]) * e.y + std::abs(AV[2][2]) * e.z;
@@ -522,7 +543,7 @@ namespace JamesEngine
 			if (culled) continue;
 
 			// Depth key (front-to-back)
-			const glm::mat4 VM = V * M;
+			const glm::mat4 VM = camView * M;
 			const glm::vec3 centerVS = glm::vec3(VM * glm::vec4(it.materialGroup.boundsCenterMS, 1.0f));
 			const glm::mat3 AV = glm::mat3(VM);
 			const float projZ = std::abs(AV[0][2]) * e.x + std::abs(AV[1][2]) * e.y + std::abs(AV[2][2]) * e.z;
@@ -543,6 +564,122 @@ namespace JamesEngine
 			return std::shared_ptr<Renderer::Texture>(const_cast<Renderer::Texture*>(&t), [](Renderer::Texture*) {}); // no-op deleter
 			};
 
+		// Depth pass
+		mDepthPass->clear();
+		mDepthPass->bind();
+		glViewport(0, 0, mDepthPass->getWidth(), mDepthPass->getHeight());
+
+		// Depth-only state
+		glDisable(GL_POLYGON_OFFSET_FILL);
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LESS);
+		glDepthMask(GL_TRUE);
+		glDisable(GL_BLEND);
+		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+		glDisable(GL_MULTISAMPLE);
+		glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+
+		// OPAQUES (front-to-back already)
+		for (const auto& opaqueMaterial : distanceSortedOpaqueMaterials)
+		{
+			const auto& pbr = opaqueMaterial.materialGroup.pbr;
+			GLboolean prevCullEnabled = glIsEnabled(GL_CULL_FACE);
+			if (pbr.doubleSided) glDisable(GL_CULL_FACE);
+			else glEnable(GL_CULL_FACE);
+
+			if (pbr.alphaMode == Renderer::Model::PBRMaterial::AlphaMode::AlphaOpaque)
+			{
+				mDepthShader->mShader->use();
+				// Reuse the same uniform name the depth shader expects
+				mDepthShader->mShader->uniform("u_View", camView);
+				mDepthShader->mShader->uniform("u_Projection", camProj);
+				mDepthShader->mShader->uniform("u_Model", opaqueMaterial.transform);
+
+				const GLsizei vertCount = static_cast<GLsizei>(opaqueMaterial.materialGroup.faces.size() * 3);
+				mDepthShader->mShader->draw(opaqueMaterial.materialGroup.vao, vertCount);
+				mDepthShader->mShader->unuse();
+			}
+			else
+			{
+				mDepthAlphaShader->mShader->use();
+				mDepthAlphaShader->mShader->uniform("u_View", camView);
+				mDepthAlphaShader->mShader->uniform("u_Projection", camProj);
+				mDepthAlphaShader->mShader->uniform("u_Model", opaqueMaterial.transform);
+				mDepthAlphaShader->mShader->uniform("u_AlphaCutoff", pbr.alphaCutoff);
+
+				// BaseColor for alpha test if present
+				const auto& embedded = opaqueMaterial.model->mModel->GetEmbeddedTextures();
+				if (pbr.baseColorTexIndex >= 0 && pbr.baseColorTexIndex < (int)embedded.size())
+				{
+					mDepthAlphaShader->mShader->uniform("u_AlbedoMap", asShared(embedded[pbr.baseColorTexIndex]), 0);
+				}
+
+				const GLsizei vertCount = static_cast<GLsizei>(opaqueMaterial.materialGroup.faces.size() * 3);
+				mDepthAlphaShader->mShader->draw(opaqueMaterial.materialGroup.vao, vertCount);
+				mDepthAlphaShader->mShader->unuse();
+			}
+
+			if (prevCullEnabled) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
+		}
+
+		glEnable(GL_BLEND);
+		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+
+		for (const auto& transparentMaterial : distanceSortedTransparentMaterials)
+		{
+			const auto& pbr = transparentMaterial.materialGroup.pbr;
+
+			GLboolean prevCullEnabled = glIsEnabled(GL_CULL_FACE);
+			if (pbr.doubleSided) glDisable(GL_CULL_FACE);
+			else glEnable(GL_CULL_FACE);
+
+			mDepthAlphaShader->mShader->use();
+			mDepthAlphaShader->mShader->uniform("u_View", camView);
+			mDepthAlphaShader->mShader->uniform("u_Projection", camProj);
+			mDepthAlphaShader->mShader->uniform("u_Model", transparentMaterial.transform);
+			mDepthAlphaShader->mShader->uniform("u_AlphaCutoff", pbr.alphaCutoff);
+
+			// BaseColor for alpha test if present
+			const auto& embedded = transparentMaterial.model->mModel->GetEmbeddedTextures();
+			if (pbr.baseColorTexIndex >= 0 && pbr.baseColorTexIndex < (int)embedded.size())
+			{
+				mDepthAlphaShader->mShader->uniform("u_AlbedoMap", asShared(embedded[pbr.baseColorTexIndex]), 0);
+			}
+
+			const GLsizei vertCount = static_cast<GLsizei>(transparentMaterial.materialGroup.faces.size() * 3);
+			mDepthAlphaShader->mShader->draw(transparentMaterial.materialGroup.vao, vertCount);
+			mDepthAlphaShader->mShader->unuse();
+
+			if (prevCullEnabled) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
+		}
+
+		mDepthPass->unbind();
+
+		glDisable(GL_BLEND);
+
+		// Restore color writes
+		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
+		mAORaw->clear();
+		mAORaw->bind();
+
+		mSSAOShader->mShader->use();
+
+		mSSAOShader->mShader->uniform("u_Depth", mDepthPass);
+		mSSAOShader->mShader->uniform("u_Proj", camProj);
+		mSSAOShader->mShader->uniform("u_InvProj", glm::inverse(camProj));
+		mSSAOShader->mShader->uniform("u_InvResolution", glm::vec2(1.0f / mDepthPass->getWidth(), 1.0f / mDepthPass->getHeight()));
+		mSSAOShader->mShader->uniform("u_Radius", mSSAORadius);
+		mSSAOShader->mShader->uniform("u_Bias", mSSAOBias);
+		mSSAOShader->mShader->uniform("u_Power", mSSAOPower);
+
+		mSSAOShader->mShader->draw(mRect.get());
+
+		mSSAOShader->mShader->unuse();
+
+		mAORaw->unbind();
+
+
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LEQUAL);
 		glDepthMask(GL_TRUE);
@@ -556,15 +693,21 @@ namespace JamesEngine
 
 		mObjShader->mShader->use();
 
+		mObjShader->mShader->uniform("u_SSAO", mAORaw, 27);
+		mObjShader->mShader->uniform("u_AOStrength", mAOStrength);
+		mObjShader->mShader->uniform("u_AOSpecScale", mAOSpecScale);
+		mObjShader->mShader->uniform("u_AOMin", mAOMin);
+		mObjShader->mShader->uniform("u_InvColorResolution", glm::vec2(1.f/winW, 1.f/winH));
+
 		// Fallbacks
 		mObjShader->mShader->uniform("u_AlbedoFallback", mBaseColorStrength);
 		mObjShader->mShader->uniform("u_MetallicFallback", mMetallicness);
 		mObjShader->mShader->uniform("u_RoughnessFallback", mRoughness);
-		mObjShader->mShader->uniform("u_AOFallback", mAOStrength);
+		mObjShader->mShader->uniform("u_AOFallback", mAOFallback);
 		mObjShader->mShader->uniform("u_EmissiveFallback", mEmmisive);
 
 		// RENDER OPAQUE MATERIALS FIRST
-		for (const auto& opaqueMaterial: distanceSortedOpaqueMaterials)
+		for (const auto& opaqueMaterial : distanceSortedOpaqueMaterials)
 		{
 			std::shared_ptr<Model> modelToRender = opaqueMaterial.model;
 
@@ -664,7 +807,6 @@ namespace JamesEngine
 			mObjShader->mShader->draw(opaqueMaterial.materialGroup.vao, vertCount);
 		}
 
-
 		glEnable(GL_BLEND);
 		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -672,7 +814,7 @@ namespace JamesEngine
 		mObjShader->mShader->uniform("u_AlbedoFallback", mBaseColorStrength);
 		mObjShader->mShader->uniform("u_MetallicFallback", mMetallicness);
 		mObjShader->mShader->uniform("u_RoughnessFallback", mRoughness);
-		mObjShader->mShader->uniform("u_AOFallback", mAOStrength);
+		mObjShader->mShader->uniform("u_AOFallback", mAOFallback);
 		mObjShader->mShader->uniform("u_EmissiveFallback", mEmmisive);
 
 		// THEN RENDER TRANSPARENT MATERIALS
@@ -787,100 +929,6 @@ namespace JamesEngine
 		glBlitFramebuffer(0, 0, w, h, 0, 0, winW, winH, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 
-
-		// Depth pass
-		mDepthPrePass->clear();
-		mDepthPrePass->bind();
-		glViewport(0, 0, mDepthPrePass->getWidth(), mDepthPrePass->getHeight());
-
-		// Depth-only state
-		glDisable(GL_POLYGON_OFFSET_FILL);
-		glEnable(GL_DEPTH_TEST);
-		glDepthFunc(GL_LESS);
-		glDepthMask(GL_TRUE);
-		glDisable(GL_BLEND);
-		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-		glDisable(GL_MULTISAMPLE);
-		glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-
-		// OPAQUES (front-to-back already)
-		for (const auto& opaqueMaterial : distanceSortedOpaqueMaterials)
-		{
-			const auto& pbr = opaqueMaterial.materialGroup.pbr;
-			GLboolean prevCullEnabled = glIsEnabled(GL_CULL_FACE);
-			if (pbr.doubleSided) glDisable(GL_CULL_FACE);
-			else glEnable(GL_CULL_FACE);
-
-			if (pbr.alphaMode == Renderer::Model::PBRMaterial::AlphaMode::AlphaOpaque)
-			{
-				mDepthShader->mShader->use();
-				// Reuse the same uniform name the depth shader expects
-				mDepthShader->mShader->uniform("u_View", V);
-				mDepthShader->mShader->uniform("u_Projection", P);
-				mDepthShader->mShader->uniform("u_Model", opaqueMaterial.transform);
-
-				const GLsizei vertCount = static_cast<GLsizei>(opaqueMaterial.materialGroup.faces.size() * 3);
-				mDepthShader->mShader->draw(opaqueMaterial.materialGroup.vao, vertCount);
-				mDepthShader->mShader->unuse();
-			}
-			else
-			{
-				mDepthAlphaShader->mShader->use();
-				mDepthAlphaShader->mShader->uniform("u_View", V);
-				mDepthAlphaShader->mShader->uniform("u_Projection", P);
-				mDepthAlphaShader->mShader->uniform("u_Model", opaqueMaterial.transform);
-				mDepthAlphaShader->mShader->uniform("u_AlphaCutoff", pbr.alphaCutoff);
-
-				// BaseColor for alpha test if present
-				const auto& embedded = opaqueMaterial.model->mModel->GetEmbeddedTextures();
-				if (pbr.baseColorTexIndex >= 0 && pbr.baseColorTexIndex < (int)embedded.size())
-				{
-					mDepthAlphaShader->mShader->uniform("u_AlbedoMap", asShared(embedded[pbr.baseColorTexIndex]), 0);
-				}
-
-				const GLsizei vertCount = static_cast<GLsizei>(opaqueMaterial.materialGroup.faces.size() * 3);
-				mDepthAlphaShader->mShader->draw(opaqueMaterial.materialGroup.vao, vertCount);
-				mDepthAlphaShader->mShader->unuse();
-			}
-
-			if (prevCullEnabled) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
-		}
-
-		glEnable(GL_BLEND);
-		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-
-		for (const auto& transparentMaterial : distanceSortedTransparentMaterials)
-		{
-			const auto& pbr = transparentMaterial.materialGroup.pbr;
-
-			GLboolean prevCullEnabled = glIsEnabled(GL_CULL_FACE);
-			if (pbr.doubleSided) glDisable(GL_CULL_FACE);
-			else glEnable(GL_CULL_FACE);
-
-			mDepthAlphaShader->mShader->use();
-			mDepthAlphaShader->mShader->uniform("u_View", V);
-			mDepthAlphaShader->mShader->uniform("u_Projection", P);
-			mDepthAlphaShader->mShader->uniform("u_Model", transparentMaterial.transform);
-			mDepthAlphaShader->mShader->uniform("u_AlphaCutoff", pbr.alphaCutoff);
-
-			// BaseColor for alpha test if present
-			const auto& embedded = transparentMaterial.model->mModel->GetEmbeddedTextures();
-			if (pbr.baseColorTexIndex >= 0 && pbr.baseColorTexIndex < (int)embedded.size())
-			{
-				mDepthAlphaShader->mShader->uniform("u_AlbedoMap", asShared(embedded[pbr.baseColorTexIndex]), 0);
-			}
-
-			const GLsizei vertCount = static_cast<GLsizei>(transparentMaterial.materialGroup.faces.size() * 3);
-			mDepthAlphaShader->mShader->draw(transparentMaterial.materialGroup.vao, vertCount);
-			mDepthAlphaShader->mShader->unuse();
-
-			if (prevCullEnabled) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
-		}
-
-		mDepthPrePass->unbind();
-
-		// Restore color writes
-		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
 		window->ResetGLModes();
 

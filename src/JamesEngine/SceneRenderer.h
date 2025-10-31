@@ -47,7 +47,13 @@ namespace JamesEngine
 
 		void AddModel(std::shared_ptr<Model> _model, const glm::mat4& _transform = glm::mat4(1.0f), const ShadowOverride& _shadow = {});
 
-		Renderer::RenderTexture& GetDepthPrePassTexture() { return *mDepthPrePass; }
+		void SetSSAORadius(float _radius) { mSSAORadius = _radius; }
+		void SetSSAOBias(float _bias) { mSSAOBias = _bias; }
+		void SetSSAOPower(float _power) { mSSAOPower = _power; }
+
+		void SetAOStrength(float _strength) { mAOStrength = _strength; }
+		void SetAOSpecularScale(float _specScale) { mAOSpecScale = _specScale; }
+		void SetAOMin(float _min) { mAOMin = _min; }
 
 	private:
 		void ClearScene(); // Clears all models from the scene for next frame
@@ -66,17 +72,32 @@ namespace JamesEngine
 		glm::vec4 mBaseColorStrength{ 1.f };
 		float mMetallicness = 0.0f;
 		float mRoughness = 1.0f;
-		float mAOStrength = 1.0f;
+		float mAOFallback = 1.0f;
 		glm::vec3 mEmmisive{ 0.0f };
 
 		// Shaders
+		std::shared_ptr<Shader> mObjShader;
 		std::shared_ptr<Shader> mDepthAlphaShader;
 		std::shared_ptr<Shader> mDepthShader;
-		std::shared_ptr<Shader> mObjShader;
+		std::shared_ptr<Shader> mSSAOShader;
 
 		// Textures
 		std::shared_ptr<Renderer::RenderTexture> mShadingPass;
-		std::shared_ptr<Renderer::RenderTexture> mDepthPrePass;
+		std::shared_ptr<Renderer::RenderTexture> mDepthPass;
+		std::shared_ptr<Renderer::RenderTexture> mAORaw;
+
+		// Quad mesh for full-screen passes
+		std::shared_ptr<Renderer::Mesh> mRect = std::make_shared<Renderer::Mesh>();
+
+		// SSAO settings
+		float mSSAORadius = 0.6f;
+		float mSSAOBias = 0.005f;
+		float mSSAOPower = 1.4f;
+
+		// AO settings
+		float mAOStrength = 1.0f;
+		float mAOSpecScale = 1.0f;
+		float mAOMin = 0.05f;
 
 		// Misc
 		glm::ivec2 mLastViewportSize{ 1,1 };

@@ -140,6 +140,13 @@ namespace Renderer
 		glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(value));
 	}
 
+	void Shader::uniform(const std::string& _name, const glm::vec2& value)
+	{
+		// Find uniform locations
+		GLint loc = glGetUniformLocation(id(), _name.c_str());
+		glUniform2fv(loc, 1, glm::value_ptr(value));
+	}
+
 	void Shader::uniform(const std::string& _name, const glm::vec3& value)
 	{
 		// Find uniform locations

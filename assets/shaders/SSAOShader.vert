@@ -5,7 +5,9 @@ out vec2 vUV;
 
 void main()
 {
-    vUV = a_TexCoord * 2.0 - 1.0;
-    vec2 clip = a_Position.xy * 2.0 - 1.0;
+    vec2 clip = vec2(a_Position) * 2.0 - 1.0;  // 0..1 -> -1..1
     gl_Position = vec4(clip, 0.0, 1.0);
+
+    vUV = a_TexCoord;                      // keep 0..1
+    // vUV.y = 1.0 - vUV.y;
 }

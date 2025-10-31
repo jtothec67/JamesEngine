@@ -11,7 +11,8 @@ namespace Renderer
 		Depth,
 		IrradianceCubeMap,
 		PrefilteredEnvCubeMap,
-		BRDF_LUT
+		BRDF_LUT,
+		PostProcessTarget
 	};
 
 	class RenderTexture
