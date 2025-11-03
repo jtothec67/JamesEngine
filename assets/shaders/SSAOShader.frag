@@ -11,7 +11,7 @@ uniform float u_Bias;             // e.g. 0.005
 uniform float u_Power;            // e.g. 1.4
 
 const int NUM_SAMPLES = 16;
-const vec3 s_Kernel[NUM_SAMPLES] = vec3[]( // Hard coded for now, could be uniform
+const vec3 s_Kernel[NUM_SAMPLES] = vec3[]( // Hard coded for now
     vec3( 0.170,  0.130, 0.120),
     vec3(-0.230,  0.040, 0.180),
     vec3( 0.090, -0.240, 0.220),

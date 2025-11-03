@@ -60,10 +60,6 @@ uniform int u_NumCascades;
 uniform sampler2D u_ShadowMaps[MAX_NUM_CASCADES];
 uniform mat4 u_LightSpaceMatrices[MAX_NUM_CASCADES];
 
-uniform int u_NumPreBaked;
-uniform sampler2D u_PreBakedShadowMaps[MAX_NUM_PREBAKED];
-uniform mat4 u_PreBakedLightSpaceMatrices[MAX_NUM_PREBAKED];
-
 // IBL
 uniform samplerCube u_IrradianceCube;
 uniform samplerCube u_PrefilterEnv;
@@ -142,30 +138,15 @@ float ComputeShadowPoissonPCF(sampler2D shadowMap, vec3 projCoords, float depth,
 float ShadowCalculation(vec3 fragWorldPos, vec3 normal, vec3 lightDir)
 {
     int bestCascade = -1;
-    int bestPrebaked = -1;
 
     vec3 cascadeProjCoords;
-    vec3 prebakedProjCoords;
 
     float cascadeDepth = 0.0;
-    float prebakedDepth = 0.0;
 
     float bias = max(0.003 * (1.0 - dot(normal, lightDir)), 0.0005);
 
-    for (int i = 0; i < u_NumPreBaked; ++i)
+    for (int i = 0; i < u_NumCascades; ++i)
     {
-        vec4 lightSpacePos = u_PreBakedLightSpaceMatrices[i] * vec4(fragWorldPos, 1.0);
-        vec3 projCoords = lightSpacePos.xyz / lightSpacePos.w * 0.5 + 0.5;
-        if (all(greaterThanEqual(projCoords, vec3(0.0))) && all(lessThanEqual(projCoords, vec3(1.0))))
-        {
-            bestPrebaked = i;
-            prebakedProjCoords = projCoords;
-            prebakedDepth = projCoords.z;
-            break;
-        }
-    }
-
-    for (int i = 0; i < u_NumCascades; ++i) {
         vec4 lightSpacePos = u_LightSpaceMatrices[i] * vec4(fragWorldPos, 1.0);
         vec3 projCoords = lightSpacePos.xyz / lightSpacePos.w * 0.5 + 0.5;
         if (all(greaterThanEqual(projCoords, vec3(0.0))) && all(lessThanEqual(projCoords, vec3(1.0))))
@@ -178,15 +159,11 @@ float ShadowCalculation(vec3 fragWorldPos, vec3 normal, vec3 lightDir)
     }
 
     float shadowCascade = 0.0;
-    float shadowPrebaked = 0.0;
 
     if (bestCascade != -1)
         shadowCascade = ComputeShadowPoissonPCF(u_ShadowMaps[bestCascade], cascadeProjCoords, cascadeDepth, bias);
 
-    if (bestPrebaked != -1)
-        shadowPrebaked = ComputeShadowPoissonPCF(u_PreBakedShadowMaps[bestPrebaked], prebakedProjCoords, prebakedDepth, bias);
-
-    float shadow = max(shadowCascade, shadowPrebaked);
+    float shadow = shadowCascade;
     return shadow;
 }
 

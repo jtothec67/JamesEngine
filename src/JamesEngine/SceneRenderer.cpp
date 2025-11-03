@@ -25,6 +25,7 @@ namespace JamesEngine
 		mShadingPass = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::ColourAndDepth);
 		mDepthPass = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::Depth);
 		mAORaw = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::PostProcessTarget);
+		mAOBlurred = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::PostProcessTarget);
 
 		Renderer::Face face;
 		face.a.m_position = glm::vec3(1.0f, 0.0f, 0.0f);
@@ -61,36 +62,10 @@ namespace JamesEngine
 			// Resize textures
 			mShadingPass->resize(winW, winH);
 			mDepthPass->resize(winW, winH);
-			mAORaw->resize(winW * 0.75, winH * 0.75);
+			mAORaw->resize(winW * mSSAOResultionScale, winH * mSSAOResultionScale);
+			mAOBlurred->resize(winW * mSSAOResultionScale, winH * mSSAOResultionScale);
 
 			mLastViewportSize = glm::ivec2(winW, winH);
-		}
-
-		if (!core->mLightManager->ArePreBakedShadowsUploaded())
-		{
-			std::vector<std::shared_ptr<Renderer::RenderTexture>> preBakedShadowMaps;
-			preBakedShadowMaps.reserve(core->mLightManager->GetPreBakedShadowMaps().size());
-			std::vector<glm::mat4> preBakedShadowMatrices;
-			preBakedShadowMatrices.reserve(core->mLightManager->GetPreBakedShadowMaps().size());
-
-			for (const PreBakedShadowMap& shadowMap : core->mLightManager->GetPreBakedShadowMaps())
-			{
-				preBakedShadowMaps.emplace_back(shadowMap.renderTexture);
-				preBakedShadowMatrices.emplace_back(shadowMap.lightSpaceMatrix);
-			}
-
-			mObjShader->mShader->use();
-
-			mObjShader->mShader->uniform("u_PreBakedShadowMaps", preBakedShadowMaps, 10);
-			mObjShader->mShader->uniform("u_PreBakedLightSpaceMatrices", preBakedShadowMatrices);
-
-			mObjShader->mShader->uniform("u_NumPreBaked", 0); // Might temporarily drop suport for pre-baked shadows, may bring back later
-
-			mObjShader->mShader->unuse();
-
-			core->mLightManager->SetPreBakedShadowsUploaded(true);
-
-			std::cout << "Pre-baked shadows uploaded to shader" << std::endl;
 		}
 
 		// Global uniforms
@@ -174,6 +149,7 @@ namespace JamesEngine
 
 			float prevFar = camNear;
 
+			// SHADOW CASCADE RENDERING
 			for (int ci = 0; ci < numCascades; ++ci)
 			{
 				ShadowCascade& cascade = cascades[ci];
@@ -251,7 +227,7 @@ namespace JamesEngine
 				mDepthAlphaShader->mShader->uniform("u_Projection", lightProj);
 				mDepthAlphaShader->mShader->unuse();
 
-				// --- Render this cascade ---
+				// Render this cascade
 				cascade.renderTexture->clear();
 				cascade.renderTexture->bind();
 				glViewport(0, 0, cascade.renderTexture->getWidth(), cascade.renderTexture->getHeight());
@@ -564,7 +540,7 @@ namespace JamesEngine
 			return std::shared_ptr<Renderer::Texture>(const_cast<Renderer::Texture*>(&t), [](Renderer::Texture*) {}); // no-op deleter
 			};
 
-		// Depth pass
+		// DEPTH PASS
 		mDepthPass->clear();
 		mDepthPass->bind();
 		glViewport(0, 0, mDepthPass->getWidth(), mDepthPass->getHeight());
@@ -660,6 +636,7 @@ namespace JamesEngine
 		// Restore color writes
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
+		// SSAO PASS
 		mAORaw->clear();
 		mAORaw->bind();
 
@@ -678,6 +655,15 @@ namespace JamesEngine
 		mSSAOShader->mShader->unuse();
 
 		mAORaw->unbind();
+
+
+		mAOBlurred->clear();
+		mAOBlurred->bind();
+
+		// Blur SSAO raw texture
+
+
+		mAOBlurred->unbind();
 
 
 		glEnable(GL_DEPTH_TEST);
@@ -706,7 +692,7 @@ namespace JamesEngine
 		mObjShader->mShader->uniform("u_AOFallback", mAOFallback);
 		mObjShader->mShader->uniform("u_EmissiveFallback", mEmmisive);
 
-		// RENDER OPAQUE MATERIALS FIRST
+		// SHADING PASS
 		for (const auto& opaqueMaterial : distanceSortedOpaqueMaterials)
 		{
 			std::shared_ptr<Model> modelToRender = opaqueMaterial.model;
