@@ -3,7 +3,7 @@
 in vec2 v_TexCoord;
 
 uniform sampler2D u_AlbedoMap;
-uniform float u_AlphaCutoff;     // e.g. 0.5
+uniform float u_AlphaCutoff;
 
 void main()
 {

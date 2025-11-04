@@ -5,6 +5,7 @@ layout(location=0) out float OutAO;
 uniform sampler2D u_Depth;
 uniform mat4 u_Proj;
 uniform mat4 u_InvProj;
+uniform mat4 u_InvView;
 uniform vec2 u_InvResolution;     // 1/width, 1/height
 uniform float u_Radius;           // e.g. 0.6
 uniform float u_Bias;             // e.g. 0.005
@@ -65,12 +66,12 @@ vec3 ReconstructVSNormal(vec2 uv)
     return normalize(n);
 }
 
-// cheap repeatable hash -> [0,1)
-float hash12(vec2 p)
+// Stable continuous hash -> [0,1), based on world-space position
+float hash13(vec3 p)
 {
-    vec3 p3 = fract(vec3(p.x, p.y, p.x) * 0.1031);
-    p3 += dot(p3, p3.yzx + 33.33);
-    return fract((p3.x + p3.y) * p3.z);
+    p = fract(p * 0.1031);
+    p += dot(p, p.yzx + 33.33);
+    return fract((p.x + p.y) * p.z);
 }
 
 // build an orthonormal basis from a normal
@@ -107,7 +108,8 @@ void main()
     vec3 N = ReconstructVSNormal(vUV);
 
     mat3 TBN = basisFromNormal(N);
-    float angle = hash12(vUV / u_InvResolution) * 6.2831853; // 2PI
+    vec3 Pws = (u_InvView * vec4(P, 1.0)).xyz;
+    float angle = 6.2831853 * hash13(Pws); // 2*PI
     mat3 Rz = rotAroundZ(angle);
 
     float occl = 0.0;

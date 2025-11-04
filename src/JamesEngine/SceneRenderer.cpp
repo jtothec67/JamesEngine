@@ -20,11 +20,13 @@ namespace JamesEngine
 		mDepthShader = mCore.lock()->GetResources()->Load<Shader>("shaders/DepthOnly");
 		mDepthAlphaShader = mCore.lock()->GetResources()->Load<Shader>("shaders/DepthOnlyAlpha");
 		mSSAOShader = mCore.lock()->GetResources()->Load<Shader>("shaders/SSAOShader");
+		mBlurShader = mCore.lock()->GetResources()->Load<Shader>("shaders/BlurShader");
 
 		// Size of 1,1 just to initialize
 		mShadingPass = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::ColourAndDepth);
 		mDepthPass = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::Depth);
 		mAORaw = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::PostProcessTarget);
+		mAOIntermediate = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::PostProcessTarget);
 		mAOBlurred = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::PostProcessTarget);
 
 		Renderer::Face face;
@@ -63,6 +65,7 @@ namespace JamesEngine
 			mShadingPass->resize(winW, winH);
 			mDepthPass->resize(winW, winH);
 			mAORaw->resize(winW * mSSAOResultionScale, winH * mSSAOResultionScale);
+			mAOIntermediate->resize(winW * mSSAOResultionScale, winH * mSSAOResultionScale);
 			mAOBlurred->resize(winW * mSSAOResultionScale, winH * mSSAOResultionScale);
 
 			mLastViewportSize = glm::ivec2(winW, winH);
@@ -637,34 +640,40 @@ namespace JamesEngine
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
 		// SSAO PASS
+		// Raw AO
 		mAORaw->clear();
 		mAORaw->bind();
-
 		mSSAOShader->mShader->use();
-
 		mSSAOShader->mShader->uniform("u_Depth", mDepthPass);
 		mSSAOShader->mShader->uniform("u_Proj", camProj);
+		mSSAOShader->mShader->uniform("u_InvView", glm::inverse(camView));
 		mSSAOShader->mShader->uniform("u_InvProj", glm::inverse(camProj));
 		mSSAOShader->mShader->uniform("u_InvResolution", glm::vec2(1.0f / mDepthPass->getWidth(), 1.0f / mDepthPass->getHeight()));
 		mSSAOShader->mShader->uniform("u_Radius", mSSAORadius);
 		mSSAOShader->mShader->uniform("u_Bias", mSSAOBias);
 		mSSAOShader->mShader->uniform("u_Power", mSSAOPower);
-
 		mSSAOShader->mShader->draw(mRect.get());
-
 		mSSAOShader->mShader->unuse();
-
 		mAORaw->unbind();
 
+		// Blur AO - horizontal
+		mAOIntermediate->clear();
+		mAOIntermediate->bind();
+		mBlurShader->mShader->use();
+		mBlurShader->mShader->uniform("u_RawAO", mAORaw);
+		mBlurShader->mShader->uniform("u_InvResolution", glm::vec2(1.0f / mAORaw->getWidth(), 1.0f / mAORaw->getHeight()));
+		mBlurShader->mShader->uniform("u_Direction", glm::vec2(1, 0));
+		mBlurShader->mShader->draw(mRect.get());
+		mAOIntermediate->unbind();
 
+		// Blur AO - vertical
 		mAOBlurred->clear();
 		mAOBlurred->bind();
-
-		// Blur SSAO raw texture
-
-
+		mBlurShader->mShader->use();
+		mBlurShader->mShader->uniform("u_RawAO", mAOIntermediate);
+		mBlurShader->mShader->uniform("u_Direction", glm::vec2(0, 1));
+		mBlurShader->mShader->draw(mRect.get());
 		mAOBlurred->unbind();
-
 
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LEQUAL);
@@ -679,11 +688,11 @@ namespace JamesEngine
 
 		mObjShader->mShader->use();
 
-		mObjShader->mShader->uniform("u_SSAO", mAORaw, 27);
+		mObjShader->mShader->uniform("u_SSAO", mAOBlurred, 27);
 		mObjShader->mShader->uniform("u_AOStrength", mAOStrength);
 		mObjShader->mShader->uniform("u_AOSpecScale", mAOSpecScale);
 		mObjShader->mShader->uniform("u_AOMin", mAOMin);
-		mObjShader->mShader->uniform("u_InvColorResolution", glm::vec2(1.f/winW, 1.f/winH));
+		mObjShader->mShader->uniform("u_InvColorResolution", glm::vec2(1.f/mShadingPass->getWidth(), 1.f/mShadingPass->getHeight()));
 
 		// Fallbacks
 		mObjShader->mShader->uniform("u_AlbedoFallback", mBaseColorStrength);

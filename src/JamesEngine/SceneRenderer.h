@@ -80,18 +80,20 @@ namespace JamesEngine
 		std::shared_ptr<Shader> mDepthAlphaShader;
 		std::shared_ptr<Shader> mDepthShader;
 		std::shared_ptr<Shader> mSSAOShader;
+		std::shared_ptr<Shader> mBlurShader;
 
 		// Textures
 		std::shared_ptr<Renderer::RenderTexture> mShadingPass;
 		std::shared_ptr<Renderer::RenderTexture> mDepthPass;
 		std::shared_ptr<Renderer::RenderTexture> mAORaw;
+		std::shared_ptr<Renderer::RenderTexture> mAOIntermediate;
 		std::shared_ptr<Renderer::RenderTexture> mAOBlurred;
 
 		// Quad mesh for full-screen passes
 		std::shared_ptr<Renderer::Mesh> mRect = std::make_shared<Renderer::Mesh>();
 
 		// SSAO settings
-		float mSSAOResultionScale = 0.5f;
+		float mSSAOResultionScale = 1.f;
 		float mSSAORadius = 0.6f;
 		float mSSAOBias = 0.005f;
 		float mSSAOPower = 1.4f;

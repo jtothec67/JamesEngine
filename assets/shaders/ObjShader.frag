@@ -207,10 +207,30 @@ vec3 FresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
 void main()
 {
     // Albedo + alpha
-    vec4 albedoTex = u_HasAlbedoMap ? texture(u_AlbedoMap, v_TexCoord) : u_AlbedoFallback;
-    vec3 albedo = albedoTex.rgb * u_BaseColorFactor.rgb;
+    vec4 albedoTex;
 
-    float alpha = albedoTex.a * u_BaseColorFactor.a;
+    if (u_AlphaMode == 1)
+    {
+        // MASK: clamp sampled mip level
+        if (u_HasAlbedoMap)
+        {
+            float lod = textureQueryLod(u_AlbedoMap, v_TexCoord).x; // Hardware-chosen LOD
+            float clampedLod = min(lod, 3.0);                       // Cap at mip 3 (specifically for fences)
+            albedoTex = textureLod(u_AlbedoMap, v_TexCoord, clampedLod);
+        }
+        else
+        {
+            albedoTex = u_AlbedoFallback;
+        }
+    }
+    else
+    {
+        // OPAQUE / BLEND: normal sampling
+        albedoTex = u_HasAlbedoMap ? texture(u_AlbedoMap, v_TexCoord) : u_AlbedoFallback;
+    }
+
+    vec3  albedo = albedoTex.rgb * u_BaseColorFactor.rgb;
+    float alpha  = albedoTex.a   * u_BaseColorFactor.a;
 
     if (u_AlphaMode == 1)
     { // MASK
