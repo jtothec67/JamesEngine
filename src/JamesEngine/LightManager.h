@@ -20,10 +20,8 @@ struct Light
 
 struct ShadowCascade
 {
-	glm::vec2 orthoSize;
 	glm::ivec2 resolution;
-	float nearPlane;
-	float farPlane;
+	glm::vec2 splitDepths;
 	std::shared_ptr<Renderer::RenderTexture> renderTexture;
 	glm::mat4 lightSpaceMatrix;
 };
@@ -71,13 +69,11 @@ public:
 	void SetDirectionalLightColour(glm::vec3 _colour) { mDirectionalLightColour = _colour; }
 	glm::vec3 GetDirectionalLightColour() { return mDirectionalLightColour; }
 
-	void AddShadowCascade(glm::vec2 orthoSize, glm::ivec2 resolution, float nearPlane, float farPlane)
+	void AddShadowCascade(glm::ivec2 resolution, glm::vec2 splitDepths)
 	{
 		ShadowCascade cascade;
-		cascade.orthoSize = orthoSize;
 		cascade.resolution = resolution;
-		cascade.nearPlane = nearPlane;
-		cascade.farPlane = farPlane;
+		cascade.splitDepths = splitDepths;
 		cascade.renderTexture = std::make_shared<Renderer::RenderTexture>(resolution.x, resolution.y, Renderer::RenderTextureType::Depth);
 		mCascades.push_back(cascade);
 	}
@@ -109,9 +105,9 @@ public:
 	void SetupDefault3Cascades()
 	{
 		ClearShadowCascades();
-		AddShadowCascade({ 2.5f, 2.5f }, { 4048, 4048 }, 0.1f, 100.0f);
-		AddShadowCascade({ 40.f, 40.f }, { 2024, 2024 }, 0.1f, 300.0f);
-		AddShadowCascade({ 200.f, 200.f }, { 2024, 2024 }, 0.1f, 300.0f);
+		AddShadowCascade({ 4048, 4048 }, { 0, 20 });
+		AddShadowCascade({ 2024, 2024 }, { 20, 60 });
+		AddShadowCascade({ 2024, 2024 }, { 60, 200 });
 	}
 
 	std::shared_ptr<std::vector<std::shared_ptr<Renderer::RenderTexture>>> GetShadowMaps()

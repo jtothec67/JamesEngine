@@ -60,6 +60,10 @@ uniform int u_NumCascades;
 uniform sampler2D u_ShadowMaps[MAX_NUM_CASCADES];
 uniform mat4 u_LightSpaceMatrices[MAX_NUM_CASCADES];
 
+// PCSS
+uniform float u_PCSSBase;
+uniform float u_PCSSScale;
+
 // IBL
 uniform samplerCube u_IrradianceCube;
 uniform samplerCube u_PrefilterEnv;
@@ -70,11 +74,14 @@ uniform sampler2D u_BRDFLUT;
 in vec2 v_ScreenUV;
 
 // SSAO
-uniform sampler2D u_SSAO;        // AO texture: 1=open, 0=occluded
-uniform float u_AOStrength;  // 0..1 (how much to dim diffuse IBL)
+uniform sampler2D u_SSAO; // AO texture: 1=open, 0=occluded
+uniform float u_AOStrength; // 0..1 (how much to dim diffuse IBL)
 uniform float u_AOSpecScale; // 0..1 (gentler dim on specular IBL)
-uniform float u_AOMin;       // 0..1 (floor to avoid pitch-black, e.g. 0.05)
+uniform float u_AOMin; // 0..1 (floor to avoid pitch-black, e.g. 0.05)
 uniform vec2 u_InvColorResolution; // 1/width, 1/height of color buffer
+
+// Temp debug
+uniform mat4 u_DebugVP;
 
 out vec4 FragColor;
 
@@ -135,6 +142,92 @@ float ComputeShadowPoissonPCF(sampler2D shadowMap, vec3 projCoords, float depth,
     return shadow / totalSamples;
 }
 
+
+float ComputeShadowPCSS(sampler2D shadowMap, vec3 projCoords, float receiverDepth, float bias)
+{
+    float u_PCSS_SearchRadiusTexels = 6;
+    float u_PCSS_LightRadiusUV = 0.002;
+
+    // Early reject: outside shadow map
+    if (projCoords.x < 0.0 || projCoords.x > 1.0 ||
+        projCoords.y < 0.0 || projCoords.y > 1.0)
+        return 0.0;
+
+    // Per-pixel Poisson rotation (same seed as you used)
+    ivec2 screenCoord = ivec2(gl_FragCoord.xy);
+    float angle = fract(sin(dot(vec2(screenCoord), vec2(12.9898, 78.233))) * 43758.5453) * 6.2831853;
+    mat2 rotation = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
+
+    // Map characteristics
+    vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0));
+    // ----------------------------------------------------------------------
+    float searchRadiusUV = u_PCSS_SearchRadiusTexels * max(texelSize.x, texelSize.y);
+
+    float blockerDepthSum = 0.0;
+    float blockerCount = 0.0;
+
+    // Use a subset of Poisson points for blocker search (12 is common)
+    const int BLOCKER_SAMPLES = 12;
+    for (int i = 0; i < BLOCKER_SAMPLES; ++i)
+    {
+        vec2 offsetUV = rotation * poissonDisk[i] * searchRadiusUV;
+        float sampleDepth = texture(shadowMap, projCoords.xy + offsetUV).r;
+
+        // "Closer than receiver" means this sample is a potential blocker.
+        if (receiverDepth - bias > sampleDepth)
+        {
+            blockerDepthSum += sampleDepth;
+            blockerCount += 1.0;
+        }
+    }
+
+    // If no blockers found, fully lit
+    if (blockerCount == 0.0)
+        return 0.0;
+
+    float avgBlockerDepth = blockerDepthSum / blockerCount;
+
+    float receiverMinusBlocker = max(receiverDepth - avgBlockerDepth, 0.0);
+    float penumbraUV = u_PCSS_LightRadiusUV * (receiverMinusBlocker / max(avgBlockerDepth, 1e-5));
+
+    // Convert to a texel-based clamp to keep kernels sane
+    float penumbraTexels = u_PCSSBase + ((penumbraUV / max(texelSize.x, texelSize.y)) * u_PCSSScale);
+
+    float filterRadiusUV = penumbraTexels * max(texelSize.x, texelSize.y);
+
+    float shadow = 0.0;
+    float total  = 0.0;
+
+    // Optional tiny early-out probe (very cheap 4-tap test)
+    int earlyShadowCount = 0;
+    for (int i = 0; i < 4; ++i)
+    {
+        vec2 offsetUV = rotation * poissonDisk[i] * filterRadiusUV;
+        float s = texture(shadowMap, projCoords.xy + offsetUV).r;
+        if (receiverDepth - bias > s) earlyShadowCount++;
+    }
+    if (earlyShadowCount == 0) return 0.0;
+    if (earlyShadowCount == 4 && penumbraTexels <= 1.0) return 1.0; // fully occluded & tiny penumbra
+
+    int lastFourUnshadowed = 0;
+    for (int i = 0; i < NUM_POISSON_SAMPLES; ++i)
+    {
+        vec2 offsetUV = rotation * poissonDisk[i] * filterRadiusUV;
+        float sampleDepth = texture(shadowMap, projCoords.xy + offsetUV).r;
+        float isShadowed = (receiverDepth - bias > sampleDepth) ? 1.0 : 0.0;
+
+        shadow += isShadowed;
+        total  += 1.0;
+
+        if (isShadowed == 0.0) lastFourUnshadowed++;
+        else                   lastFourUnshadowed = 0;
+
+        if (i >= 4 && lastFourUnshadowed >= 4) break;
+    }
+
+    return shadow / max(total, 1.0);
+}
+
 float ShadowCalculation(vec3 fragWorldPos, vec3 normal, vec3 lightDir)
 {
     int bestCascade = -1;
@@ -161,7 +254,7 @@ float ShadowCalculation(vec3 fragWorldPos, vec3 normal, vec3 lightDir)
     float shadowCascade = 0.0;
 
     if (bestCascade != -1)
-        shadowCascade = ComputeShadowPoissonPCF(u_ShadowMaps[bestCascade], cascadeProjCoords, cascadeDepth, bias);
+        shadowCascade = ComputeShadowPCSS(u_ShadowMaps[bestCascade], cascadeProjCoords, cascadeDepth, bias);
 
     float shadow = shadowCascade;
     return shadow;
@@ -204,8 +297,75 @@ vec3 FresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
     return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
+bool insideFrustumClip_MinusOneToOne(mat4 VP, vec3 worldPos)
+{
+    vec4 c = VP * vec4(worldPos, 1.0);
+    if (c.w <= 0.0) return false; // behind camera
+    return  abs(c.x) <= c.w &&
+            abs(c.y) <= c.w &&
+            c.z >= -c.w && c.z <= c.w;
+}
+
 void main()
 {
+//    // Debug: visualize cascades
+//    // Is this fragment inside ANY shadow cascade?
+//    int cascadeHit = -1;
+//    for (int i = 0; i < u_NumCascades; ++i)
+//    {
+//        vec4 lpos = u_LightSpaceMatrices[i] * vec4(v_FragPos, 1.0);
+//        vec3 pc = lpos.xyz / lpos.w * 0.5 + 0.5;
+//        if (all(greaterThanEqual(pc, vec3(0.0))) &&
+//            all(lessThanEqual (pc, vec3(1.0))))
+//        {
+//            cascadeHit = i;
+//            break;
+//        }
+//    }
+//
+//    bool inActiveFrustum = insideFrustumClip_MinusOneToOne(u_DebugVP, v_FragPos);
+//
+//    // If the fragment is inside the ACTIVE camera's frustum, colour it:
+//    //  - Blue   if it's also inside any shadow map cascade
+//    //  - Purple if it's NOT inside a shadow map cascade
+//    if (inActiveFrustum)
+//    {
+//        if (cascadeHit >= 0) {
+//            FragColor = vec4(0.0, 0.0, 1.0, 1.0);   // blue
+//        } else {
+//            FragColor = vec4(1.0, 0.0, 1.0, 1.0);   // purple
+//        }
+//        return;
+//    }
+//
+//    int bestCascade = -1;
+//
+//    for (int i = 0; i < u_NumCascades; ++i)
+//    {
+//        vec4 lightSpacePos = u_LightSpaceMatrices[i] * vec4(v_FragPos, 1.0);
+//        vec3 projCoords = lightSpacePos.xyz / lightSpacePos.w * 0.5 + 0.5;
+//
+//        if (all(greaterThanEqual(projCoords, vec3(0.0))) &&
+//            all(lessThanEqual (projCoords, vec3(1.0))))
+//        {
+//            bestCascade = i;
+//            break;
+//        }
+//    }
+//
+//    if (bestCascade >= 0)
+//    {
+//        // Map 0->green, 1->yellow, 2->red (extra cascades: clamp to red)
+//        vec3 debugCol =
+//              (bestCascade == 0) ? vec3(0.0, 1.0, 0.0) :
+//              (bestCascade == 1) ? vec3(1.0, 1.0, 0.0) :
+//                                   vec3(1.0, 0.0, 0.0);
+//
+//        FragColor = vec4(debugCol, 1.0);
+//        return;
+//    }
+//    // Debug visual ends
+
     // Albedo + alpha
     vec4 albedoTex;
 

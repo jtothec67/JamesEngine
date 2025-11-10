@@ -76,9 +76,10 @@ namespace JamesEngine
 		mObjShader->mShader->use();
 		mObjShader->mShader->uniform("u_Projection", camera->GetProjectionMatrix());
 		std::vector<std::shared_ptr<Camera>> cams;
-		//core->FindComponents<Camera>(cams); // FOR DEBUGGING - can see the scene from one veiw while still processes it from another (I know the first camera is a free roam cam)
-		//mObjShader->mShader->uniform("u_View", cams.at(0)->GetViewMatrix());
-		//mObjShader->mShader->uniform("u_ViewPos", cams.at(0)->GetPosition());
+		core->FindComponents<Camera>(cams); // FOR DEBUGGING - can see the scene from one veiw while still processes it from another (I know the first camera is a free roam cam)
+		/*mObjShader->mShader->uniform("u_View", cams.at(0)->GetViewMatrix());
+		mObjShader->mShader->uniform("u_ViewPos", cams.at(0)->GetPosition());
+		mObjShader->mShader->uniform("u_DebugVP", camera->GetProjectionMatrix() * camera->GetViewMatrix());*/
 		mObjShader->mShader->uniform("u_View", camera->GetViewMatrix());
 		mObjShader->mShader->uniform("u_ViewPos", camera->GetPosition());
 		mObjShader->mShader->uniform("u_Ambient", core->mLightManager->GetAmbient());
@@ -101,123 +102,89 @@ namespace JamesEngine
 			const float aspect = (winH > 0) ? (static_cast<float>(winW) / static_cast<float>(winH)) : (16.0f / 9.0f);
 			const float camNear = camera->GetNearClip();
 			const float camFar = camera->GetFarClip();
+			const glm::mat4 viewMat = camera->GetViewMatrix();
+			const glm::mat4 projMat = camera->GetProjectionMatrix();
 
-			// Shadow configuration
-			const float shadowDistance = 250;
-			const float lambda = 0.6f; // 0..1 (e.g. 0.6)
-			const glm::vec3 lightDir = -glm::normalize(core->mLightManager->GetDirectionalLightDirection()); // Reverse to get light "forward"
+			const glm::vec3 lightDir = glm::normalize(core->mLightManager->GetDirectionalLightDirection());
 
 			auto& cascades = core->mLightManager->GetShadowCascades();
 			const int numCascades = (int)cascades.size();
 
-			// Build practical split depths over [camNear, min(shadowDistance, camFar)]
-			const float maxShadowZ = std::min(shadowDistance, camFar);
-			std::vector<float> splitFar(numCascades);
-			for (int i = 0; i < numCascades; ++i)
-			{
-				float t = float(i + 1) / float(numCascades);
-				float lin = camNear + (maxShadowZ - camNear) * t;
-				float log = camNear * std::pow(maxShadowZ / camNear, t);
-				splitFar[i] = lin + lambda * (log - lin);
-			}
-
-			// Helper to build frustum-slice corners in world space (8 points)
-			auto buildSliceCornersWS = [&](float zn, float zf)
-				{
-					std::array<glm::vec3, 8> c;
-					const float nh = 2.0f * std::tan(vfov * 0.5f) * zn;
-					const float nw = nh * aspect;
-					const float fh = 2.0f * std::tan(vfov * 0.5f) * zf;
-					const float fw = fh * aspect;
-
-					const glm::vec3 nc = camPos + camFwd * zn;
-					const glm::vec3 fc = camPos + camFwd * zf;
-
-					// near (t/l, t/r, b/l, b/r)
-					c[0] = nc + (camUp * (nh * 0.5f) - camRight * (nw * 0.5f));
-					c[1] = nc + (camUp * (nh * 0.5f) + camRight * (nw * 0.5f));
-					c[2] = nc + (-camUp * (nh * 0.5f) - camRight * (nw * 0.5f));
-					c[3] = nc + (-camUp * (nh * 0.5f) + camRight * (nw * 0.5f));
-					// far
-					c[4] = fc + (camUp * (fh * 0.5f) - camRight * (fw * 0.5f));
-					c[5] = fc + (camUp * (fh * 0.5f) + camRight * (fw * 0.5f));
-					c[6] = fc + (-camUp * (fh * 0.5f) - camRight * (fw * 0.5f));
-					c[7] = fc + (-camUp * (fh * 0.5f) + camRight * (fw * 0.5f));
-					return c;
-				};
-
-			// Per-cascade margins (world units)
-			const float pcfMarginXY = 0.0f;
-			const float casterMarginZ = 500.0f;
-
-			float prevFar = camNear;
+			float eyeDist = 10.f;
+			float ZMargin = 100.f;
 
 			// SHADOW CASCADE RENDERING
 			for (int ci = 0; ci < numCascades; ++ci)
 			{
 				ShadowCascade& cascade = cascades[ci];
 
-				const float zn = prevFar;
-				const float zf = splitFar[ci];
-				prevFar = zf;
+				float nearPlane = cascade.splitDepths.x;
+				if (nearPlane < camNear) nearPlane = camNear;
+				float farPlane = cascade.splitDepths.y;
+				if (farPlane > camFar) farPlane = camFar;
 
-				// 1) Frustum slice corners in world space
-				auto cornersWS = buildSliceCornersWS(zn, zf);
+				auto cascadeProj = glm::perspective(
+					vfov,
+					aspect,
+					nearPlane,
+					farPlane
+				);
 
-				// Compute slice center (average of corners)
-				glm::vec3 center(0.0f);
-				for (auto& p : cornersWS) center += p;
-				center *= (1.0f / 8.0f);
+				auto inv = glm::inverse(cascadeProj * viewMat);
 
-				// 2) Light view with XY aligned to the camera’s screen axes.
-				// This keeps the ortho rectangle “in front of you” instead of sliding behind
-				// when the view is diagonal relative to the light.
-				const float eyeDist = 1000.0f;
-
-				glm::vec3 z = -glm::normalize(lightDir); // light forward in view space
-				// Project camera right onto plane perpendicular to light to get a stable X
-				glm::vec3 x = camRight - z * glm::dot(camRight, z);
-				if (glm::length(x) < 1e-6f)
+				std::vector<glm::vec4> frustumCorners;
+				for (unsigned int x = 0; x < 2; ++x)
 				{
-					// Fallback if camRight ~ parallel to light; use camUp instead
-					x = camUp - z * glm::dot(camUp, z);
-				}
-				x = glm::normalize(x);
-
-				glm::vec3 y = glm::normalize(glm::cross(z, x)); // guaranteed orthogonal and stable
-
-				// Build view matrix anchored at the slice center, using our orthogonal basis
-				glm::mat4 lightView = glm::lookAt(center - z * eyeDist, center, y);
-
-				// 3) Transform corners to light space and fit a tight AABB
-				glm::vec3 minLS(+FLT_MAX), maxLS(-FLT_MAX);
-				for (auto& p : cornersWS)
-				{
-					glm::vec4 q = lightView * glm::vec4(p, 1.0f);
-					minLS = glm::min(minLS, glm::vec3(q));
-					maxLS = glm::max(maxLS, glm::vec3(q));
+					for (unsigned int y = 0; y < 2; ++y)
+					{
+						for (unsigned int z = 0; z < 2; ++z)
+						{
+							const glm::vec4 pt =
+								inv * glm::vec4(
+									2.0f * x - 1.0f,
+									2.0f * y - 1.0f,
+									2.0f * z - 1.0f,
+									1.0f);
+							frustumCorners.push_back(pt / pt.w);
+						}
+					}
 				}
 
-				const float resX = float(cascade.renderTexture->getWidth());
-				const float resY = float(cascade.renderTexture->getHeight());
+				glm::vec3 center = glm::vec3(0, 0, 0);
+				for (const auto& v : frustumCorners)
+				{
+					center += glm::vec3(v);
+				}
+				center /= frustumCorners.size();
 
-				const float texelX = (maxLS.x - minLS.x) / resX;
-				const float texelY = (maxLS.y - minLS.y) / resY;
+				auto lightView = glm::lookAt(
+					center - lightDir * eyeDist,
+					center,
+					glm::vec3(0.0f, 1.0f, 0.0f)
+				);
 
-				minLS.x = std::floor(minLS.x / texelX) * texelX;
-				minLS.y = std::floor(minLS.y / texelY) * texelY;
-				maxLS.x = std::floor(maxLS.x / texelX) * texelX;
-				maxLS.y = std::floor(maxLS.y / texelY) * texelY;
+				float minX = std::numeric_limits<float>::max();
+				float maxX = std::numeric_limits<float>::lowest();
+				float minY = std::numeric_limits<float>::max();
+				float maxY = std::numeric_limits<float>::lowest();
+				float minZ = std::numeric_limits<float>::max();
+				float maxZ = std::numeric_limits<float>::lowest();
+				for (const auto& v : frustumCorners)
+				{
+					const auto trf = lightView * v;
+					minX = std::min(minX, trf.x);
+					maxX = std::max(maxX, trf.x);
+					minY = std::min(minY, trf.y);
+					maxY = std::max(maxY, trf.y);
+					minZ = std::min(minZ, trf.z);
+					maxZ = std::max(maxZ, trf.z);
+				}
 
-				minLS.z -= casterMarginZ;     // extend toward the light
-				maxLS.z += casterMarginZ;     // extend away from the light
+				minZ -= ZMargin;
+				maxZ += ZMargin;
 
-				// 5) Ortho projection from this AABB (OpenGL NDC Z = [-1,1])
-				glm::mat4 lightProj = glm::ortho(minLS.x, maxLS.x,
-					minLS.y, maxLS.y,
-					-maxLS.z, -minLS.z);
+				glm::mat4 lightProj = glm::ortho(minX, maxX, minY, maxY, -maxZ, -minZ);
 
-				// 6) Final matrix for the shader
 				cascade.lightSpaceMatrix = lightProj * lightView;
 
 				mDepthShader->mShader->use();
@@ -694,6 +661,9 @@ namespace JamesEngine
 		mObjShader->mShader->uniform("u_AOMin", mAOMin);
 		mObjShader->mShader->uniform("u_InvColorResolution", glm::vec2(1.f/mShadingPass->getWidth(), 1.f/mShadingPass->getHeight()));
 
+		mObjShader->mShader->uniform("u_PCSSBase", mPCSSBase);
+		mObjShader->mShader->uniform("u_PCSSScale", mPCSSScale);
+
 		// Fallbacks
 		mObjShader->mShader->uniform("u_AlbedoFallback", mBaseColorStrength);
 		mObjShader->mShader->uniform("u_MetallicFallback", mMetallicness);
@@ -804,13 +774,6 @@ namespace JamesEngine
 
 		glEnable(GL_BLEND);
 		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-
-		// Fallbacks
-		mObjShader->mShader->uniform("u_AlbedoFallback", mBaseColorStrength);
-		mObjShader->mShader->uniform("u_MetallicFallback", mMetallicness);
-		mObjShader->mShader->uniform("u_RoughnessFallback", mRoughness);
-		mObjShader->mShader->uniform("u_AOFallback", mAOFallback);
-		mObjShader->mShader->uniform("u_EmissiveFallback", mEmmisive);
 
 		// THEN RENDER TRANSPARENT MATERIALS
 		for (const auto& transparentMaterial : distanceSortedTransparentMaterials)

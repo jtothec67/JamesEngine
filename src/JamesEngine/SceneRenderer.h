@@ -92,8 +92,12 @@ namespace JamesEngine
 		// Quad mesh for full-screen passes
 		std::shared_ptr<Renderer::Mesh> mRect = std::make_shared<Renderer::Mesh>();
 
+		// Shadow settings
+		float mPCSSBase = 1.f;
+		float mPCSSScale = 10.f;
+
 		// SSAO settings
-		float mSSAOResultionScale = 1.f;
+		float mSSAOResultionScale = 0.5f;
 		float mSSAORadius = 0.6f;
 		float mSSAOBias = 0.005f;
 		float mSSAOPower = 1.4f;
