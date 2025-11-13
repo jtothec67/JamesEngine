@@ -746,8 +746,8 @@ namespace Renderer
 
         // Split large material groups into smaller groups
         // Tunables for material splitting
-        static const glm::vec3 kMaxExtent = glm::vec3(750.0f, 750.0f, 750.0f); // metres in model space
-        static const size_t kMaxFacesPerGroup = 3000000;
+        static const glm::vec3 kMaxExtent = glm::vec3(200.0f, 750.0f, 200.0f); // metres in model space
+        static const size_t kMinFacesPerGroup = 10; // example value
 
         auto BoundsOfFaces = [](const std::vector<Model::Face>& faces)
             {
@@ -790,13 +790,14 @@ namespace Renderer
                 queue.pop_back();
 
                 glm::vec3 ext = cur.mx - cur.mn;
-                bool smallEnough =
-                    (cur.faces.size() <= kMaxFacesPerGroup) &&
+
+                const bool withinExtent =
                     (ext.x <= kMaxExtent.x && ext.y <= kMaxExtent.y && ext.z <= kMaxExtent.z);
 
-                if (smallEnough || cur.faces.size() < 2)
+                // If the bucket is within the extent OR too small to split further
+                // (would create groups with < kMinFacesPerGroup faces), just emit it.
+                if (withinExtent || cur.faces.size() < 2 * kMinFacesPerGroup || cur.faces.size() < 2)
                 {
-                    // Emit a new material group with same PBR as parent
                     MaterialGroup child;
                     child.materialName = g.materialName;        // keep same logical material name
                     child.pbr = g.pbr;                          // copy PBR/texture indices
@@ -819,6 +820,7 @@ namespace Renderer
                     });
 
                 const size_t mid = cur.faces.size() / 2;
+
                 // Guard against pathological case where all centroids are identical
                 if (mid == 0 || mid == cur.faces.size())
                 {

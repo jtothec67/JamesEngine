@@ -445,7 +445,7 @@ void main()
         N = normalize(TBN * normalize(nSample));
     }
 
-    if (!gl_FrontFacing) N = -N;
+    if (!gl_FrontFacing) N = N; // Trees look normal if we don't flip normals on backfaces (?)
 
     vec3 V = normalize(u_ViewPos - v_FragPos);
     vec3 L = normalize(-u_DirLightDirection);

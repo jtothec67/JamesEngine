@@ -77,9 +77,9 @@ namespace JamesEngine
 		mObjShader->mShader->uniform("u_Projection", camera->GetProjectionMatrix());
 		std::vector<std::shared_ptr<Camera>> cams;
 		core->FindComponents<Camera>(cams); // FOR DEBUGGING - can see the scene from one veiw while still processes it from another (I know the first camera is a free roam cam)
-		/*mObjShader->mShader->uniform("u_View", cams.at(0)->GetViewMatrix());
+		mObjShader->mShader->uniform("u_View", cams.at(0)->GetViewMatrix());
 		mObjShader->mShader->uniform("u_ViewPos", cams.at(0)->GetPosition());
-		mObjShader->mShader->uniform("u_DebugVP", camera->GetProjectionMatrix() * camera->GetViewMatrix());*/
+		mObjShader->mShader->uniform("u_DebugVP", camera->GetProjectionMatrix() * camera->GetViewMatrix());
 		mObjShader->mShader->uniform("u_View", camera->GetViewMatrix());
 		mObjShader->mShader->uniform("u_ViewPos", camera->GetPosition());
 		mObjShader->mShader->uniform("u_Ambient", core->mLightManager->GetAmbient());
@@ -202,87 +202,11 @@ namespace JamesEngine
 				cascade.renderTexture->bind();
 				glViewport(0, 0, cascade.renderTexture->getWidth(), cascade.renderTexture->getHeight());
 
-				// Build a copy sorted by distance (closest -> furthest)
-				const glm::mat4 V = lightView;
-				const glm::mat4 P = lightProj;
-				const glm::mat4 VP = cascade.lightSpaceMatrix;
-
-				// Extract world-space frustum planes from VP (GLM is column-major)
-				struct Plane { glm::vec3 n; float d; }; // plane: n·x + d >= 0  => inside
-				auto getRow = [&](int r) {
-					return glm::vec4(VP[0][r], VP[1][r], VP[2][r], VP[3][r]);
-					};
-
-				const glm::vec4 row0 = getRow(0);
-				const glm::vec4 row1 = getRow(1);
-				const glm::vec4 row2 = getRow(2);
-				const glm::vec4 row3 = getRow(3);
-
-				Plane planes[6] = {
-					{ glm::vec3(row3 + row0), (row3 + row0).w }, // Left
-					{ glm::vec3(row3 - row0), (row3 - row0).w }, // Right
-					{ glm::vec3(row3 + row1), (row3 + row1).w }, // Bottom
-					{ glm::vec3(row3 - row1), (row3 - row1).w }, // Top
-					{ glm::vec3(row3 + row2), (row3 + row2).w }, // Near
-					{ glm::vec3(row3 - row2), (row3 - row2).w }, // Far
-				};
-				// Normalise planes
-				for (Plane& p : planes) {
-					float invLen = 1.0f / glm::length(p.n);
-					p.n *= invLen;
-					p.d *= invLen;
-				}
-
-				std::vector<std::pair<float, size_t>> keys;
-				keys.reserve(mShadowMaterials.size());
-
-				for (size_t i = 0; i < mShadowMaterials.size(); ++i)
-				{
-					const auto& it = mShadowMaterials[i];
-
-					// --- OBB in WORLD space
-					const glm::mat4  M = it.transform;
-					const glm::vec3  e = it.materialGroup.boundsHalfExtentsMS;
-					const glm::vec3  cW = glm::vec3(M * glm::vec4(it.materialGroup.boundsCenterMS, 1.0f));
-					const glm::mat3  A = glm::mat3(M); // columns are world axes * scale
-
-					// Conservative frustum cull (OBB vs plane SAT, world-space planes)
-					// Inside if n·c + d >= -r, where r = sum |n·axis_i| * e_i
-					bool culled = false;
-					for (const Plane& pl : planes)
-					{
-						const float r =
-							std::abs(glm::dot(pl.n, A[0])) * e.x +
-							std::abs(glm::dot(pl.n, A[1])) * e.y +
-							std::abs(glm::dot(pl.n, A[2])) * e.z;
-
-						const float s = glm::dot(pl.n, cW) + pl.d;
-
-						if (s < -r) { // fully outside this plane -> reject
-							culled = true;
-							break;
-						}
-					}
-					if (culled) continue;
-
-					// Depth key (front-to-back)
-					const glm::mat4 VM = V * M;
-					const glm::vec3 centerVS = glm::vec3(VM * glm::vec4(it.materialGroup.boundsCenterMS, 1.0f));
-					const glm::mat3 AV = glm::mat3(VM);
-					const float projZ = std::abs(AV[0][2]) * e.x + std::abs(AV[1][2]) * e.y + std::abs(AV[2][2]) * e.z;
-					const float zMin = centerVS.z - projZ;
-
-					keys.emplace_back(zMin, i);
-				}
-
-				// OPAQUE: front->back => zMin ascending (most negative first)
-				std::sort(keys.begin(), keys.end(),
-					[](const auto& a, const auto& b) { return a.first < b.first; });
-
-				std::vector<MaterialRenderInfo> distanceSortedShadowMaterials;
-				distanceSortedShadowMaterials.reserve(keys.size());
-				for (const auto& kv : keys)
-					distanceSortedShadowMaterials.push_back(mShadowMaterials[kv.second]);
+				// Build culled list of shadow-casting materials
+				auto culledShadowMaterials = FrustumCulledMaterials(
+												mShadowMaterials,
+												lightView,
+												lightProj);
 
 				// Avoids copying or double-deleting the underlying GL object.
 				auto asShared = [](const Renderer::Texture& t) -> std::shared_ptr<Renderer::Texture> {
@@ -290,7 +214,7 @@ namespace JamesEngine
 					};
 
 				// Render all shadow-casting objects
-				for (const auto& shadowMaterial : distanceSortedShadowMaterials)
+				for (const auto& shadowMaterial : culledShadowMaterials)
 				{
 					const auto& materialGroup = shadowMaterial.materialGroup;
 					const auto& pbr = materialGroup.pbr;
@@ -376,134 +300,23 @@ namespace JamesEngine
 		// Build a copy sorted by distance (closest -> furthest)
 		const glm::mat4 camView = camera->GetViewMatrix();
 		const glm::mat4 camProj = camera->GetProjectionMatrix();
+		const glm::vec3 camPos = camera->GetPosition();
 		const glm::mat4 VP = camProj * camView;
 
-		// Extract world-space frustum planes from VP (GLM is column-major)
-		struct Plane { glm::vec3 n; float d; }; // plane: n·x + d >= 0  => inside
-		auto getRow = [&](int r) {
-			return glm::vec4(VP[0][r], VP[1][r], VP[2][r], VP[3][r]);
-			};
-		const glm::vec4 row0 = getRow(0);
-		const glm::vec4 row1 = getRow(1);
-		const glm::vec4 row2 = getRow(2);
-		const glm::vec4 row3 = getRow(3);
 
-		Plane planes[6] = {
-			{ glm::vec3(row3 + row0), (row3 + row0).w }, // Left
-			{ glm::vec3(row3 - row0), (row3 - row0).w }, // Right
-			{ glm::vec3(row3 + row1), (row3 + row1).w }, // Bottom
-			{ glm::vec3(row3 - row1), (row3 - row1).w }, // Top
-			{ glm::vec3(row3 + row2), (row3 + row2).w }, // Near
-			{ glm::vec3(row3 - row2), (row3 - row2).w }, // Far
-		};
-		// Normalise planes
-		for (Plane& p : planes) {
-			float invLen = 1.0f / glm::length(p.n);
-			p.n *= invLen;
-			p.d *= invLen;
-		}
+		std::vector<MaterialRenderInfo> distanceSortedOpaqueMaterials = FrustumCulledDistanceSortedMaterials(
+																			mOpaqueMaterials,
+																			camView,
+																			camProj,
+																			camPos,
+																			DepthSortMode::FrontToBack);
 
-		// Frustum cull and sort OPAQUE materials back-to-front
-		std::vector<std::pair<float, size_t>> opaqueKeys;
-		opaqueKeys.reserve(mOpaqueMaterials.size());
-
-		for (size_t i = 0; i < mOpaqueMaterials.size(); ++i)
-		{
-			const auto& it = mOpaqueMaterials[i];
-
-			// OBB in WORLD space
-			const glm::mat4  M = it.transform;
-			const glm::vec3  e = it.materialGroup.boundsHalfExtentsMS;
-			const glm::vec3  cW = glm::vec3(M * glm::vec4(it.materialGroup.boundsCenterMS, 1.0f));
-			const glm::mat3  A = glm::mat3(M);
-
-			// Conservative frustum cull (OBB vs plane SAT, world-space planes)
-			// Inside if n·c + d >= -r, where r = sum |n·axis_i| * e_i
-			bool culled = false;
-			for (const Plane& pl : planes)
-			{
-				const float r =
-					std::abs(glm::dot(pl.n, A[0])) * e.x +
-					std::abs(glm::dot(pl.n, A[1])) * e.y +
-					std::abs(glm::dot(pl.n, A[2])) * e.z;
-
-				const float s = glm::dot(pl.n, cW) + pl.d;
-
-				if (s < -r) { // Fully outside this plane -> reject
-					culled = true;
-					break;
-				}
-			}
-			if (culled) continue;
-
-			// Depth key (front-to-back)
-			const glm::mat4 VM = camView * M;
-			const glm::vec3 centerVS = glm::vec3(VM * glm::vec4(it.materialGroup.boundsCenterMS, 1.0f));
-			const glm::mat3 AV = glm::mat3(VM);
-			const float projZ = std::abs(AV[0][2]) * e.x + std::abs(AV[1][2]) * e.y + std::abs(AV[2][2]) * e.z;
-			const float zMax = centerVS.z + projZ;
-
-			opaqueKeys.emplace_back(zMax, i);
-		}
-
-		// OPAQUE: front->back => zMin ascending (most negative first)
-		std::sort(opaqueKeys.begin(), opaqueKeys.end(),
-			[](const auto& a, const auto& b) { return a.first > b.first; });
-
-		std::vector<MaterialRenderInfo> distanceSortedOpaqueMaterials;
-		distanceSortedOpaqueMaterials.reserve(opaqueKeys.size());
-		for (const auto& kv : opaqueKeys)
-			distanceSortedOpaqueMaterials.push_back(mOpaqueMaterials[kv.second]);
-
-		// Frustum cull and sort TRANSPARENT materials back-to-front
-		std::vector<std::pair<float, size_t>> transparentKeys;
-		transparentKeys.reserve(mTransparentMaterials.size());
-
-		for (size_t i = 0; i < mTransparentMaterials.size(); ++i)
-		{
-			const auto& it = mTransparentMaterials[i];
-
-			// OBB in WORLD space
-			const glm::mat4  M = it.transform;
-			const glm::vec3  e = it.materialGroup.boundsHalfExtentsMS;
-			const glm::vec3  cW = glm::vec3(M * glm::vec4(it.materialGroup.boundsCenterMS, 1.0f));
-			const glm::mat3  A = glm::mat3(M);
-
-			// Conservative frustum cull (OBB vs plane SAT, world-space planes)
-			// Inside if n·c + d >= -r, where r = sum |n·axis_i| * e_i
-			bool culled = false;
-			for (const Plane& pl : planes)
-			{
-				const float r =
-					std::abs(glm::dot(pl.n, A[0])) * e.x +
-					std::abs(glm::dot(pl.n, A[1])) * e.y +
-					std::abs(glm::dot(pl.n, A[2])) * e.z;
-
-				const float s = glm::dot(pl.n, cW) + pl.d;
-
-				if (s < -r) { // Fully outside this plane -> reject
-					culled = true;
-					break;
-				}
-			}
-			if (culled) continue;
-
-			// Depth key (front-to-back)
-			const glm::mat4 VM = camView * M;
-			const glm::vec3 centerVS = glm::vec3(VM * glm::vec4(it.materialGroup.boundsCenterMS, 1.0f));
-			const glm::mat3 AV = glm::mat3(VM);
-			const float projZ = std::abs(AV[0][2]) * e.x + std::abs(AV[1][2]) * e.y + std::abs(AV[2][2]) * e.z;
-			const float zMin = centerVS.z - projZ;
-			transparentKeys.emplace_back(zMin, i);
-		}
-
-		std::sort(transparentKeys.begin(), transparentKeys.end(),
-			[](const auto& a, const auto& b) { return a.first < b.first; });
-
-		std::vector<MaterialRenderInfo> distanceSortedTransparentMaterials;
-		distanceSortedTransparentMaterials.reserve(transparentKeys.size());
-		for (const auto& kv : transparentKeys)
-			distanceSortedTransparentMaterials.push_back(mTransparentMaterials[kv.second]);
+		std::vector<MaterialRenderInfo> distanceSortedTransparentMaterials = FrustumCulledDistanceSortedMaterials(
+																				mTransparentMaterials,
+																				camView,
+																				camProj,
+																				camPos,
+																				DepthSortMode::BackToFront);
 
 		// This avoids copying or double-deleting the underlying GL object.
 		auto asShared = [](const Renderer::Texture& t) -> std::shared_ptr<Renderer::Texture> {
@@ -944,6 +757,305 @@ namespace JamesEngine
 		mOpaqueMaterials.clear();
 		mTransparentMaterials.clear();
 		mShadowMaterials.clear();
+	}
+
+	std::vector<MaterialRenderInfo> SceneRenderer::FrustumCulledMaterials(
+		const std::vector<MaterialRenderInfo>& _materials,
+		const glm::mat4& _view,
+		const glm::mat4& _proj)
+	{
+		struct Plane
+		{
+			glm::vec3 n;
+			float d; // plane: n·x + d >= 0 => inside
+		};
+
+		const glm::mat4 VP = _proj * _view;
+
+		// Extract rows from column-major matrix
+		auto getRow = [&](int r)
+			{
+				return glm::vec4(VP[0][r], VP[1][r], VP[2][r], VP[3][r]);
+			};
+
+		const glm::vec4 row0 = getRow(0);
+		const glm::vec4 row1 = getRow(1);
+		const glm::vec4 row2 = getRow(2);
+		const glm::vec4 row3 = getRow(3);
+
+		Plane planes[6] = {
+			{ glm::vec3(row3 + row0), (row3 + row0).w }, // Left
+			{ glm::vec3(row3 - row0), (row3 - row0).w }, // Right
+			{ glm::vec3(row3 + row1), (row3 + row1).w }, // Bottom
+			{ glm::vec3(row3 - row1), (row3 - row1).w }, // Top
+			{ glm::vec3(row3 + row2), (row3 + row2).w }, // Near
+			{ glm::vec3(row3 - row2), (row3 - row2).w }, // Far
+		};
+
+		// Normalise planes
+		for (Plane& p : planes)
+		{
+			float invLen = 1.0f / glm::length(p.n);
+			p.n *= invLen;
+			p.d *= invLen;
+		}
+
+		std::vector<MaterialRenderInfo> result;
+		result.reserve(_materials.size());
+
+		for (size_t i = 0; i < _materials.size(); ++i)
+		{
+			const auto& it = _materials[i];
+
+			const glm::mat4  M = it.transform;
+			const glm::vec3  e = it.materialGroup.boundsHalfExtentsMS;
+			const glm::vec3  cMS = it.materialGroup.boundsCenterMS;
+			const glm::vec3  cW = glm::vec3(M * glm::vec4(cMS, 1.0f));
+			const glm::mat3  A = glm::mat3(M); // columns are world axes * scale
+
+			// Conservative frustum cull (OBB vs plane SAT, world-space planes)
+			bool culled = false;
+			for (const Plane& pl : planes)
+			{
+				const float r =
+					std::abs(glm::dot(pl.n, A[0])) * e.x +
+					std::abs(glm::dot(pl.n, A[1])) * e.y +
+					std::abs(glm::dot(pl.n, A[2])) * e.z;
+
+				const float s = glm::dot(pl.n, cW) + pl.d;
+
+				if (s < -r)
+				{
+					culled = true;
+					break;
+				}
+			}
+
+			if (culled)
+				continue;
+
+			// Survived culling: keep in original order
+			result.push_back(it);
+		}
+
+		return result;
+	}
+
+	std::vector<MaterialRenderInfo> SceneRenderer::FrustumCulledDistanceSortedMaterials(
+		const std::vector<MaterialRenderInfo>& _materials,
+		const glm::mat4& _view,
+		const glm::mat4& _proj,
+		const glm::vec3& _posWS,
+		DepthSortMode _mode)
+	{
+		struct Plane
+		{
+			glm::vec3 n;
+			float d; // plane: n·x + d >= 0 => inside
+		};
+
+		struct DepthKey
+		{
+			float  primary;      // zMax or zMin
+			float  farthest;     // distance^2 to farthest corner (when cameraInside)
+			bool   cameraInside; // true if camera is inside this OBB
+			size_t index;        // index into material array
+		};
+
+		const glm::mat4 VP = _proj * _view;
+
+		// Extract rows from column-major matrix
+		auto getRow = [&](int r)
+			{
+				return glm::vec4(VP[0][r], VP[1][r], VP[2][r], VP[3][r]);
+			};
+
+		const glm::vec4 row0 = getRow(0);
+		const glm::vec4 row1 = getRow(1);
+		const glm::vec4 row2 = getRow(2);
+		const glm::vec4 row3 = getRow(3);
+
+		Plane planes[6] = {
+			{ glm::vec3(row3 + row0), (row3 + row0).w }, // Left
+			{ glm::vec3(row3 - row0), (row3 - row0).w }, // Right
+			{ glm::vec3(row3 + row1), (row3 + row1).w }, // Bottom
+			{ glm::vec3(row3 - row1), (row3 - row1).w }, // Top
+			{ glm::vec3(row3 + row2), (row3 + row2).w }, // Near
+			{ glm::vec3(row3 - row2), (row3 - row2).w }, // Far
+		};
+
+		// Normalise planes
+		for (Plane& p : planes)
+		{
+			float invLen = 1.0f / glm::length(p.n);
+			p.n *= invLen;
+			p.d *= invLen;
+		}
+
+		// Helper: is camera inside this OBB (bounds in model space, transform to world)
+		auto IsCameraInsideOBB = [&](const glm::mat4& M,
+			const glm::vec3& centerMS,
+			const glm::vec3& halfExtentsMS) -> bool
+			{
+				glm::mat4 invM = glm::inverse(M);
+				glm::vec3 camMS = glm::vec3(invM * glm::vec4(_posWS, 1.0f));
+
+				glm::vec3 d = camMS - centerMS;
+				return std::abs(d.x) <= halfExtentsMS.x &&
+					std::abs(d.y) <= halfExtentsMS.y &&
+					std::abs(d.z) <= halfExtentsMS.z;
+			};
+
+		// Helper: squared distance to farthest corner of OBB from camera
+		auto FarthestCornerDistSq = [&](const glm::mat4& M,
+			const glm::vec3& centerMS,
+			const glm::vec3& halfExtentsMS) -> float
+			{
+				float maxDist2 = 0.0f;
+
+				for (int sx = -1; sx <= 1; sx += 2)
+				{
+					for (int sy = -1; sy <= 1; sy += 2)
+					{
+						for (int sz = -1; sz <= 1; sz += 2)
+						{
+							glm::vec3 cornerMS = centerMS + glm::vec3(
+								float(sx) * halfExtentsMS.x,
+								float(sy) * halfExtentsMS.y,
+								float(sz) * halfExtentsMS.z
+							);
+							glm::vec3 cornerWS = glm::vec3(M * glm::vec4(cornerMS, 1.0f));
+							float d2 = glm::length(cornerWS - _posWS);
+							if (d2 > maxDist2) maxDist2 = d2;
+						}
+					}
+				}
+				return maxDist2;
+			};
+
+		// Build keys
+		std::vector<DepthKey> keys;
+		keys.reserve(_materials.size());
+
+		for (size_t i = 0; i < _materials.size(); ++i)
+		{
+			const auto& it = _materials[i];
+
+			const glm::mat4  M = it.transform;
+			const glm::vec3  e = it.materialGroup.boundsHalfExtentsMS;
+			const glm::vec3  cMS = it.materialGroup.boundsCenterMS;
+			const glm::vec3  cW = glm::vec3(M * glm::vec4(cMS, 1.0f));
+			const glm::mat3  A = glm::mat3(M);
+
+			// Conservative frustum cull (OBB vs plane SAT, world-space planes)
+			bool culled = false;
+			for (const Plane& pl : planes)
+			{
+				const float r =
+					std::abs(glm::dot(pl.n, A[0])) * e.x +
+					std::abs(glm::dot(pl.n, A[1])) * e.y +
+					std::abs(glm::dot(pl.n, A[2])) * e.z;
+
+				const float s = glm::dot(pl.n, cW) + pl.d;
+
+				if (s < -r)
+				{
+					culled = true;
+					break;
+				}
+			}
+
+			if (culled) continue;
+
+			// View-space depth extents
+			const glm::mat4 VM = _view * M;
+			const glm::vec3 centerVS = glm::vec3(VM * glm::vec4(cMS, 1.0f));
+			const glm::mat3 AV = glm::mat3(VM);
+			const float projZ =
+				std::abs(AV[0][2]) * e.x +
+				std::abs(AV[1][2]) * e.y +
+				std::abs(AV[2][2]) * e.z;
+
+			float primary = 0.0f;
+			if (_mode == DepthSortMode::FrontToBack)
+			{
+				// opaque: zMax, larger first
+				const float zMax = centerVS.z + projZ;
+				primary = zMax;
+			}
+			else // BackToFront
+			{
+				// transparent: zMin, smaller first
+				const float zMin = centerVS.z - projZ;
+				primary = zMin;
+			}
+
+			const bool inside = IsCameraInsideOBB(M, cMS, e);
+			const float farDist = inside ? FarthestCornerDistSq(M, cMS, e) : 0.0f;
+
+			DepthKey k;
+			k.primary = primary;
+			k.farthest = farDist;
+			k.cameraInside = inside;
+			k.index = i;
+
+			keys.push_back(k);
+		}
+
+		// Sort
+		std::sort(keys.begin(), keys.end(),
+			[_mode](const DepthKey& a, const DepthKey& b)
+			{
+				const bool frontToBack = (_mode == DepthSortMode::FrontToBack);
+
+				if (a.cameraInside && b.cameraInside)
+				{
+					if (frontToBack)
+					{
+						// opaque: both contain camera -> farthest corner closer first
+						return a.farthest < b.farthest;
+					}
+					else
+					{
+						// transparent: both contain camera -> farthest first (back->front)
+						return a.farthest > b.farthest;
+					}
+				}
+
+				if (a.cameraInside != b.cameraInside)
+				{
+					if (frontToBack)
+					{
+						// opaque: draw the ones we are inside first
+						return a.cameraInside && !b.cameraInside;
+					}
+					else
+					{
+						// transparent: treat "inside" as very close, so put it later
+						return !a.cameraInside && b.cameraInside;
+					}
+				}
+
+				// Neither contains camera: use existing primary depth behaviour
+				if (frontToBack)
+				{
+					// opaque: zMax, larger first
+					return a.primary > b.primary;
+				}
+				else
+				{
+					// transparent: zMin, smaller first
+					return a.primary < b.primary;
+				}
+			});
+
+		// Build output list
+		std::vector<MaterialRenderInfo> result;
+		result.reserve(keys.size());
+		for (const auto& k : keys)
+			result.push_back(_materials[k.index]);
+
+		return result;
 	}
 
 }

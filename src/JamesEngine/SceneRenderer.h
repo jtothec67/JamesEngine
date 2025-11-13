@@ -58,6 +58,22 @@ namespace JamesEngine
 	private:
 		void ClearScene(); // Clears all models from the scene for next frame
 
+		std::vector<MaterialRenderInfo> FrustumCulledMaterials(
+			const std::vector<MaterialRenderInfo>& _materials,
+			const glm::mat4& _view,
+			const glm::mat4& _proj);
+		enum class DepthSortMode
+		{
+			FrontToBack,   // opaque
+			BackToFront    // transparent
+		};
+		std::vector<MaterialRenderInfo> FrustumCulledDistanceSortedMaterials(
+			const std::vector<MaterialRenderInfo>& _materials,
+			const glm::mat4& _view,
+			const glm::mat4& _proj,
+			const glm::vec3& _posWS,
+			DepthSortMode _mode);
+
 		std::vector<SubmissionInfo> mSubmissions;
 
 		std::weak_ptr<Core> mCore;
