@@ -82,7 +82,6 @@ namespace JamesEngine
 		mObjShader->mShader->uniform("u_DebugVP", camera->GetProjectionMatrix() * camera->GetViewMatrix());
 		mObjShader->mShader->uniform("u_View", camera->GetViewMatrix());
 		mObjShader->mShader->uniform("u_ViewPos", camera->GetPosition());
-		mObjShader->mShader->uniform("u_Ambient", core->mLightManager->GetAmbient());
 		mObjShader->mShader->unuse();
 
 		if (!core->mLightManager->GetShadowCascades().empty())

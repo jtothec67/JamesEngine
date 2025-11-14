@@ -238,6 +238,7 @@ namespace JamesEngine
 		// Can move these into SceneRenderer, along with the rest of the light system
 		objShader->mShader->uniform("u_DirLightDirection", mLightManager->GetDirectionalLightDirection());
 		objShader->mShader->uniform("u_DirLightColor", mLightManager->GetDirectionalLightColour());
+		objShader->mShader->uniform("u_DirLightIntensity", mLightManager->GetDirectionalLightStrength());
 		objShader->mShader->unuse();
 	}
 
@@ -249,8 +250,6 @@ namespace JamesEngine
 		objShader->mShader->uniform("u_Projection", camera->GetProjectionMatrix());
 		objShader->mShader->uniform("u_View", camera->GetViewMatrix());
 		objShader->mShader->uniform("u_ViewPos", camera->GetPosition());
-
-		objShader->mShader->uniform("u_Ambient", mLightManager->GetAmbient());
 
 		// Wanted to upload shadow maps in the UploadGlobalUniforms function, but it needs to be done after the shadow maps are rendered
 		std::vector<std::shared_ptr<Renderer::RenderTexture>> shadowMaps;

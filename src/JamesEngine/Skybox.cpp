@@ -128,7 +128,14 @@ namespace JamesEngine
 		objShader->mShader->cubemapUniform("u_IrradianceCube", mIrradianceMap, 30);
 		objShader->mShader->cubemapUniform("u_PrefilterEnv", mPrefilteredEnvMap, 31);
 		objShader->mShader->uniform("u_PrefilterMaxLOD", (float)(numMips - 1));
+		objShader->mShader->uniform("u_EnvIntensity", mEnvironmentIntensity);
 		objShader->mShader->unuse();
+	}
+
+	void Skybox::SetEnvironmentIntensity(float _intensity)
+	{
+		mEnvironmentIntensity = _intensity;
+		mCore.lock()->GetResources()->Load<Shader>("shaders/ObjShader")->mShader->uniform("u_EnvIntensity", mEnvironmentIntensity);
 	}
 
 	void Skybox::RenderSkybox()

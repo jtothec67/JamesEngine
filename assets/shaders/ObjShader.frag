@@ -54,6 +54,7 @@ uniform float u_IOR;                 // default 1.5
 // Direct light (directional)
 uniform vec3 u_DirLightDirection;
 uniform vec3 u_DirLightColor;
+uniform float u_DirLightIntensity;
 
 // Shadowing
 uniform int u_NumCascades;
@@ -69,6 +70,7 @@ uniform samplerCube u_IrradianceCube;
 uniform samplerCube u_PrefilterEnv;
 uniform float u_PrefilterMaxLOD;
 uniform sampler2D u_BRDFLUT;
+uniform float u_EnvIntensity;
 
 // Post process (but it isn't because we are doing it while processing)
 in vec2 v_ScreenUV;
@@ -160,7 +162,6 @@ float ComputeShadowPCSS(sampler2D shadowMap, vec3 projCoords, float receiverDept
 
     // Map characteristics
     vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0));
-    // ----------------------------------------------------------------------
     float searchRadiusUV = u_PCSS_SearchRadiusTexels * max(texelSize.x, texelSize.y);
 
     float blockerDepthSum = 0.0;
@@ -417,7 +418,7 @@ void main()
         metallicTex  = u_MetallicFallback;
     }
     float metallic  = clamp(u_MetallicFactor  * metallicTex,  0.0, 1.0);
-    float roughness = clamp(u_RoughnessFactor * roughnessTex, 0.04, 1.0);
+    float roughness = clamp(u_RoughnessFactor * roughnessTex, 0.02, 1.0);
 
     // AO (R channel)
     float aoSample = u_HasOcclusionMap ? texture(u_OcclusionMap, v_TexCoord).r : u_AOFallback;
@@ -457,7 +458,7 @@ void main()
     // Cook-Torrance direct light
     float NDF = DistributionGGX(N, H, roughness);
     float G = GeometrySmith(N, V, L, roughness);
-    vec3  F = FresnelSchlick(max(dot(H, V), 0.0), F0);
+    vec3 F = FresnelSchlickRoughness(max(dot(H, V), 0.0), F0, roughness);
 
     vec3 kS = F;
     vec3 kD = (1.0 - kS) * (1.0 - metallic);
@@ -480,20 +481,31 @@ void main()
     // For glass: no diffuse
     if (isGlass) kD = vec3(0.0);
 
-    vec3 radiance = u_DirLightColor;
-    vec3 direct = (kD * albedo / 3.14159 + specular) * radiance * NdotL * (1.0 - shadow);
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotH = max(dot(N, H), 0.0);
+
+    vec3 radiance = u_DirLightColor * u_DirLightIntensity;
+
+//    // Lambertian diffuse
+//    vec3 diffuse = kD * albedo / 3.14159;
+
+    // Burely/Disney diffuse
+    float FD90 = 0.5 + 2.0 * roughness * pow(NdotH, 2.0);
+    float Lm = (1.0 + (FD90 - 1.0) * pow(1.0 - NdotL, 5.0));
+    float Vm = (1.0 + (FD90 - 1.0) * pow(1.0 - NdotV, 5.0));
+    vec3 diffuse = kD * albedo * (Lm * Vm) / 3.14159;
+
+    vec3 direct = (diffuse + specular) * radiance * NdotL * (1.0 - shadow);
 
     // IBL
-    float NdotV = max(dot(N, V), 0.0);
-
     // Diffuse IBL: sample skybox at a high LOD along the normal (approx irradiance)
-    vec3 diffuseEnv = texture(u_IrradianceCube, N).rgb;
+    vec3 diffuseEnv = texture(u_IrradianceCube, N).rgb * u_EnvIntensity;
     vec3 diffuseIBL = diffuseEnv * (kD * albedo);
 
     // Specular IBL: prefiltered skybox via roughness-based LOD
     vec3 R = reflect(-V, N);
     float lod = roughness * u_PrefilterMaxLOD;
-    vec3  envColor = textureLod(u_PrefilterEnv, R, lod).rgb;
+    vec3 envColor = textureLod(u_PrefilterEnv, R, lod).rgb * u_EnvIntensity;
 
     vec3 Fibl = FresnelSchlickRoughness(NdotV, F0, roughness);
     vec2 brdf = texture(u_BRDFLUT, vec2(NdotV, roughness)).rg;
@@ -511,8 +523,8 @@ void main()
     {
         // Thin-surface transmission via refracted IBL
         float eta  = max(u_IOR, 1.0001);
-        vec3  Tdir = refract(-V, N, 1.0 / eta);
-        vec3  envT = textureLod(u_PrefilterEnv, Tdir, lod).rgb;
+        vec3 Tdir = refract(-V, N, 1.0 / eta);
+        vec3 envT = textureLod(u_PrefilterEnv, Tdir, lod).rgb;
 
         vec3 transIBL = envT * (1.0 - Fibl) * transmission * albedo; // energy split
         ambient = specularIBL + transIBL;

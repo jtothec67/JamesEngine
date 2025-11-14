@@ -20,6 +20,9 @@ namespace JamesEngine
 		void SetTexture(std::shared_ptr<SkyboxTexture> _texture);
 		std::shared_ptr<SkyboxTexture> GetTexture() { return mTexture; }
 
+		void SetEnvironmentIntensity(float _intensity);
+		float GetEnvironmentIntensity() { return mEnvironmentIntensity; }
+
 		std::shared_ptr<Renderer::RenderTexture> GetBRDFLUT() { return mBRDFLUT; }
 
 	private:
@@ -38,6 +41,8 @@ namespace JamesEngine
 
 		std::shared_ptr<Renderer::RenderTexture> mPrefilteredEnvMap;
 		std::shared_ptr<Renderer::Shader> mPrefilteredEnvMapShader = std::make_shared<Renderer::Shader>("../assets/shaders/GeneratePrefilteredEnvMap.vert", "../assets/shaders/GeneratePrefilteredEnvMap.frag");
+
+		float mEnvironmentIntensity = 0.5f;
 
 		std::weak_ptr<Core> mCore;
 	};
