@@ -11,7 +11,7 @@ in vec3 v_FragPos;
 
 uniform vec3 u_ViewPos;
 
-uniform int   u_AlphaMode;    // 0 OPAQUE, 1 MASK, 2 BLEND
+uniform int u_AlphaMode;    // 0 OPAQUE, 1 MASK, 2 BLEND
 uniform float u_AlphaCutoff;  // used when u_AlphaMode == 1
 
 // Texture samplers
@@ -60,6 +60,12 @@ uniform float u_DirLightIntensity;
 uniform int u_NumCascades;
 uniform sampler2D u_ShadowMaps[MAX_NUM_CASCADES];
 uniform mat4 u_LightSpaceMatrices[MAX_NUM_CASCADES];
+uniform float u_CascadeTexelScale[MAX_NUM_CASCADES];
+uniform float u_CascadeWorldTexelSize[MAX_NUM_CASCADES];
+
+uniform float u_ShadowBiasSlope;
+uniform float u_ShadowBiasMin;
+uniform float u_NormalOffsetScale;
 
 // PCSS
 uniform float u_PCSSBase;
@@ -104,9 +110,14 @@ vec2 poissonDisk[NUM_POISSON_SAMPLES] = vec2[](
     vec2(0.255, -0.803)
 );
 
-float ComputeShadowPoissonPCF(sampler2D shadowMap, vec3 projCoords, float depth, float bias)
+float ComputeShadowPoissonPCF(sampler2D shadowMap, vec3 projCoords, float depth, float bias, int cascadeIndex)
 {
-    vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
+    vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0));
+
+    // Scale so that the *world-space* blur size is similar across cascades
+    float texelScale = u_CascadeTexelScale[cascadeIndex];
+    vec2 filterStep  = texelSize * texelScale;
+
     float shadow = 0.0;
     float totalSamples = 0.0;
 
@@ -117,7 +128,7 @@ float ComputeShadowPoissonPCF(sampler2D shadowMap, vec3 projCoords, float depth,
     int earlyShadowCount = 0;
     for (int i = 0; i < 4; ++i)
     {
-        vec2 offset = rotation * poissonDisk[i] * texelSize;
+        vec2 offset = rotation * poissonDisk[i] * filterStep;
         float sampleDepth = texture(shadowMap, projCoords.xy + offset).r;
         if (depth - bias > sampleDepth) earlyShadowCount++;
     }
@@ -128,7 +139,7 @@ float ComputeShadowPoissonPCF(sampler2D shadowMap, vec3 projCoords, float depth,
     int lastFourUnshadowed = 0;
     for (int i = 0; i < NUM_POISSON_SAMPLES; ++i)
     {
-        vec2 offset = rotation * poissonDisk[i] * texelSize;
+        vec2 offset = rotation * poissonDisk[i] * filterStep;
         float sampleDepth = texture(shadowMap, projCoords.xy + offset).r;
         float isShadowed = (depth - bias > sampleDepth) ? 1.0 : 0.0;
 
@@ -145,15 +156,15 @@ float ComputeShadowPoissonPCF(sampler2D shadowMap, vec3 projCoords, float depth,
 }
 
 
-float ComputeShadowPCSS(sampler2D shadowMap, vec3 projCoords, float receiverDepth, float bias)
+float ComputeShadowPCSS(sampler2D shadowMap, vec3 projCoords, float receiverDepth, float bias, int cascadeIndex)
 {
     float u_PCSS_SearchRadiusTexels = 6;
     float u_PCSS_LightRadiusUV = 0.002;
 
-    // Early reject: outside shadow map
-    if (projCoords.x < 0.0 || projCoords.x > 1.0 ||
-        projCoords.y < 0.0 || projCoords.y > 1.0)
-        return 0.0;
+//    // Early reject: outside shadow map
+//    if (projCoords.x < 0.0 || projCoords.x > 1.0 ||
+//        projCoords.y < 0.0 || projCoords.y > 1.0)
+//        return 0.0;
 
     // Per-pixel Poisson rotation (same seed as you used)
     ivec2 screenCoord = ivec2(gl_FragCoord.xy);
@@ -162,7 +173,11 @@ float ComputeShadowPCSS(sampler2D shadowMap, vec3 projCoords, float receiverDept
 
     // Map characteristics
     vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0));
-    float searchRadiusUV = u_PCSS_SearchRadiusTexels * max(texelSize.x, texelSize.y);
+    float baseTexel  = max(texelSize.x, texelSize.y);
+
+    // Cascade scale: 1.0 for reference cascade, <1 or >1 for others
+    float texelScale = u_CascadeTexelScale[cascadeIndex];
+    float searchRadiusUV = u_PCSS_SearchRadiusTexels * baseTexel * texelScale;
 
     float blockerDepthSum = 0.0;
     float blockerCount = 0.0;
@@ -191,10 +206,13 @@ float ComputeShadowPCSS(sampler2D shadowMap, vec3 projCoords, float receiverDept
     float receiverMinusBlocker = max(receiverDepth - avgBlockerDepth, 0.0);
     float penumbraUV = u_PCSS_LightRadiusUV * (receiverMinusBlocker / max(avgBlockerDepth, 1e-5));
 
-    // Convert to a texel-based clamp to keep kernels sane
-    float penumbraTexels = u_PCSSBase + ((penumbraUV / max(texelSize.x, texelSize.y)) * u_PCSSScale);
+    // Original penumbra in local texels
+    float penumbraTexelsLocal = u_PCSSBase + ((penumbraUV / baseTexel) * u_PCSSScale);
 
-    float filterRadiusUV = penumbraTexels * max(texelSize.x, texelSize.y);
+    // Convert to a "reference cascade" texel radius
+    float penumbraTexelsRef = penumbraTexelsLocal * texelScale;
+
+    float filterRadiusUV = penumbraTexelsRef * baseTexel;
 
     float shadow = 0.0;
     float total  = 0.0;
@@ -207,8 +225,8 @@ float ComputeShadowPCSS(sampler2D shadowMap, vec3 projCoords, float receiverDept
         float s = texture(shadowMap, projCoords.xy + offsetUV).r;
         if (receiverDepth - bias > s) earlyShadowCount++;
     }
-    if (earlyShadowCount == 0) return 0.0;
-    if (earlyShadowCount == 4 && penumbraTexels <= 1.0) return 1.0; // fully occluded & tiny penumbra
+//    if (earlyShadowCount == 0) return 0.0;
+//    if (earlyShadowCount == 4 && penumbraTexels <= 1.0) return 1.0; // fully occluded & tiny penumbra
 
     int lastFourUnshadowed = 0;
     for (int i = 0; i < NUM_POISSON_SAMPLES; ++i)
@@ -237,8 +255,6 @@ float ShadowCalculation(vec3 fragWorldPos, vec3 normal, vec3 lightDir)
 
     float cascadeDepth = 0.0;
 
-    float bias = max(0.003 * (1.0 - dot(normal, lightDir)), 0.0005);
-
     for (int i = 0; i < u_NumCascades; ++i)
     {
         vec4 lightSpacePos = u_LightSpaceMatrices[i] * vec4(fragWorldPos, 1.0);
@@ -252,10 +268,27 @@ float ShadowCalculation(vec3 fragWorldPos, vec3 normal, vec3 lightDir)
         }
     }
 
-    float shadowCascade = 0.0;
+    if (bestCascade == -1)
+        return 0.0; // not in any cascade, fully lit
 
-    if (bestCascade != -1)
-        shadowCascade = ComputeShadowPCSS(u_ShadowMaps[bestCascade], cascadeProjCoords, cascadeDepth, bias);
+    // Normal-offset shadows:
+    // Move the receiver along the *geometric* normal, by ~N texels in world space
+    float worldTexel = u_CascadeWorldTexelSize[bestCascade];
+    vec3  offsetPos  = fragWorldPos + normal * (u_NormalOffsetScale * worldTexel);
+
+    // Recompute light-space coords using the offset position
+    vec4 lightSpacePosOffset = u_LightSpaceMatrices[bestCascade] * vec4(offsetPos, 1.0);
+    vec3 projCoordsOffset = lightSpacePosOffset.xyz / lightSpacePosOffset.w * 0.5 + 0.5;
+
+    cascadeProjCoords = projCoordsOffset;
+    cascadeDepth = projCoordsOffset.z;
+
+    // Slope-scaled depth bias (now as uniforms)
+    float ndotl = max(dot(normal, lightDir), 0.0);
+    float bias  = max(u_ShadowBiasSlope * (1.0 - ndotl), u_ShadowBiasMin);
+
+    float shadowCascade = 0.0;
+    shadowCascade = ComputeShadowPCSS(u_ShadowMaps[bestCascade], cascadeProjCoords, cascadeDepth, bias, bestCascade);
 
     float shadow = shadowCascade;
     return shadow;

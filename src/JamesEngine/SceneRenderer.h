@@ -8,12 +8,12 @@ namespace JamesEngine
 
 	class Core;
 
-    enum class ShadowMode
-    {
-        None,
-        Proxy,
-        Default
-    };
+	enum class ShadowMode
+	{
+		None,
+		Proxy,
+		Default
+	};
 
 	struct ShadowOverride
 	{
@@ -112,10 +112,14 @@ namespace JamesEngine
 		float mPCSSBase = 1.f;
 		float mPCSSScale = 10.f;
 
+		float mShadowBiasSlope = 0.0022;
+		float mShadowBiasMin = 0.0002;
+		float mNormalOffsetScale = 2.f;
+
 		// SSAO settings
 		float mSSAOResultionScale = 0.5f;
-		float mSSAORadius = 0.6f;
-		float mSSAOBias = 0.005f;
+		float mSSAORadius = 0.2f;
+		float mSSAOBias = 0.06f;
 		float mSSAOPower = 1.4f;
 
 		// AO settings

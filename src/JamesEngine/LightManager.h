@@ -24,6 +24,8 @@ struct ShadowCascade
 	glm::vec2 splitDepths;
 	std::shared_ptr<Renderer::RenderTexture> renderTexture;
 	glm::mat4 lightSpaceMatrix;
+
+	float worldUnitsPerTexel;
 };
 
 struct PreBakedShadowMap
@@ -105,9 +107,10 @@ public:
 	void SetupDefault3Cascades()
 	{
 		ClearShadowCascades();
-		AddShadowCascade({ 4048, 4048 }, { 0, 20 });
-		AddShadowCascade({ 2024, 2024 }, { 20, 60 });
-		AddShadowCascade({ 2024, 2024 }, { 60, 200 });
+		AddShadowCascade({ 2024, 2024 }, { 0, 10 });
+		AddShadowCascade({ 2024, 2024 }, { 10, 40 });
+		AddShadowCascade({ 2024, 2024 }, { 40, 100 });
+		AddShadowCascade({ 2024, 2024 }, { 100, 200 });
 	}
 
 	std::shared_ptr<std::vector<std::shared_ptr<Renderer::RenderTexture>>> GetShadowMaps()

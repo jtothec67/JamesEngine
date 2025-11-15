@@ -52,6 +52,12 @@ namespace JamesEngine
 	{
 		//ScopedTimer timer("SceneRenderer::RenderScene");
 
+		mObjShader->mShader->use();
+		mObjShader->mShader->uniform("u_ShadowBiasSlope", mShadowBiasSlope);
+		mObjShader->mShader->uniform("u_ShadowBiasMin", mShadowBiasMin);
+		mObjShader->mShader->uniform("u_NormalOffsetScale", mNormalOffsetScale);
+		mObjShader->mShader->unuse();
+
 		auto core = mCore.lock();
 		auto window = core->GetWindow();
 		auto camera = core->GetCamera();
@@ -186,6 +192,10 @@ namespace JamesEngine
 
 				cascade.lightSpaceMatrix = lightProj * lightView;
 
+				float worldWidth = maxX - minX;
+				float resX = (float)cascade.resolution.x;
+				cascade.worldUnitsPerTexel = worldWidth / resX;
+
 				mDepthShader->mShader->use();
 				mDepthShader->mShader->uniform("u_View", lightView);
 				mDepthShader->mShader->uniform("u_Projection", lightProj);
@@ -203,9 +213,9 @@ namespace JamesEngine
 
 				// Build culled list of shadow-casting materials
 				auto culledShadowMaterials = FrustumCulledMaterials(
-												mShadowMaterials,
-												lightView,
-												lightProj);
+					mShadowMaterials,
+					lightView,
+					lightProj);
 
 				// Avoids copying or double-deleting the underlying GL object.
 				auto asShared = [](const Renderer::Texture& t) -> std::shared_ptr<Renderer::Texture> {
@@ -270,17 +280,37 @@ namespace JamesEngine
 			shadowMaps.reserve(core->mLightManager->GetShadowCascades().size());
 			std::vector<glm::mat4> shadowMatrices;
 			shadowMatrices.reserve(core->mLightManager->GetShadowCascades().size());
+			std::vector<float> cascadeTexelScale;
+			cascadeTexelScale.reserve(core->mLightManager->GetShadowCascades().size());
+			std::vector<float> cascadeWorldTexelSize;
+			cascadeWorldTexelSize.reserve(cascades.size());
+
+			float refWorldPerTexel = (cascades[0].worldUnitsPerTexel > 0.0f) ? cascades[0].worldUnitsPerTexel : 1.0f;
 
 			for (const ShadowCascade& cascade : core->mLightManager->GetShadowCascades())
 			{
 				shadowMaps.emplace_back(cascade.renderTexture);
 				shadowMatrices.emplace_back(cascade.lightSpaceMatrix);
+
+				float worldPerTexel = cascade.worldUnitsPerTexel;
+				float scale = 1.0f;
+
+				if (worldPerTexel > 0.0f)
+				{
+					// How many cascade-i texels equal one "reference texel" in world space?
+					scale = refWorldPerTexel / worldPerTexel;
+				}
+
+				cascadeTexelScale.push_back(scale);
+				cascadeWorldTexelSize.push_back(worldPerTexel);
 			}
 
 			mObjShader->mShader->use();
 			mObjShader->mShader->uniform("u_NumCascades", (int)shadowMaps.size());
 			mObjShader->mShader->uniform("u_ShadowMaps", shadowMaps, 20);
 			mObjShader->mShader->uniform("u_LightSpaceMatrices", shadowMatrices);
+			mObjShader->mShader->uniform("u_CascadeTexelScale", cascadeTexelScale);
+			mObjShader->mShader->uniform("u_CascadeWorldTexelSize", cascadeWorldTexelSize);
 			mObjShader->mShader->unuse();
 		}
 		else
@@ -304,18 +334,18 @@ namespace JamesEngine
 
 
 		std::vector<MaterialRenderInfo> distanceSortedOpaqueMaterials = FrustumCulledDistanceSortedMaterials(
-																			mOpaqueMaterials,
-																			camView,
-																			camProj,
-																			camPos,
-																			DepthSortMode::FrontToBack);
+			mOpaqueMaterials,
+			camView,
+			camProj,
+			camPos,
+			DepthSortMode::FrontToBack);
 
 		std::vector<MaterialRenderInfo> distanceSortedTransparentMaterials = FrustumCulledDistanceSortedMaterials(
-																				mTransparentMaterials,
-																				camView,
-																				camProj,
-																				camPos,
-																				DepthSortMode::BackToFront);
+			mTransparentMaterials,
+			camView,
+			camProj,
+			camPos,
+			DepthSortMode::BackToFront);
 
 		// This avoids copying or double-deleting the underlying GL object.
 		auto asShared = [](const Renderer::Texture& t) -> std::shared_ptr<Renderer::Texture> {
@@ -471,7 +501,7 @@ namespace JamesEngine
 		mObjShader->mShader->uniform("u_AOStrength", mAOStrength);
 		mObjShader->mShader->uniform("u_AOSpecScale", mAOSpecScale);
 		mObjShader->mShader->uniform("u_AOMin", mAOMin);
-		mObjShader->mShader->uniform("u_InvColorResolution", glm::vec2(1.f/mShadingPass->getWidth(), 1.f/mShadingPass->getHeight()));
+		mObjShader->mShader->uniform("u_InvColorResolution", glm::vec2(1.f / mShadingPass->getWidth(), 1.f / mShadingPass->getHeight()));
 
 		mObjShader->mShader->uniform("u_PCSSBase", mPCSSBase);
 		mObjShader->mShader->uniform("u_PCSSScale", mPCSSScale);
