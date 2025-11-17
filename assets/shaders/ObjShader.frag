@@ -485,22 +485,37 @@ void main()
     vec3 L = normalize(-u_DirLightDirection);
     vec3 H = normalize(V + L);
 
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotH = max(dot(N, H), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+
     // Base reflectance
     vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
     // Cook-Torrance direct light
-    float NDF = DistributionGGX(N, H, roughness);
-    float G = GeometrySmith(N, V, L, roughness);
+
+    // GGX / Trowbridge–Reitz NDF
+    float a = roughness * roughness;
+    float a2 = a * a;
+    float NdotH2 = NdotH * NdotH;
+    float denomGGX = NdotH2 * (a2 - 1.0) + 1.0;
+    float NDF = a2 / (3.14159 * denomGGX * denomGGX + 0.0001);
+
+    // Smith GGX geometry, Heitz height-correlated form
+    float Gv = NdotL * sqrt(a2 + (1.0 - a2) * NdotV * NdotV);
+    float Gl = NdotV * sqrt(a2 + (1.0 - a2) * NdotL * NdotL);
+    float G = (2.0 * NdotL * NdotV) / max(Gv + Gl, 1e-4);
+
+    // Roughness aware Fresnel
     vec3 F = FresnelSchlickRoughness(max(dot(H, V), 0.0), F0, roughness);
 
     vec3 kS = F;
     vec3 kD = (1.0 - kS) * (1.0 - metallic);
-
-    float NdotL = max(dot(N, L), 0.0);
+    
     float shadow = ShadowCalculation(v_FragPos, N, L);
 
     vec3 numerator = NDF * G * F;
-    float denom = 4.0 * max(dot(N, V), 0.0) * NdotL + 0.001;
+    float denom = 4.0 * max(NdotV, 0.0) * NdotL + 0.001;
     vec3 specular = numerator / denom;
 
     // Some exporters put transmission only in the texture and leave factor = 0.
@@ -514,13 +529,7 @@ void main()
     // For glass: no diffuse
     if (isGlass) kD = vec3(0.0);
 
-    float NdotV = max(dot(N, V), 0.0);
-    float NdotH = max(dot(N, H), 0.0);
-
     vec3 radiance = u_DirLightColor * u_DirLightIntensity;
-
-//    // Lambertian diffuse
-//    vec3 diffuse = kD * albedo / 3.14159;
 
     // Burely/Disney diffuse
     float FD90 = 0.5 + 2.0 * roughness * pow(NdotH, 2.0);
@@ -531,7 +540,7 @@ void main()
     vec3 direct = (diffuse + specular) * radiance * NdotL * (1.0 - shadow);
 
     // IBL
-    // Diffuse IBL: sample skybox at a high LOD along the normal (approx irradiance)
+    // Diffuse IBL: sample irradiance cube
     vec3 diffuseEnv = texture(u_IrradianceCube, N).rgb * u_EnvIntensity;
     vec3 diffuseIBL = diffuseEnv * (kD * albedo);
 
