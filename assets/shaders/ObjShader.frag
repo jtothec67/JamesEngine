@@ -507,7 +507,7 @@ void main()
     float G = (2.0 * NdotL * NdotV) / max(Gv + Gl, 1e-4);
 
     // Roughness aware Fresnel
-    vec3 F = FresnelSchlickRoughness(max(dot(H, V), 0.0), F0, roughness);
+    vec3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
 
     vec3 kS = F;
     vec3 kD = (1.0 - kS) * (1.0 - metallic);
@@ -589,5 +589,9 @@ void main()
         float coverage = clamp(0.02 + 0.65 * (transVis + roughBoost), 0.05, 0.7);
         outAlpha = max(alpha, coverage);
     }
+
+    // Tone mapping
+    color = color / (color + vec3(1.0));
+
     FragColor = vec4(color, outAlpha);
 }
