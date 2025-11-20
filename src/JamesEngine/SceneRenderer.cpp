@@ -21,6 +21,7 @@ namespace JamesEngine
 		mDepthAlphaShader = mCore.lock()->GetResources()->Load<Shader>("shaders/DepthOnlyAlpha");
 		mSSAOShader = mCore.lock()->GetResources()->Load<Shader>("shaders/SSAOShader");
 		mBlurShader = mCore.lock()->GetResources()->Load<Shader>("shaders/BlurShader");
+		mToneMapShader = mCore.lock()->GetResources()->Load<Shader>("shaders/ToneMap");
 
 		// Size of 1,1 just to initialize
 		mShadingPass = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::ColourAndDepth);
@@ -28,6 +29,7 @@ namespace JamesEngine
 		mAORaw = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::PostProcessTarget);
 		mAOIntermediate = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::PostProcessTarget);
 		mAOBlurred = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::PostProcessTarget);
+		mToneMappedScene = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::Colour);
 
 		Renderer::Face face;
 		face.a.m_position = glm::vec3(1.0f, 0.0f, 0.0f);
@@ -73,6 +75,7 @@ namespace JamesEngine
 			mAORaw->resize(winW * mSSAOResultionScale, winH * mSSAOResultionScale);
 			mAOIntermediate->resize(winW * mSSAOResultionScale, winH * mSSAOResultionScale);
 			mAOBlurred->resize(winW * mSSAOResultionScale, winH * mSSAOResultionScale);
+			mToneMappedScene->resize(winW, winH);
 
 			mLastViewportSize = glm::ivec2(winW, winH);
 		}
@@ -722,13 +725,15 @@ namespace JamesEngine
 
 		mShadingPass->unbind();
 
-		// Just blit the color buffer to the default framebuffer, temporary
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, mShadingPass->getFBO());
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-		int w = mShadingPass->getWidth(), h = mShadingPass->getHeight();
-		glBlitFramebuffer(0, 0, w, h, 0, 0, winW, winH, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-
+		mToneMappedScene->clear();
+		//mToneMappedScene->bind(); // Drawing straight to screen
+		glViewport(0, 0, mToneMappedScene->getWidth(), mToneMappedScene->getHeight());
+		mToneMapShader->mShader->use();
+		mToneMapShader->mShader->uniform("u_HDRScene", mShadingPass, 29);
+		mToneMapShader->mShader->uniform("u_Exposure", mExposure);
+		mToneMapShader->mShader->draw(mRect.get());
+		mToneMapShader->mShader->unuse();
+		mToneMappedScene->unbind();
 
 		window->ResetGLModes();
 

@@ -97,6 +97,7 @@ namespace JamesEngine
 		std::shared_ptr<Shader> mDepthShader;
 		std::shared_ptr<Shader> mSSAOShader;
 		std::shared_ptr<Shader> mBlurShader;
+		std::shared_ptr<Shader> mToneMapShader;
 
 		// Textures
 		std::shared_ptr<Renderer::RenderTexture> mShadingPass;
@@ -104,6 +105,7 @@ namespace JamesEngine
 		std::shared_ptr<Renderer::RenderTexture> mAORaw;
 		std::shared_ptr<Renderer::RenderTexture> mAOIntermediate;
 		std::shared_ptr<Renderer::RenderTexture> mAOBlurred;
+		std::shared_ptr<Renderer::RenderTexture> mToneMappedScene;
 
 		// Quad mesh for full-screen passes
 		std::shared_ptr<Renderer::Mesh> mRect = std::make_shared<Renderer::Mesh>();
@@ -126,6 +128,9 @@ namespace JamesEngine
 		float mAOStrength = 1.0f;
 		float mAOSpecScale = 1.0f;
 		float mAOMin = 0.05f;
+
+		// Tone mapping settings
+		float mExposure = 1.4f;
 
 		// Misc
 		glm::ivec2 mLastViewportSize{ 1,1 };

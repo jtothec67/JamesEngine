@@ -30,7 +30,43 @@ namespace Renderer
 
         glGenTextures(1, &m_texId);
 
-        if (m_type == RenderTextureType::Depth)
+        if (m_type == RenderTextureType::ColourAndDepth)
+        {
+            glBindTexture(GL_TEXTURE_2D, m_texId);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, m_width, m_height, 0, GL_RGBA, GL_FLOAT, nullptr);
+
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texId, 0);
+
+            glGenRenderbuffers(1, &m_rboId);
+            glBindRenderbuffer(GL_RENDERBUFFER, m_rboId);
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_width, m_height);
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_rboId);
+
+            GLenum buf = GL_COLOR_ATTACHMENT0;
+            glDrawBuffers(1, &buf);
+        }
+        else if (m_type == RenderTextureType::Colour)
+        {
+            glBindTexture(GL_TEXTURE_2D, m_texId);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, m_width, m_height, 0, GL_RGBA, GL_HALF_FLOAT, nullptr);
+
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                GL_TEXTURE_2D, m_texId, 0);
+
+            GLenum buf = GL_COLOR_ATTACHMENT0;
+            glDrawBuffers(1, &buf);
+        }
+        else if (m_type == RenderTextureType::Depth)
         {
             glBindTexture(GL_TEXTURE_2D, m_texId);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, m_width, m_height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
@@ -43,20 +79,6 @@ namespace Renderer
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_texId, 0);
             glDrawBuffer(GL_NONE);
             glReadBuffer(GL_NONE);
-        }
-        else if (m_type == RenderTextureType::ColourAndDepth)
-        {
-			glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_texId);
-			glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_RGB8, m_width, m_height, GL_TRUE); // Hardcoded 4x MSAA, same as window
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, m_texId, 0);
-
-            glGenRenderbuffers(1, &m_rboId);
-            glBindRenderbuffer(GL_RENDERBUFFER, m_rboId);
-            glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH24_STENCIL8, m_width, m_height);
-            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_rboId);
-
-            GLenum buf = GL_COLOR_ATTACHMENT0;
-            glDrawBuffers(1, &buf);
         }
         else if (m_type == RenderTextureType::IrradianceCubeMap)
         {
@@ -183,111 +205,111 @@ namespace Renderer
         return true;
     }
 
-	void RenderTexture::bind()
-	{
-		glBindFramebuffer(GL_FRAMEBUFFER, m_fboId);
-	}
+    void RenderTexture::bind()
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, m_fboId);
+    }
 
-	void RenderTexture::unbind()
-	{
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	}
+    void RenderTexture::unbind()
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
 
-	void RenderTexture::bindFace(int face, int level)
-	{
-		if (m_type != RenderTextureType::IrradianceCubeMap && m_type != RenderTextureType::PrefilteredEnvCubeMap)
-		{
-			std::cout << "bindFace() called on non-cubemap RenderTexture\n";
-			return;
-		}
-		if (face < 0 || face > 5)
-		{
-			std::cout << "bindFace() invalid face index\n";
-			return;
-		}
+    void RenderTexture::bindFace(int face, int level)
+    {
+        if (m_type != RenderTextureType::IrradianceCubeMap && m_type != RenderTextureType::PrefilteredEnvCubeMap)
+        {
+            std::cout << "bindFace() called on non-cubemap RenderTexture\n";
+            return;
+        }
+        if (face < 0 || face > 5)
+        {
+            std::cout << "bindFace() invalid face index\n";
+            return;
+        }
 
-		glBindFramebuffer(GL_FRAMEBUFFER, m_fboId);
+        glBindFramebuffer(GL_FRAMEBUFFER, m_fboId);
 
-		// Make sure draw buffer is enabled for color
-		GLenum buf = GL_COLOR_ATTACHMENT0;
-		glDrawBuffers(1, &buf);
+        // Make sure draw buffer is enabled for color
+        GLenum buf = GL_COLOR_ATTACHMENT0;
+        glDrawBuffers(1, &buf);
 
-		// Attach the requested face+level as the current color target
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, m_texId, level);
+        // Attach the requested face+level as the current color target
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, m_texId, level);
 
-		// Set viewport here
-		int w = std::max(1, m_width >> level);
-		int h = std::max(1, m_height >> level);
-		glViewport(0, 0, w, h);
-	}
+        // Set viewport here
+        int w = std::max(1, m_width >> level);
+        int h = std::max(1, m_height >> level);
+        glViewport(0, 0, w, h);
+    }
 
-	GLuint RenderTexture::getTextureId()
-	{
-		if (!m_texId)
-		{
-			std::cout << "Render Texture id has not been generated." << std::endl;
-			throw std::exception();
-		}
+    GLuint RenderTexture::getTextureId()
+    {
+        if (!m_texId)
+        {
+            std::cout << "Render Texture id has not been generated." << std::endl;
+            throw std::exception();
+        }
 
-		return m_texId;
-	}
+        return m_texId;
+    }
 
-	void RenderTexture::clear()
-	{
-		bind();
+    void RenderTexture::clear()
+    {
+        bind();
 
-		if (m_type == RenderTextureType::IrradianceCubeMap)
-		{
-			// No mips: clear all 6 faces
-			GLenum buf = GL_COLOR_ATTACHMENT0;
-			glDrawBuffers(1, &buf);
+        if (m_type == RenderTextureType::IrradianceCubeMap)
+        {
+            // No mips: clear all 6 faces
+            GLenum buf = GL_COLOR_ATTACHMENT0;
+            glDrawBuffers(1, &buf);
 
-			for (int face = 0; face < 6; ++face)
-			{
-				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-					GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, m_texId, 0);
-				glViewport(0, 0, m_width, m_height);
-				glClearColor(1.0f, 1.0f, 0.0f, 1.0f);
-				glClear(GL_COLOR_BUFFER_BIT);
-			}
-		}
-		else if (m_type == RenderTextureType::PrefilteredEnvCubeMap)
-		{
-			// Clear all faces *and* mips
-			GLenum buf = GL_COLOR_ATTACHMENT0;
-			glDrawBuffers(1, &buf);
+            for (int face = 0; face < 6; ++face)
+            {
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                    GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, m_texId, 0);
+                glViewport(0, 0, m_width, m_height);
+                glClearColor(1.0f, 1.0f, 0.0f, 1.0f);
+                glClear(GL_COLOR_BUFFER_BIT);
+            }
+        }
+        else if (m_type == RenderTextureType::PrefilteredEnvCubeMap)
+        {
+            // Clear all faces *and* mips
+            GLenum buf = GL_COLOR_ATTACHMENT0;
+            glDrawBuffers(1, &buf);
 
-			int numMips = 1 + (int)std::floor(std::log2(std::max(m_width, m_height)));
-			for (int level = 0; level < numMips; ++level)
-			{
-				int w = std::max(1, m_width >> level);
-				int h = std::max(1, m_height >> level);
+            int numMips = 1 + (int)std::floor(std::log2(std::max(m_width, m_height)));
+            for (int level = 0; level < numMips; ++level)
+            {
+                int w = std::max(1, m_width >> level);
+                int h = std::max(1, m_height >> level);
 
-				for (int face = 0; face < 6; ++face)
-				{
-					glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-						GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, m_texId, level);
-					glViewport(0, 0, w, h);
-					glClearColor(1.0f, 1.0f, 0.0f, 1.0f);
-					glClear(GL_COLOR_BUFFER_BIT);
-				}
-			}
-		}
-		else if (m_type == RenderTextureType::Depth)
-		{
-			glClearDepth(1.0);
-			glClear(GL_DEPTH_BUFFER_BIT);
-		}
-		else // ColourAndDepth, BRDF_LUT, etc.
-		{
-			GLenum buf = GL_COLOR_ATTACHMENT0;
-			glDrawBuffers(1, &buf);
-			glViewport(0, 0, m_width, m_height);
-			glClearColor(1.0f, 1.0f, 0.0f, 1.0f);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		}
+                for (int face = 0; face < 6; ++face)
+                {
+                    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                        GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, m_texId, level);
+                    glViewport(0, 0, w, h);
+                    glClearColor(1.0f, 1.0f, 0.0f, 1.0f);
+                    glClear(GL_COLOR_BUFFER_BIT);
+                }
+            }
+        }
+        else if (m_type == RenderTextureType::Depth)
+        {
+            glClearDepth(1.0);
+            glClear(GL_DEPTH_BUFFER_BIT);
+        }
+        else // ColourAndDepth, BRDF_LUT, etc.
+        {
+            GLenum buf = GL_COLOR_ATTACHMENT0;
+            glDrawBuffers(1, &buf);
+            glViewport(0, 0, m_width, m_height);
+            glClearColor(1.0f, 1.0f, 0.0f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        }
 
-		unbind();
-	}
+        unbind();
+    }
 
 }

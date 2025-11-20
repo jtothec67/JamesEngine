@@ -8,6 +8,7 @@ namespace Renderer
 	enum class RenderTextureType
 	{
 		ColourAndDepth,
+		Colour,
 		Depth,
 		IrradianceCubeMap,
 		PrefilteredEnvCubeMap,

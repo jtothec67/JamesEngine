@@ -3,10 +3,6 @@
 #include <iostream>
 #include <exception>
 
-//#include "imgui.h"
-//#include "imgui_impl_sdl2.h"
-//#include "imgui_impl_opengl3.h"
-
 namespace JamesEngine
 {
 
@@ -16,10 +12,6 @@ namespace JamesEngine
 		mHeight = _height;
 
 		SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER);
-
-		// Enable 4x MSAA (anti-aliasing)
-		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
-		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
 
 		// Request a modern core context (RenderDoc requires this)
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);

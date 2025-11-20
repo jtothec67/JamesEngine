@@ -590,8 +590,5 @@ void main()
         outAlpha = max(alpha, coverage);
     }
 
-    // Tone mapping
-    color = color / (color + vec3(1.0));
-
     FragColor = vec4(color, outAlpha);
 }
