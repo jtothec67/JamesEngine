@@ -42,7 +42,7 @@ namespace JamesEngine
 		std::shared_ptr<Renderer::RenderTexture> mPrefilteredEnvMap;
 		std::shared_ptr<Renderer::Shader> mPrefilteredEnvMapShader = std::make_shared<Renderer::Shader>("../assets/shaders/GeneratePrefilteredEnvMap.vert", "../assets/shaders/GeneratePrefilteredEnvMap.frag");
 
-		float mEnvironmentIntensity = 0.5f;
+		float mEnvironmentIntensity = 1.f;
 
 		std::weak_ptr<Core> mCore;
 	};

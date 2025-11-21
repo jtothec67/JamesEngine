@@ -130,7 +130,7 @@ namespace JamesEngine
 		float mAOMin = 0.05f;
 
 		// Tone mapping settings
-		float mExposure = 1.4f;
+		float mExposure = 1.f;
 
 		// Misc
 		glm::ivec2 mLastViewportSize{ 1,1 };

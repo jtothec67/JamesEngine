@@ -152,7 +152,7 @@ private:
 
 	glm::vec3 mDirectionalLightDirection = glm::vec3(0.f, -1.f, 0.f);
 	glm::vec3 mDirectionalLightColour = glm::vec3(1.f, 1.f, 1.f);
-	float mDirectionalLightStrength = 2.5f;
+	float mDirectionalLightStrength = 5.f;
 
 	std::vector<ShadowCascade> mCascades;
 
