@@ -96,7 +96,10 @@ namespace JamesEngine
 		std::shared_ptr<Shader> mDepthAlphaShader;
 		std::shared_ptr<Shader> mDepthShader;
 		std::shared_ptr<Shader> mSSAOShader;
-		std::shared_ptr<Shader> mBlurShader;
+		std::shared_ptr<Shader> mScalarBlurShader;
+		std::shared_ptr<Shader> mVec3BlurShader;
+		std::shared_ptr<Shader> mBrightPassShader;
+		std::shared_ptr<Shader> mCompositeShader;
 		std::shared_ptr<Shader> mToneMapShader;
 
 		// Textures
@@ -105,10 +108,20 @@ namespace JamesEngine
 		std::shared_ptr<Renderer::RenderTexture> mAORaw;
 		std::shared_ptr<Renderer::RenderTexture> mAOIntermediate;
 		std::shared_ptr<Renderer::RenderTexture> mAOBlurred;
+		std::shared_ptr<Renderer::RenderTexture> mBrightPassScene;
+		std::shared_ptr<Renderer::RenderTexture> mBloomIntermediate;
+		std::shared_ptr<Renderer::RenderTexture> mBloom;
+		std::shared_ptr<Renderer::RenderTexture> mCompositeScene;
 		std::shared_ptr<Renderer::RenderTexture> mToneMappedScene;
 
 		// Quad mesh for full-screen passes
 		std::shared_ptr<Renderer::Mesh> mRect = std::make_shared<Renderer::Mesh>();
+
+		// Bloom settings
+		float mBloomThreshold = 1.3f;
+		float mBloomBlurScale = 1.7f;
+		float mBloomStrength = 0.4f;
+		float mBloomKnee = 0.65f;
 
 		// Shadow settings
 		float mPCSSBase = 1.f;
@@ -123,6 +136,7 @@ namespace JamesEngine
 		float mSSAORadius = 0.2f;
 		float mSSAOBias = 0.06f;
 		float mSSAOPower = 1.4f;
+		float mAOBlurScale = 1.0f;
 
 		// AO settings
 		float mAOStrength = 1.0f;

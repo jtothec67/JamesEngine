@@ -5,7 +5,7 @@ in vec2 vUV;
 uniform sampler2D u_HDRScene;
 uniform float u_Exposure;
 
-out vec4 FragColor;
+out vec3 FragColor;
 
 void main()
 {
@@ -20,5 +20,5 @@ void main()
     float scale = (L > 0.0) ? (Lmapped / L) : 0.0;
     vec3 mapped = x * scale;
 
-    FragColor = vec4(mapped, 1.0);
+    FragColor = mapped;
 }

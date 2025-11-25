@@ -20,7 +20,10 @@ namespace JamesEngine
 		mDepthShader = mCore.lock()->GetResources()->Load<Shader>("shaders/DepthOnly");
 		mDepthAlphaShader = mCore.lock()->GetResources()->Load<Shader>("shaders/DepthOnlyAlpha");
 		mSSAOShader = mCore.lock()->GetResources()->Load<Shader>("shaders/SSAOShader");
-		mBlurShader = mCore.lock()->GetResources()->Load<Shader>("shaders/BlurShader");
+		mScalarBlurShader = mCore.lock()->GetResources()->Load<Shader>("shaders/ScalarBlurShader");
+		mVec3BlurShader = mCore.lock()->GetResources()->Load<Shader>("shaders/Vec3BlurShader");
+		mBrightPassShader = mCore.lock()->GetResources()->Load<Shader>("shaders/BrightPass");
+		mCompositeShader = mCore.lock()->GetResources()->Load<Shader>("shaders/CompositeShader");
 		mToneMapShader = mCore.lock()->GetResources()->Load<Shader>("shaders/ToneMap");
 
 		// Size of 1,1 just to initialize
@@ -29,6 +32,10 @@ namespace JamesEngine
 		mAORaw = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::PostProcessTarget);
 		mAOIntermediate = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::PostProcessTarget);
 		mAOBlurred = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::PostProcessTarget);
+		mBrightPassScene = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::Colour);
+		mBloomIntermediate = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::Colour);
+		mBloom = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::Colour);
+		mCompositeScene = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::Colour);
 		mToneMappedScene = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::Colour);
 
 		Renderer::Face face;
@@ -75,6 +82,10 @@ namespace JamesEngine
 			mAORaw->resize(winW * mSSAOResultionScale, winH * mSSAOResultionScale);
 			mAOIntermediate->resize(winW * mSSAOResultionScale, winH * mSSAOResultionScale);
 			mAOBlurred->resize(winW * mSSAOResultionScale, winH * mSSAOResultionScale);
+			mBrightPassScene->resize(winW, winH);
+			mBloomIntermediate->resize(winW, winH);
+			mBloom->resize(winW, winH);
+			mCompositeScene->resize(winW, winH);
 			mToneMappedScene->resize(winW, winH);
 
 			mLastViewportSize = glm::ivec2(winW, winH);
@@ -471,20 +482,21 @@ namespace JamesEngine
 		// Blur AO - horizontal
 		mAOIntermediate->clear();
 		mAOIntermediate->bind();
-		mBlurShader->mShader->use();
-		mBlurShader->mShader->uniform("u_RawAO", mAORaw);
-		mBlurShader->mShader->uniform("u_InvResolution", glm::vec2(1.0f / mAORaw->getWidth(), 1.0f / mAORaw->getHeight()));
-		mBlurShader->mShader->uniform("u_Direction", glm::vec2(1, 0));
-		mBlurShader->mShader->draw(mRect.get());
+		mScalarBlurShader->mShader->use();
+		mScalarBlurShader->mShader->uniform("u_RawAO", mAORaw);
+		mScalarBlurShader->mShader->uniform("u_InvResolution", glm::vec2(1.0f / mAORaw->getWidth(), 1.0f / mAORaw->getHeight()));
+		mScalarBlurShader->mShader->uniform("u_Direction", glm::vec2(1, 0));
+		mScalarBlurShader->mShader->uniform("u_StepScale", mAOBlurScale);
+		mScalarBlurShader->mShader->draw(mRect.get());
 		mAOIntermediate->unbind();
 
 		// Blur AO - vertical
 		mAOBlurred->clear();
 		mAOBlurred->bind();
-		mBlurShader->mShader->use();
-		mBlurShader->mShader->uniform("u_RawAO", mAOIntermediate);
-		mBlurShader->mShader->uniform("u_Direction", glm::vec2(0, 1));
-		mBlurShader->mShader->draw(mRect.get());
+		mScalarBlurShader->mShader->use();
+		mScalarBlurShader->mShader->uniform("u_RawAO", mAOIntermediate);
+		mScalarBlurShader->mShader->uniform("u_Direction", glm::vec2(0, 1));
+		mScalarBlurShader->mShader->draw(mRect.get());
 		mAOBlurred->unbind();
 
 		glEnable(GL_DEPTH_TEST);
@@ -725,11 +737,65 @@ namespace JamesEngine
 
 		mShadingPass->unbind();
 
+		// States for post-process
+		glDisable(GL_DEPTH_TEST);
+		glDepthMask(GL_FALSE);
+		glDisable(GL_STENCIL_TEST);
+		glDisable(GL_CULL_FACE);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glDisable(GL_BLEND);
+
+		// BLOOM
+		mBrightPassScene->clear();
+		mBrightPassScene->bind();
+		glViewport(0, 0, mBrightPassScene->getWidth(), mBrightPassScene->getHeight());
+		mBrightPassShader->mShader->use();
+		mBrightPassShader->mShader->uniform("u_Scene", mShadingPass, 29);
+		mBrightPassShader->mShader->uniform("u_BloomThreshold", mBloomThreshold);
+		mBrightPassShader->mShader->uniform("u_BloomKnee", mBloomKnee);
+		mBrightPassShader->mShader->draw(mRect.get());
+		mBrightPassShader->mShader->unuse();
+		mBrightPassScene->unbind();
+
+		// Blur bloom - horizontal
+		mBloomIntermediate->clear();
+		mBloomIntermediate->bind();
+		mVec3BlurShader->mShader->use();
+		mVec3BlurShader->mShader->uniform("u_RawAO", mBrightPassScene);
+		mVec3BlurShader->mShader->uniform("u_InvResolution", glm::vec2(1.0f / mBrightPassScene->getWidth(), 1.0f / mBrightPassScene->getHeight()));
+		mVec3BlurShader->mShader->uniform("u_Direction", glm::vec2(1, 0));
+		mVec3BlurShader->mShader->uniform("u_StepScale", mBloomBlurScale);
+		mVec3BlurShader->mShader->draw(mRect.get());
+		mBloomIntermediate->unbind();
+
+		// Blur bloom - vertical
+		mBloom->clear();
+		mBloom->bind();
+		mVec3BlurShader->mShader->use();
+		mVec3BlurShader->mShader->uniform("u_RawAO", mBloomIntermediate);
+		mVec3BlurShader->mShader->uniform("u_Direction", glm::vec2(0, 1));
+		mVec3BlurShader->mShader->draw(mRect.get());
+		mBloom->unbind();
+
+
+		// COMBINE PASS
+		mCompositeScene->clear();
+		mCompositeScene->bind();
+		glViewport(0, 0, mCompositeScene->getWidth(), mCompositeScene->getHeight());
+		mCompositeShader->mShader->use();
+		mCompositeShader->mShader->uniform("u_Scene", mShadingPass, 29);
+		mCompositeShader->mShader->uniform("u_Bloom", mBloom, 26); // Should find a way to not eyeball the texture unit
+		mCompositeShader->mShader->uniform("u_BloomStrength", mBloomStrength);
+		mCompositeShader->mShader->draw(mRect.get());
+		mCompositeShader->mShader->unuse();
+		mCompositeScene->unbind();
+
+
 		mToneMappedScene->clear();
 		//mToneMappedScene->bind(); // Drawing straight to screen
 		glViewport(0, 0, mToneMappedScene->getWidth(), mToneMappedScene->getHeight());
 		mToneMapShader->mShader->use();
-		mToneMapShader->mShader->uniform("u_HDRScene", mShadingPass, 29);
+		mToneMapShader->mShader->uniform("u_HDRScene", mCompositeScene, 29);
 		mToneMapShader->mShader->uniform("u_Exposure", mExposure);
 		mToneMapShader->mShader->draw(mRect.get());
 		mToneMapShader->mShader->unuse();
