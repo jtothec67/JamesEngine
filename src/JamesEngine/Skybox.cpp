@@ -155,6 +155,6 @@ namespace JamesEngine
 
 		mShader->unuse();
 
-		mCore.lock()->GetWindow()->ResetGLModes();
+		//mCore.lock()->GetWindow()->ResetGLModes();
 	}
 }

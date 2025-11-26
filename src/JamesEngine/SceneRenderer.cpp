@@ -347,19 +347,15 @@ namespace JamesEngine
 		const glm::mat4 VP = camProj * camView;
 
 
-		std::vector<MaterialRenderInfo> distanceSortedOpaqueMaterials = FrustumCulledDistanceSortedMaterials(
+		std::vector<MaterialRenderInfo> distanceSortedOpaqueMaterials = FrustumCulledMaterials(
 			mOpaqueMaterials,
 			camView,
-			camProj,
-			camPos,
-			DepthSortMode::FrontToBack);
+			camProj);
 
-		std::vector<MaterialRenderInfo> distanceSortedTransparentMaterials = FrustumCulledDistanceSortedMaterials(
+		std::vector<MaterialRenderInfo> distanceSortedTransparentMaterials = FrustumCulledMaterials(
 			mTransparentMaterials,
 			camView,
-			camProj,
-			camPos,
-			DepthSortMode::BackToFront);
+			camProj);
 
 		// This avoids copying or double-deleting the underlying GL object.
 		auto asShared = [](const Renderer::Texture& t) -> std::shared_ptr<Renderer::Texture> {
@@ -367,9 +363,10 @@ namespace JamesEngine
 			};
 
 		// DEPTH PASS
-		mDepthPass->clear();
-		mDepthPass->bind();
-		glViewport(0, 0, mDepthPass->getWidth(), mDepthPass->getHeight());
+		// Draw to only the depth buffer of the shading pass (maybe change name)
+		mShadingPass->clear();
+		mShadingPass->bind();
+		glViewport(0, 0, mShadingPass->getWidth(), mShadingPass->getHeight());
 
 		// Depth-only state
 		glDisable(GL_POLYGON_OFFSET_FILL);
@@ -455,7 +452,7 @@ namespace JamesEngine
 			if (prevCullEnabled) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
 		}
 
-		mDepthPass->unbind();
+		mShadingPass->unbind();
 
 		glDisable(GL_BLEND);
 
@@ -467,11 +464,11 @@ namespace JamesEngine
 		mAORaw->clear();
 		mAORaw->bind();
 		mSSAOShader->mShader->use();
-		mSSAOShader->mShader->uniform("u_Depth", mDepthPass);
+		mSSAOShader->mShader->uniform("u_Depth", mShadingPass->getDepthTextureId());
 		mSSAOShader->mShader->uniform("u_Proj", camProj);
 		mSSAOShader->mShader->uniform("u_InvView", glm::inverse(camView));
 		mSSAOShader->mShader->uniform("u_InvProj", glm::inverse(camProj));
-		mSSAOShader->mShader->uniform("u_InvResolution", glm::vec2(1.0f / mDepthPass->getWidth(), 1.0f / mDepthPass->getHeight()));
+		mSSAOShader->mShader->uniform("u_InvResolution", glm::vec2(1.0f / mShadingPass->getWidth(), 1.0f / mShadingPass->getHeight()));
 		mSSAOShader->mShader->uniform("u_Radius", mSSAORadius);
 		mSSAOShader->mShader->uniform("u_Bias", mSSAOBias);
 		mSSAOShader->mShader->uniform("u_Power", mSSAOPower);
@@ -499,16 +496,18 @@ namespace JamesEngine
 		mScalarBlurShader->mShader->draw(mRect.get());
 		mAOBlurred->unbind();
 
-		glEnable(GL_DEPTH_TEST);
-		glDepthFunc(GL_LEQUAL);
-		glDepthMask(GL_TRUE);
-		glDisable(GL_BLEND);
 
-		mShadingPass->clear();
 		mShadingPass->bind();
 		glViewport(0, 0, mShadingPass->getWidth(), mShadingPass->getHeight());
 
+		glDisable(GL_DEPTH_TEST);
+
 		core->mSkybox->RenderSkybox();
+
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_EQUAL);
+		glDepthMask(GL_FALSE);
+		glDisable(GL_BLEND);
 
 		mObjShader->mShader->use();
 

@@ -26,6 +26,7 @@ namespace Renderer
 		void bind();
 		void unbind();
 		GLuint getTextureId();
+		GLuint getDepthTextureId() { return m_depthTexId; }
 
 		int getWidth() { return m_width; }
 		int getHeight() { return m_height; }
@@ -47,6 +48,8 @@ namespace Renderer
 		GLuint m_fboId = 0;
 		GLuint m_texId = 0;
 		GLuint m_rboId = 0;
+		GLuint m_depthTexId = 0;  // Separate depth texture for ColourAndDepth
+
 
 		int m_width;
 		int m_height;

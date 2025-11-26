@@ -36,6 +36,7 @@ namespace Renderer
 		void uniform(const std::string& _name, const std::vector<glm::mat4>& values);
 		void uniform(const std::string& name, const std::shared_ptr<Texture> texture, int startingTextureUnit = 0);
 		void uniform(const std::string& name, const std::shared_ptr<RenderTexture> texture, int startingTextureUnit = 0);
+		void uniform(const std::string& name, GLuint _fbo, int startingTextureUnit = 0);
 		void cubemapUniform(const std::string& name, const std::shared_ptr<Texture> texture, int startingTextureUnit = 0);
 		void cubemapUniform(const std::string& name, const std::shared_ptr<RenderTexture> texture, int startingTextureUnit = 0);
 		void uniform(const std::string& name, const std::vector<std::shared_ptr<RenderTexture>>& textures, int startingTextureUnit = 0);

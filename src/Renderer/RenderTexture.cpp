@@ -8,6 +8,7 @@ namespace Renderer
     void RenderTexture::destroyGL()
     {
         if (m_rboId) { glDeleteRenderbuffers(1, &m_rboId); m_rboId = 0; }
+		if (m_depthTexId) { glDeleteTextures(1, &m_depthTexId); m_depthTexId = 0; }
         if (m_texId) { glDeleteTextures(1, &m_texId); m_texId = 0; }
         if (m_fboId) { glDeleteFramebuffers(1, &m_fboId);  m_fboId = 0; }
     }
@@ -42,10 +43,17 @@ namespace Renderer
 
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texId, 0);
 
-            glGenRenderbuffers(1, &m_rboId);
-            glBindRenderbuffer(GL_RENDERBUFFER, m_rboId);
-            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_width, m_height);
-            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_rboId);
+            glGenTextures(1, &m_depthTexId);
+            glBindTexture(GL_TEXTURE_2D, m_depthTexId);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, m_width, m_height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
+
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
+
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_depthTexId, 0);
 
             GLenum buf = GL_COLOR_ATTACHMENT0;
             glDrawBuffers(1, &buf);
@@ -60,8 +68,7 @@ namespace Renderer
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                GL_TEXTURE_2D, m_texId, 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texId, 0);
 
             GLenum buf = GL_COLOR_ATTACHMENT0;
             glDrawBuffers(1, &buf);
@@ -177,6 +184,7 @@ namespace Renderer
         : m_fboId(0)
         , m_texId(0)
         , m_rboId(0)
+		, m_depthTexId(0)
         , m_type(_type)
         , m_width(_width)
         , m_height(_height)

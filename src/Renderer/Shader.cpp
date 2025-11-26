@@ -213,6 +213,15 @@ namespace Renderer
 		glActiveTexture(GL_TEXTURE0);
 	}
 
+	void Shader::uniform(const std::string& name, GLuint _fbo, int startingTextureUnit)
+	{
+		glActiveTexture(GL_TEXTURE0 + startingTextureUnit);
+		glBindTexture(GL_TEXTURE_2D, _fbo);
+		GLint loc = glGetUniformLocation(id(), name.c_str());
+		glUniform1i(loc, startingTextureUnit);
+		glActiveTexture(GL_TEXTURE0);
+	}
+
 	// Hard coded to cube map for now
 	void Shader::cubemapUniform(const std::string& name, const std::shared_ptr<Texture> texture, int startingTextureUnit)
 	{
