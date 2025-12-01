@@ -118,6 +118,7 @@ namespace JamesEngine
 		std::shared_ptr<Renderer::Mesh> mRect = std::make_shared<Renderer::Mesh>();
 
 		// Bloom settings
+		bool mBloomEnabled = true;
 		float mBloomThreshold = 1.3f;
 		float mBloomBlurScale = 1.7f;
 		float mBloomStrength = 0.4f;
@@ -132,6 +133,7 @@ namespace JamesEngine
 		float mNormalOffsetScale = 2.f;
 
 		// SSAO settings
+		bool mSSAOEnabled = true;
 		float mSSAOResultionScale = 0.5f;
 		float mSSAORadius = 0.2f;
 		float mSSAOBias = 0.06f;

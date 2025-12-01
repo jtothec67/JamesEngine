@@ -459,42 +459,45 @@ namespace JamesEngine
 		// Restore color writes
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
-		// SSAO PASS
-		// Raw AO
-		mAORaw->clear();
-		mAORaw->bind();
-		mSSAOShader->mShader->use();
-		mSSAOShader->mShader->uniform("u_Depth", mShadingPass->getDepthTextureId());
-		mSSAOShader->mShader->uniform("u_Proj", camProj);
-		mSSAOShader->mShader->uniform("u_InvView", glm::inverse(camView));
-		mSSAOShader->mShader->uniform("u_InvProj", glm::inverse(camProj));
-		mSSAOShader->mShader->uniform("u_InvResolution", glm::vec2(1.0f / mShadingPass->getWidth(), 1.0f / mShadingPass->getHeight()));
-		mSSAOShader->mShader->uniform("u_Radius", mSSAORadius);
-		mSSAOShader->mShader->uniform("u_Bias", mSSAOBias);
-		mSSAOShader->mShader->uniform("u_Power", mSSAOPower);
-		mSSAOShader->mShader->draw(mRect.get());
-		mSSAOShader->mShader->unuse();
-		mAORaw->unbind();
+		if (mSSAOEnabled)
+		{
+			// SSAO PASS
+			// Raw AO
+			mAORaw->clear();
+			mAORaw->bind();
+			mSSAOShader->mShader->use();
+			mSSAOShader->mShader->uniform("u_Depth", mShadingPass->getDepthTextureId());
+			mSSAOShader->mShader->uniform("u_Proj", camProj);
+			mSSAOShader->mShader->uniform("u_InvView", glm::inverse(camView));
+			mSSAOShader->mShader->uniform("u_InvProj", glm::inverse(camProj));
+			mSSAOShader->mShader->uniform("u_InvResolution", glm::vec2(1.0f / mShadingPass->getWidth(), 1.0f / mShadingPass->getHeight()));
+			mSSAOShader->mShader->uniform("u_Radius", mSSAORadius);
+			mSSAOShader->mShader->uniform("u_Bias", mSSAOBias);
+			mSSAOShader->mShader->uniform("u_Power", mSSAOPower);
+			mSSAOShader->mShader->draw(mRect.get());
+			mSSAOShader->mShader->unuse();
+			mAORaw->unbind();
 
-		// Blur AO - horizontal
-		mAOIntermediate->clear();
-		mAOIntermediate->bind();
-		mScalarBlurShader->mShader->use();
-		mScalarBlurShader->mShader->uniform("u_RawAO", mAORaw);
-		mScalarBlurShader->mShader->uniform("u_InvResolution", glm::vec2(1.0f / mAORaw->getWidth(), 1.0f / mAORaw->getHeight()));
-		mScalarBlurShader->mShader->uniform("u_Direction", glm::vec2(1, 0));
-		mScalarBlurShader->mShader->uniform("u_StepScale", mAOBlurScale);
-		mScalarBlurShader->mShader->draw(mRect.get());
-		mAOIntermediate->unbind();
+			// Blur AO - horizontal
+			mAOIntermediate->clear();
+			mAOIntermediate->bind();
+			mScalarBlurShader->mShader->use();
+			mScalarBlurShader->mShader->uniform("u_RawAO", mAORaw);
+			mScalarBlurShader->mShader->uniform("u_InvResolution", glm::vec2(1.0f / mAORaw->getWidth(), 1.0f / mAORaw->getHeight()));
+			mScalarBlurShader->mShader->uniform("u_Direction", glm::vec2(1, 0));
+			mScalarBlurShader->mShader->uniform("u_StepScale", mAOBlurScale);
+			mScalarBlurShader->mShader->draw(mRect.get());
+			mAOIntermediate->unbind();
 
-		// Blur AO - vertical
-		mAOBlurred->clear();
-		mAOBlurred->bind();
-		mScalarBlurShader->mShader->use();
-		mScalarBlurShader->mShader->uniform("u_RawAO", mAOIntermediate);
-		mScalarBlurShader->mShader->uniform("u_Direction", glm::vec2(0, 1));
-		mScalarBlurShader->mShader->draw(mRect.get());
-		mAOBlurred->unbind();
+			// Blur AO - vertical
+			mAOBlurred->clear();
+			mAOBlurred->bind();
+			mScalarBlurShader->mShader->use();
+			mScalarBlurShader->mShader->uniform("u_RawAO", mAOIntermediate);
+			mScalarBlurShader->mShader->uniform("u_Direction", glm::vec2(0, 1));
+			mScalarBlurShader->mShader->draw(mRect.get());
+			mAOBlurred->unbind();
+		}
 
 
 		mShadingPass->bind();
@@ -510,12 +513,15 @@ namespace JamesEngine
 		glDisable(GL_BLEND);
 
 		mObjShader->mShader->use();
-
-		mObjShader->mShader->uniform("u_SSAO", mAOBlurred, 27);
-		mObjShader->mShader->uniform("u_AOStrength", mAOStrength);
-		mObjShader->mShader->uniform("u_AOSpecScale", mAOSpecScale);
-		mObjShader->mShader->uniform("u_AOMin", mAOMin);
-		mObjShader->mShader->uniform("u_InvColorResolution", glm::vec2(1.f / mShadingPass->getWidth(), 1.f / mShadingPass->getHeight()));
+		mObjShader->mShader->uniform("u_UseSSAO", mSSAOEnabled);
+		if (mSSAOEnabled)
+		{
+			mObjShader->mShader->uniform("u_SSAO", mAOBlurred, 27);
+			mObjShader->mShader->uniform("u_AOStrength", mAOStrength);
+			mObjShader->mShader->uniform("u_AOSpecScale", mAOSpecScale);
+			mObjShader->mShader->uniform("u_AOMin", mAOMin);
+			mObjShader->mShader->uniform("u_InvColorResolution", glm::vec2(1.f / mShadingPass->getWidth(), 1.f / mShadingPass->getHeight()));
+		}
 
 		mObjShader->mShader->uniform("u_PCSSBase", mPCSSBase);
 		mObjShader->mShader->uniform("u_PCSSScale", mPCSSScale);
@@ -744,37 +750,40 @@ namespace JamesEngine
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glDisable(GL_BLEND);
 
-		// BLOOM
-		mBrightPassScene->clear();
-		mBrightPassScene->bind();
-		glViewport(0, 0, mBrightPassScene->getWidth(), mBrightPassScene->getHeight());
-		mBrightPassShader->mShader->use();
-		mBrightPassShader->mShader->uniform("u_Scene", mShadingPass, 29);
-		mBrightPassShader->mShader->uniform("u_BloomThreshold", mBloomThreshold);
-		mBrightPassShader->mShader->uniform("u_BloomKnee", mBloomKnee);
-		mBrightPassShader->mShader->draw(mRect.get());
-		mBrightPassShader->mShader->unuse();
-		mBrightPassScene->unbind();
+		if (mBloomEnabled)
+		{
+			// BLOOM
+			mBrightPassScene->clear();
+			mBrightPassScene->bind();
+			glViewport(0, 0, mBrightPassScene->getWidth(), mBrightPassScene->getHeight());
+			mBrightPassShader->mShader->use();
+			mBrightPassShader->mShader->uniform("u_Scene", mShadingPass, 29);
+			mBrightPassShader->mShader->uniform("u_BloomThreshold", mBloomThreshold);
+			mBrightPassShader->mShader->uniform("u_BloomKnee", mBloomKnee);
+			mBrightPassShader->mShader->draw(mRect.get());
+			mBrightPassShader->mShader->unuse();
+			mBrightPassScene->unbind();
 
-		// Blur bloom - horizontal
-		mBloomIntermediate->clear();
-		mBloomIntermediate->bind();
-		mVec3BlurShader->mShader->use();
-		mVec3BlurShader->mShader->uniform("u_RawAO", mBrightPassScene);
-		mVec3BlurShader->mShader->uniform("u_InvResolution", glm::vec2(1.0f / mBrightPassScene->getWidth(), 1.0f / mBrightPassScene->getHeight()));
-		mVec3BlurShader->mShader->uniform("u_Direction", glm::vec2(1, 0));
-		mVec3BlurShader->mShader->uniform("u_StepScale", mBloomBlurScale);
-		mVec3BlurShader->mShader->draw(mRect.get());
-		mBloomIntermediate->unbind();
+			// Blur bloom - horizontal
+			mBloomIntermediate->clear();
+			mBloomIntermediate->bind();
+			mVec3BlurShader->mShader->use();
+			mVec3BlurShader->mShader->uniform("u_RawAO", mBrightPassScene);
+			mVec3BlurShader->mShader->uniform("u_InvResolution", glm::vec2(1.0f / mBrightPassScene->getWidth(), 1.0f / mBrightPassScene->getHeight()));
+			mVec3BlurShader->mShader->uniform("u_Direction", glm::vec2(1, 0));
+			mVec3BlurShader->mShader->uniform("u_StepScale", mBloomBlurScale);
+			mVec3BlurShader->mShader->draw(mRect.get());
+			mBloomIntermediate->unbind();
 
-		// Blur bloom - vertical
-		mBloom->clear();
-		mBloom->bind();
-		mVec3BlurShader->mShader->use();
-		mVec3BlurShader->mShader->uniform("u_RawAO", mBloomIntermediate);
-		mVec3BlurShader->mShader->uniform("u_Direction", glm::vec2(0, 1));
-		mVec3BlurShader->mShader->draw(mRect.get());
-		mBloom->unbind();
+			// Blur bloom - vertical
+			mBloom->clear();
+			mBloom->bind();
+			mVec3BlurShader->mShader->use();
+			mVec3BlurShader->mShader->uniform("u_RawAO", mBloomIntermediate);
+			mVec3BlurShader->mShader->uniform("u_Direction", glm::vec2(0, 1));
+			mVec3BlurShader->mShader->draw(mRect.get());
+			mBloom->unbind();
+		}
 
 
 		// COMBINE PASS
@@ -783,8 +792,12 @@ namespace JamesEngine
 		glViewport(0, 0, mCompositeScene->getWidth(), mCompositeScene->getHeight());
 		mCompositeShader->mShader->use();
 		mCompositeShader->mShader->uniform("u_Scene", mShadingPass, 29);
-		mCompositeShader->mShader->uniform("u_Bloom", mBloom, 26); // Should find a way to not eyeball the texture unit
-		mCompositeShader->mShader->uniform("u_BloomStrength", mBloomStrength);
+		mCompositeShader->mShader->uniform("u_UseBloom", mBloomEnabled);
+		if (mBloomEnabled)
+		{
+			mCompositeShader->mShader->uniform("u_Bloom", mBloom, 26); // Should find a way to not eyeball the texture unit
+			mCompositeShader->mShader->uniform("u_BloomStrength", mBloomStrength);
+		}
 		mCompositeShader->mShader->draw(mRect.get());
 		mCompositeShader->mShader->unuse();
 		mCompositeScene->unbind();

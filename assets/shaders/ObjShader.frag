@@ -82,6 +82,7 @@ uniform float u_EnvIntensity;
 in vec2 v_ScreenUV;
 
 // SSAO
+uniform bool u_UseSSAO;
 uniform sampler2D u_SSAO; // AO texture: 1=open, 0=occluded
 uniform float u_AOStrength; // 0..1 (how much to dim diffuse IBL)
 uniform float u_AOSpecScale; // 0..1 (gentler dim on specular IBL)
@@ -554,11 +555,16 @@ void main()
 
     vec3 specularIBL = envColor * (Fibl * brdf.x + brdf.y);
 
-    // Sample SSAO and build attenuation terms
-    vec2 aoUV = gl_FragCoord.xy * u_InvColorResolution;
-    float ssao = texture(u_SSAO, aoUV).r;
-    float aoDiffuse = mix(1.0, max(ssao, u_AOMin), u_AOStrength);
-    float aoSpec = mix(1.0, sqrt(ssao), u_AOSpecScale);
+    float aoSpec = 1.0;
+    float aoDiffuse = 1.0;
+    if (u_UseSSAO)
+    {
+        // Sample SSAO and build attenuation terms
+        vec2 aoUV = gl_FragCoord.xy * u_InvColorResolution;
+        float ssao = texture(u_SSAO, aoUV).r;
+        aoDiffuse = mix(1.0, max(ssao, u_AOMin), u_AOStrength);
+        aoSpec = mix(1.0, sqrt(ssao), u_AOSpecScale);
+    }
 
     vec3 ambient;
     if (isGlass)
