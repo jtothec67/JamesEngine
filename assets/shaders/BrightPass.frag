@@ -12,8 +12,12 @@ void main()
     vec3 color = texture(u_Scene, vUV).rgb;
     float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
 
-    float soft = clamp((luminance - u_BloomThreshold) / u_BloomKnee, 0.0, 1.0);
-    float contribution = max(soft, step(u_BloomThreshold + u_BloomKnee, luminance));
+    float x = max(luminance - u_BloomThreshold, 0.0);
 
-    OutColor = color * contribution;
+    float softExcess = (x * x) / (x + u_BloomKnee);
+    float hardExcess = max(luminance - (u_BloomThreshold + u_BloomKnee), 0.0);
+    float excess = softExcess + hardExcess;
+
+    // Scale colour by excess luminance, preserving chroma
+    OutColor = color * (excess / max(luminance, 1e-6));
 }

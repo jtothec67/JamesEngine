@@ -513,7 +513,7 @@ void main()
     vec3 kS = F;
     vec3 kD = (1.0 - kS) * (1.0 - metallic);
     
-    float shadow = ShadowCalculation(v_FragPos, N, L);
+    float shadow = ShadowCalculation(v_FragPos, Ngeom, L);
 
     vec3 numerator = NDF * G * F;
     float denom = 4.0 * max(NdotV, 0.0) * NdotL + 0.001;
