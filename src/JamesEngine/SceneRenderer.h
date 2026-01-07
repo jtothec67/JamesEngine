@@ -99,6 +99,8 @@ namespace JamesEngine
 		std::shared_ptr<Shader> mScalarBlurShader;
 		std::shared_ptr<Shader> mVec3BlurShader;
 		std::shared_ptr<Shader> mBrightPassShader;
+		std::shared_ptr<Shader> mDownsample2x;
+		std::shared_ptr<Shader> mUpsampleAdd;
 		std::shared_ptr<Shader> mCompositeShader;
 		std::shared_ptr<Shader> mToneMapShader;
 
@@ -109,6 +111,9 @@ namespace JamesEngine
 		std::shared_ptr<Renderer::RenderTexture> mAOIntermediate;
 		std::shared_ptr<Renderer::RenderTexture> mAOBlurred;
 		std::shared_ptr<Renderer::RenderTexture> mBrightPassScene;
+		std::vector<std::shared_ptr<Renderer::RenderTexture>> mBloomDown;
+		std::vector<std::shared_ptr<Renderer::RenderTexture>> mBloomTemp;
+		std::vector<std::shared_ptr<Renderer::RenderTexture>> mBloomBlur;
 		std::shared_ptr<Renderer::RenderTexture> mBloomIntermediate;
 		std::shared_ptr<Renderer::RenderTexture> mBloom;
 		std::shared_ptr<Renderer::RenderTexture> mCompositeScene;
@@ -120,9 +125,10 @@ namespace JamesEngine
 		// Bloom settings
 		bool mBloomEnabled = true;
 		float mBloomThreshold = 1.3f;
-		float mBloomBlurScale = 1.7f;
-		float mBloomStrength = 0.4f;
+		float mBloomStrength = 1.f;
 		float mBloomKnee = 0.65f;
+		int mBloomLevels = 5; // Number of downsample/blur levels
+		int mBloomMinSize = 16; // Minimum resolution of the smallest bloom level
 
 		// Shadow settings
 		float mPCSSBase = 1.f;

@@ -111,6 +111,30 @@ vec2 poissonDisk[NUM_POISSON_SAMPLES] = vec2[](
     vec2(0.255, -0.803)
 );
 
+bool isNanFloat(float x) { return !(x == x); }
+bool isNanVec3(vec3 v) { return isNanFloat(v.x) || isNanFloat(v.y) || isNanFloat(v.z); }
+
+vec3 sanitizeVec3(vec3 v)
+{
+    // Replace NaNs with 0
+    if (isNanVec3(v)) return vec3(0.0);
+    return v;
+}
+
+const float EPS = 1e-8;
+
+vec3 safeNormalize(vec3 v)
+{
+    float len2 = dot(v, v);
+    if (len2 <= EPS) return vec3(0.0, 0.0, 1.0);
+    return v * inversesqrt(len2);
+}
+
+float safeRcp(float x)
+{
+    return 1.0 / max(abs(x), 1e-8);
+}
+
 float ComputeShadowPoissonPCF(sampler2D shadowMap, vec3 projCoords, float depth, float bias, int cascadeIndex)
 {
     vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0));
@@ -259,7 +283,8 @@ float ShadowCalculation(vec3 fragWorldPos, vec3 normal, vec3 lightDir)
     for (int i = 0; i < u_NumCascades; ++i)
     {
         vec4 lightSpacePos = u_LightSpaceMatrices[i] * vec4(fragWorldPos, 1.0);
-        vec3 projCoords = lightSpacePos.xyz / lightSpacePos.w * 0.5 + 0.5;
+        float invW = safeRcp(lightSpacePos.w);
+        vec3 projCoords = lightSpacePos.xyz * invW * 0.5 + 0.5;
         if (all(greaterThanEqual(projCoords, vec3(0.0))) && all(lessThanEqual(projCoords, vec3(1.0))))
         {
             bestCascade = i;
@@ -279,7 +304,8 @@ float ShadowCalculation(vec3 fragWorldPos, vec3 normal, vec3 lightDir)
 
     // Recompute light-space coords using the offset position
     vec4 lightSpacePosOffset = u_LightSpaceMatrices[bestCascade] * vec4(offsetPos, 1.0);
-    vec3 projCoordsOffset = lightSpacePosOffset.xyz / lightSpacePosOffset.w * 0.5 + 0.5;
+    float invW = safeRcp(lightSpacePosOffset.w);
+    vec3 projCoordsOffset = lightSpacePosOffset.xyz * invW * 0.5 + 0.5;
 
     cascadeProjCoords = projCoordsOffset;
     cascadeDepth = projCoordsOffset.z;
@@ -463,7 +489,7 @@ void main()
     vec3 emissive = emissiveTex * u_EmissiveFactor;
 
     // Normal mapping
-    vec3 Ngeom = normalize(v_Normal);
+    vec3 Ngeom = safeNormalize(v_Normal);
     vec3 N = Ngeom ;
     if (u_HasNormalMap)
     {
@@ -471,20 +497,27 @@ void main()
         vec3 dp2 = dFdy(v_FragPos);
         vec2 duv1 = dFdx(v_TexCoord);
         vec2 duv2 = dFdy(v_TexCoord);
-        vec3 T = normalize(dp1 * duv2.y - dp2 * duv1.y);
-        vec3 B = normalize(-dp1 * duv2.x + dp2 * duv1.x);
+        vec3 T = dp1 * duv2.y - dp2 * duv1.y;
+        // If T is degenerate, build any tangent basis from Ngeom
+        if (dot(T, T) <= EPS)
+        {
+            vec3 up = (abs(Ngeom.z) < 0.999) ? vec3(0,0,1) : vec3(0,1,0);
+            T = cross(up, Ngeom);
+        }
+        T = safeNormalize(T);
+        vec3 B = safeNormalize(-dp1 * duv2.x + dp2 * duv1.x);
         mat3 TBN = mat3(T, B, Ngeom);
         vec3 nSample = texture(u_NormalMap, v_TexCoord).xyz * 2.0 - 1.0;
         nSample.xy *= u_NormalScale;
         nSample.z = sqrt(max(0.0, 1.0 - dot(nSample.xy, nSample.xy)));
-        N = normalize(TBN * normalize(nSample));
+        N = safeNormalize(TBN * safeNormalize(nSample));
     }
 
     if (!gl_FrontFacing) N = N; // Trees look normal if we don't flip normals on backfaces (?)
 
-    vec3 V = normalize(u_ViewPos - v_FragPos);
-    vec3 L = normalize(-u_DirLightDirection);
-    vec3 H = normalize(V + L);
+    vec3 V = safeNormalize(u_ViewPos - v_FragPos);
+    vec3 L = safeNormalize(-u_DirLightDirection);
+    vec3 H = safeNormalize(V + L);
 
     float NdotV = max(dot(N, V), 0.0);
     float NdotH = max(dot(N, H), 0.0);
@@ -561,7 +594,7 @@ void main()
     {
         // Sample SSAO and build attenuation terms
         vec2 aoUV = gl_FragCoord.xy * u_InvColorResolution;
-        float ssao = texture(u_SSAO, aoUV).r;
+        float ssao = clamp(texture(u_SSAO, aoUV).r, 0.0, 1.0);
         aoDiffuse = mix(1.0, max(ssao, u_AOMin), u_AOStrength);
         aoSpec = mix(1.0, sqrt(ssao), u_AOSpecScale);
     }
@@ -596,5 +629,5 @@ void main()
         outAlpha = max(alpha, coverage);
     }
 
-    FragColor = vec4(color, outAlpha);
+    FragColor = vec4(sanitizeVec3(color), outAlpha);
 }

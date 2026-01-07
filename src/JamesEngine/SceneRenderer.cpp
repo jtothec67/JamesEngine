@@ -23,6 +23,8 @@ namespace JamesEngine
 		mScalarBlurShader = mCore.lock()->GetResources()->Load<Shader>("shaders/ScalarBlurShader");
 		mVec3BlurShader = mCore.lock()->GetResources()->Load<Shader>("shaders/Vec3BlurShader");
 		mBrightPassShader = mCore.lock()->GetResources()->Load<Shader>("shaders/BrightPass");
+		mDownsample2x = mCore.lock()->GetResources()->Load<Shader>("shaders/Downsample2x");
+		mUpsampleAdd = mCore.lock()->GetResources()->Load<Shader>("shaders/BloomUpsampleAdd");
 		mCompositeShader = mCore.lock()->GetResources()->Load<Shader>("shaders/CompositeShader");
 		mToneMapShader = mCore.lock()->GetResources()->Load<Shader>("shaders/ToneMap");
 
@@ -33,6 +35,15 @@ namespace JamesEngine
 		mAOIntermediate = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::PostProcessTarget);
 		mAOBlurred = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::PostProcessTarget);
 		mBrightPassScene = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::Colour);
+		mBloomDown.resize(mBloomLevels);
+		mBloomTemp.resize(mBloomLevels);
+		mBloomBlur.resize(mBloomLevels);
+		for (int i = 0; i < mBloomLevels; ++i)
+		{
+			mBloomDown[i] = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::Colour);
+			mBloomTemp[i] = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::Colour);
+			mBloomBlur[i] = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::Colour);
+		}
 		mBloomIntermediate = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::Colour);
 		mBloom = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::Colour);
 		mCompositeScene = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::Colour);
@@ -83,6 +94,19 @@ namespace JamesEngine
 			mAOIntermediate->resize(winW * mSSAOResultionScale, winH * mSSAOResultionScale);
 			mAOBlurred->resize(winW * mSSAOResultionScale, winH * mSSAOResultionScale);
 			mBrightPassScene->resize(winW, winH);
+			int w = winW;
+			int h = winH;
+			for (int i = 0; i < mBloomLevels; ++i)
+			{
+				w = std::max(w / 2, 1);
+				h = std::max(h / 2, 1);
+				mBloomDown[i]->resize(w, h);
+				mBloomTemp[i]->resize(w, h);
+				mBloomBlur[i]->resize(w, h);
+
+				if (w <= mBloomMinSize || h <= mBloomMinSize)
+					break;
+			}
 			mBloomIntermediate->resize(winW, winH);
 			mBloom->resize(winW, winH);
 			mCompositeScene->resize(winW, winH);
@@ -752,7 +776,7 @@ namespace JamesEngine
 
 		if (mBloomEnabled)
 		{
-			// BLOOM
+			// Bright pass, determine what contributes to bloom
 			mBrightPassScene->clear();
 			mBrightPassScene->bind();
 			glViewport(0, 0, mBrightPassScene->getWidth(), mBrightPassScene->getHeight());
@@ -764,25 +788,110 @@ namespace JamesEngine
 			mBrightPassShader->mShader->unuse();
 			mBrightPassScene->unbind();
 
-			// Blur bloom - horizontal
-			mBloomIntermediate->clear();
-			mBloomIntermediate->bind();
-			mVec3BlurShader->mShader->use();
-			mVec3BlurShader->mShader->uniform("u_RawAO", mBrightPassScene);
-			mVec3BlurShader->mShader->uniform("u_InvResolution", glm::vec2(1.0f / mBrightPassScene->getWidth(), 1.0f / mBrightPassScene->getHeight()));
-			mVec3BlurShader->mShader->uniform("u_Direction", glm::vec2(1, 0));
-			mVec3BlurShader->mShader->uniform("u_StepScale", mBloomBlurScale);
-			mVec3BlurShader->mShader->draw(mRect.get());
-			mBloomIntermediate->unbind();
+			// Downsample and blur bright pass
+			int usedLevels = 0;
+			std::shared_ptr<Renderer::RenderTexture> src = mBrightPassScene;
+			for (int i = 0; i < mBloomLevels; ++i)
+			{
+				auto& down = mBloomDown[i];
+				auto& temp = mBloomTemp[i];
+				auto& blur = mBloomBlur[i];
 
-			// Blur bloom - vertical
-			mBloom->clear();
-			mBloom->bind();
-			mVec3BlurShader->mShader->use();
-			mVec3BlurShader->mShader->uniform("u_RawAO", mBloomIntermediate);
-			mVec3BlurShader->mShader->uniform("u_Direction", glm::vec2(0, 1));
-			mVec3BlurShader->mShader->draw(mRect.get());
-			mBloom->unbind();
+				// Downsample src -> down
+				down->clear();
+				down->bind();
+				glViewport(0, 0, down->getWidth(), down->getHeight());
+				mDownsample2x->mShader->use();
+				mDownsample2x->mShader->uniform("u_RawTexture", src, 29);
+				mDownsample2x->mShader->draw(mRect.get());
+				mDownsample2x->mShader->unuse();
+				down->unbind();
+
+				// Horizontal
+				temp->clear();
+				temp->bind();
+				glViewport(0, 0, temp->getWidth(), temp->getHeight());
+				mVec3BlurShader->mShader->use();
+				mVec3BlurShader->mShader->uniform("u_Source", down);
+				mVec3BlurShader->mShader->uniform("u_InvResolution", glm::vec2(1.0f / down->getWidth(), 1.0f / down->getHeight()));
+				mVec3BlurShader->mShader->uniform("u_Direction", glm::vec2(1, 0));
+				mVec3BlurShader->mShader->draw(mRect.get());
+				temp->unbind();
+
+				// Vertical
+				blur->clear();
+				blur->bind();
+				glViewport(0, 0, blur->getWidth(), blur->getHeight());
+				mVec3BlurShader->mShader->use();
+				mVec3BlurShader->mShader->uniform("u_Source", temp);
+				mVec3BlurShader->mShader->uniform("u_Direction", glm::vec2(0, 1));
+				mVec3BlurShader->mShader->draw(mRect.get());
+				blur->unbind();
+
+				src = blur;
+				usedLevels = i + 1;
+
+				if (down->getWidth() <= mBloomMinSize || down->getHeight() <= mBloomMinSize)
+					break;
+			}
+
+			// Combine pyramid (smallest -> largest) into mBloom (ends up at half-res)
+			if (usedLevels > 0)
+			{
+				int last = usedLevels - 1;
+
+				// Start accumulator as the smallest blurred level
+				std::shared_ptr<Renderer::RenderTexture> accum = mBloomBlur[last];
+
+				// Ping-pong between these two outputs
+				bool writeToBloom = true;
+
+				for (int i = last - 1; i >= 0; --i)
+				{
+					auto& high = mBloomBlur[i];
+
+					// Choose output RT and resize to this level’s size
+					std::shared_ptr<Renderer::RenderTexture> outRT = writeToBloom ? mBloom : mBloomIntermediate;
+					outRT->resize(high->getWidth(), high->getHeight());
+
+					outRT->clear();
+					outRT->bind();
+					glViewport(0, 0, outRT->getWidth(), outRT->getHeight());
+					mUpsampleAdd->mShader->use();
+					mUpsampleAdd->mShader->uniform("u_LowRes", accum, 25);
+					mUpsampleAdd->mShader->uniform("u_HighRes", high, 24);
+					mUpsampleAdd->mShader->uniform("u_LowStrength", 1.0f);
+					mUpsampleAdd->mShader->draw(mRect.get());
+					mUpsampleAdd->mShader->unuse();
+					outRT->unbind();
+
+					accum = outRT;
+					writeToBloom = !writeToBloom;
+				}
+
+				// Ensure final result is in mBloom (swap if needed)
+				if (accum != mBloom)
+				{
+					// One last copy pass using the same shader
+					// (cheapest way without a dedicated copy shader)
+					mBloom->resize(accum->getWidth(), accum->getHeight());
+					mBloom->clear();
+					mBloom->bind();
+					glViewport(0, 0, mBloom->getWidth(), mBloom->getHeight());
+					mUpsampleAdd->mShader->use();
+					mUpsampleAdd->mShader->uniform("u_LowRes", accum, 25);
+					mUpsampleAdd->mShader->uniform("u_HighRes", accum, 24);
+					mUpsampleAdd->mShader->uniform("u_LowStrength", 0.0f); // Out = high
+					mUpsampleAdd->mShader->draw(mRect.get());
+					mUpsampleAdd->mShader->unuse();
+					mBloom->unbind();
+				}
+			}
+			else
+			{
+				// If bloom levels somehow ended up 0, just clear bloom
+				mBloom->clear();
+			}
 		}
 
 
