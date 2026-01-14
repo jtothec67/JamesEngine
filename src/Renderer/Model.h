@@ -747,7 +747,7 @@ namespace Renderer
         // Split large material groups into smaller groups
         // Tunables for material splitting
         static const glm::vec3 kMaxExtent = glm::vec3(200.0f, 750.0f, 200.0f); // metres in model space
-        static const size_t kMinFacesPerGroup = 10; // example value
+        static const size_t kMinFacesPerGroup = 200; // example value
 
         auto BoundsOfFaces = [](const std::vector<Model::Face>& faces)
             {

@@ -30,6 +30,8 @@ namespace JamesEngine
 		std::string GetTag() { return mTag; }
 		void SetTag(std::string _tag) { mTag = _tag; }
 
+		int GetId() { return mId; }
+
 		/**
 		 * @brief Adds a component to the entity. Has ability to pass arguments to the component's constructor (not used).
 		 * @tparam T The type of the component.
@@ -84,6 +86,8 @@ namespace JamesEngine
 		std::vector<std::shared_ptr<Component>> mComponents;
 
 		std::string mTag = "Default";
+
+		int mId = -1;
 
 		bool mAlive = true;
 

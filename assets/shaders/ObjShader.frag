@@ -89,9 +89,6 @@ uniform float u_AOSpecScale; // 0..1 (gentler dim on specular IBL)
 uniform float u_AOMin; // 0..1 (floor to avoid pitch-black, e.g. 0.05)
 uniform vec2 u_InvColorResolution; // 1/width, 1/height of color buffer
 
-// Temp debug
-uniform mat4 u_DebugVP;
-
 out vec4 FragColor;
 
 const int NUM_POISSON_SAMPLES = 12;
@@ -369,64 +366,6 @@ bool insideFrustumClip_MinusOneToOne(mat4 VP, vec3 worldPos)
 
 void main()
 {
-//    // Debug: visualize cascades
-//    // Is this fragment inside ANY shadow cascade?
-//    int cascadeHit = -1;
-//    for (int i = 0; i < u_NumCascades; ++i)
-//    {
-//        vec4 lpos = u_LightSpaceMatrices[i] * vec4(v_FragPos, 1.0);
-//        vec3 pc = lpos.xyz / lpos.w * 0.5 + 0.5;
-//        if (all(greaterThanEqual(pc, vec3(0.0))) &&
-//            all(lessThanEqual (pc, vec3(1.0))))
-//        {
-//            cascadeHit = i;
-//            break;
-//        }
-//    }
-//
-//    bool inActiveFrustum = insideFrustumClip_MinusOneToOne(u_DebugVP, v_FragPos);
-//
-//    // If the fragment is inside the ACTIVE camera's frustum, colour it:
-//    //  - Blue   if it's also inside any shadow map cascade
-//    //  - Purple if it's NOT inside a shadow map cascade
-//    if (inActiveFrustum)
-//    {
-//        if (cascadeHit >= 0) {
-//            FragColor = vec4(0.0, 0.0, 1.0, 1.0);   // blue
-//        } else {
-//            FragColor = vec4(1.0, 0.0, 1.0, 1.0);   // purple
-//        }
-//        return;
-//    }
-//
-//    int bestCascade = -1;
-//
-//    for (int i = 0; i < u_NumCascades; ++i)
-//    {
-//        vec4 lightSpacePos = u_LightSpaceMatrices[i] * vec4(v_FragPos, 1.0);
-//        vec3 projCoords = lightSpacePos.xyz / lightSpacePos.w * 0.5 + 0.5;
-//
-//        if (all(greaterThanEqual(projCoords, vec3(0.0))) &&
-//            all(lessThanEqual (projCoords, vec3(1.0))))
-//        {
-//            bestCascade = i;
-//            break;
-//        }
-//    }
-//
-//    if (bestCascade >= 0)
-//    {
-//        // Map 0->green, 1->yellow, 2->red (extra cascades: clamp to red)
-//        vec3 debugCol =
-//              (bestCascade == 0) ? vec3(0.0, 1.0, 0.0) :
-//              (bestCascade == 1) ? vec3(1.0, 1.0, 0.0) :
-//                                   vec3(1.0, 0.0, 0.0);
-//
-//        FragColor = vec4(debugCol, 1.0);
-//        return;
-//    }
-//    // Debug visual ends
-
     // Albedo + alpha
     vec4 albedoTex;
 

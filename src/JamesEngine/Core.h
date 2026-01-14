@@ -193,6 +193,8 @@ namespace JamesEngine
 
 		float mTimeScale = 1.f;
 
+		int mEntityIdCounter = 0;
+
 		// Used when loading scenes to ensure first frames don't have a large delta time
 		bool mDeltaTimeZero = true;
 		int mDeltaTimeZeroCounter = 0;

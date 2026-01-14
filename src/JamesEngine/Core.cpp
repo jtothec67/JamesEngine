@@ -277,6 +277,8 @@ namespace JamesEngine
 		rtn->AddComponent<Transform>();
 		rtn->mSelf = rtn;
 		rtn->mCore = mSelf;
+		rtn->mId = mEntityIdCounter;
+		mEntityIdCounter++;
 
 		mEntities.push_back(rtn);
 

@@ -258,32 +258,11 @@ namespace JamesEngine
 
 		glm::mat4 model = entityModel * offsetMatrix;
 
-		// Currently does nothing
+		// Submit model to scene renderer for rendering
 		if (!mShadowModel)
-			GetCore()->GetSceneRenderer()->AddModel(mModel, model); // Upload model with normal shadow
+			GetCore()->GetSceneRenderer()->AddModel(GetEntity()->GetId(), mModel, model); // Upload model with normal shadow
 		else
-			GetCore()->GetSceneRenderer()->AddModel(mModel, model, { ShadowMode::Proxy, mShadowModel }); // Upload model with proxy shadow
-
-		//mShader->mShader->uniform("u_Model", model);
-
-		//// No embedded textures, model is not glTF, upload our own PBR values
-		//if (mModel->mModel->GetEmbeddedTextures().empty())
-		//{
-		//	mShader->mShader->uniform("u_BaseColorFactor", 1.f);
-		//	mShader->mShader->uniform("u_MetallicFactor", 1.f);
-		//	mShader->mShader->uniform("u_RoughnessFactor", 1.f);
-
-		//	mShader->mShader->uniform("u_AlbedoFallback", mBaseColorStrength);
-		//	mShader->mShader->uniform("u_MetallicFallback", mMetallicness);
-		//	mShader->mShader->uniform("u_RoughnessFallback", mRoughness);
-		//	mShader->mShader->uniform("u_AOFallback", mAOStrength);
-		//	mShader->mShader->uniform("u_EmissiveFallback", mEmmisive);
-		//}
-
-		//mShader->mShader->uniform("u_SpecStrength", mSpecularStrength);
-
-		//// Call the updated draw function with support for multi-materials
-		//mShader->mShader->draw(mModel->mModel.get(), mRawTextures);
+			GetCore()->GetSceneRenderer()->AddModel(GetEntity()->GetId(), mModel, model, { ShadowMode::Proxy, mShadowModel }); // Upload model with proxy shadow
 	}
 
 	void ModelRenderer::OnShadowRender(const glm::mat4& _lightSpaceMatrix)

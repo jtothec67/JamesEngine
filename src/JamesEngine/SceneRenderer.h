@@ -21,20 +21,23 @@ namespace JamesEngine
 		std::shared_ptr<Model> proxy = nullptr; // Used only if mode == Proxy
 	};
 
-	struct SubmissionInfo
-	{
-		std::shared_ptr<Model> model;
-		glm::mat4 transform;
-
-		ShadowMode shadowMode = ShadowMode::Default;
-		std::shared_ptr<Model> shadowModel = nullptr;
-	};
-
 	struct MaterialRenderInfo
 	{
 		Renderer::Model::MaterialGroup& materialGroup;
 		std::shared_ptr<Model> model; // Reference to the model to get the embedded textures
 		glm::mat4 transform; // Model transform
+
+		uint64_t occlusionKey = 0; // Unique key for occlusion queries
+	};
+
+	struct OcclusionInfo
+	{
+		GLuint queryIds[2];
+		bool visible = true;
+		bool hasResult = false;
+
+		uint64_t lastFrameTested = 0;
+		uint64_t lastFrameSubmitted = 0;
 	};
 
 	class SceneRenderer
@@ -45,7 +48,7 @@ namespace JamesEngine
 
 		void RenderScene();
 
-		void AddModel(std::shared_ptr<Model> _model, const glm::mat4& _transform = glm::mat4(1.0f), const ShadowOverride& _shadow = {});
+		void AddModel(int _entityId, std::shared_ptr<Model> _model, const glm::mat4& _transform = glm::mat4(1.0f), const ShadowOverride& _shadow = {});
 
 		void SetSSAORadius(float _radius) { mSSAORadius = _radius; }
 		void SetSSAOBias(float _bias) { mSSAOBias = _bias; }
@@ -62,11 +65,13 @@ namespace JamesEngine
 			const std::vector<MaterialRenderInfo>& _materials,
 			const glm::mat4& _view,
 			const glm::mat4& _proj);
+
 		enum class DepthSortMode
 		{
 			FrontToBack,   // opaque
 			BackToFront    // transparent
 		};
+
 		std::vector<MaterialRenderInfo> FrustumCulledDistanceSortedMaterials(
 			const std::vector<MaterialRenderInfo>& _materials,
 			const glm::mat4& _view,
@@ -74,15 +79,13 @@ namespace JamesEngine
 			const glm::vec3& _posWS,
 			DepthSortMode _mode);
 
-		std::vector<SubmissionInfo> mSubmissions;
-
 		std::weak_ptr<Core> mCore;
 
 		std::vector<MaterialRenderInfo> mOpaqueMaterials;
 		std::vector<MaterialRenderInfo> mTransparentMaterials;
 		std::vector<MaterialRenderInfo> mShadowMaterials;
 
-		bool mDoDepthPrePass = true;
+		std::unordered_map<uint64_t, OcclusionInfo> mOcclusionCache;
 
 		// Fallback PBR values
 		glm::vec4 mBaseColorStrength{ 1.f };
@@ -103,6 +106,7 @@ namespace JamesEngine
 		std::shared_ptr<Shader> mUpsampleAdd;
 		std::shared_ptr<Shader> mCompositeShader;
 		std::shared_ptr<Shader> mToneMapShader;
+		std::shared_ptr<Shader> mOcclusionBoxShader;
 
 		// Textures
 		std::shared_ptr<Renderer::RenderTexture> mShadingPass;
@@ -117,10 +121,12 @@ namespace JamesEngine
 		std::shared_ptr<Renderer::RenderTexture> mBloomIntermediate;
 		std::shared_ptr<Renderer::RenderTexture> mBloom;
 		std::shared_ptr<Renderer::RenderTexture> mCompositeScene;
-		std::shared_ptr<Renderer::RenderTexture> mToneMappedScene;
 
 		// Quad mesh for full-screen passes
 		std::shared_ptr<Renderer::Mesh> mRect = std::make_shared<Renderer::Mesh>();
+
+		// Cube mesh for occlusion queries
+		std::shared_ptr<Renderer::Mesh> mCube = std::make_shared<Renderer::Mesh>();
 
 		// Bloom settings
 		bool mBloomEnabled = true;
@@ -153,6 +159,8 @@ namespace JamesEngine
 
 		// Tone mapping settings
 		float mExposure = 1.f;
+
+		uint64_t mFrameIndex = 0;
 
 		// Misc
 		glm::ivec2 mLastViewportSize{ 1,1 };

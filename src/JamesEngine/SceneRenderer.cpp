@@ -27,6 +27,7 @@ namespace JamesEngine
 		mUpsampleAdd = mCore.lock()->GetResources()->Load<Shader>("shaders/BloomUpsampleAdd");
 		mCompositeShader = mCore.lock()->GetResources()->Load<Shader>("shaders/CompositeShader");
 		mToneMapShader = mCore.lock()->GetResources()->Load<Shader>("shaders/ToneMap");
+		mOcclusionBoxShader = mCore.lock()->GetResources()->Load<Shader>("shaders/OcclusionBoxShader");
 
 		// Size of 1,1 just to initialize
 		mShadingPass = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::ColourAndDepth);
@@ -47,7 +48,6 @@ namespace JamesEngine
 		mBloomIntermediate = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::Colour);
 		mBloom = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::Colour);
 		mCompositeScene = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::Colour);
-		mToneMappedScene = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::Colour);
 
 		Renderer::Face face;
 		face.a.m_position = glm::vec3(1.0f, 0.0f, 0.0f);
@@ -66,11 +66,84 @@ namespace JamesEngine
 		face2.b.m_texcoords = glm::vec2(1.0f, 1.0f);
 		face2.c.m_texcoords = glm::vec2(0.0f, 1.0f);
 		mRect->add(face2);
+
+		// Helper lambda to add a triangle
+		auto AddCubeFace = [&](const glm::vec3& a,
+			const glm::vec3& b,
+			const glm::vec3& c)
+			{
+				Renderer::Face face;
+				face.a.m_position = a;
+				face.b.m_position = b;
+				face.c.m_position = c;
+
+				// Texcoords not used for occlusion
+				face.a.m_texcoords = glm::vec2(0.0f);
+				face.b.m_texcoords = glm::vec2(0.0f);
+				face.c.m_texcoords = glm::vec2(0.0f);
+
+				mCube->add(face);
+			};
+
+		glm::vec3 p000(-1.0f, -1.0f, -1.0f);
+		glm::vec3 p001(-1.0f, -1.0f, 1.0f);
+		glm::vec3 p010(-1.0f, 1.0f, -1.0f);
+		glm::vec3 p011(-1.0f, 1.0f, 1.0f);
+		glm::vec3 p100(1.0f, -1.0f, -1.0f);
+		glm::vec3 p101(1.0f, -1.0f, 1.0f);
+		glm::vec3 p110(1.0f, 1.0f, -1.0f);
+		glm::vec3 p111(1.0f, 1.0f, 1.0f);
+
+		// -X face
+		AddCubeFace(p000, p010, p011);
+		AddCubeFace(p000, p011, p001);
+
+		// +X face
+		AddCubeFace(p100, p101, p111);
+		AddCubeFace(p100, p111, p110);
+
+		// -Y face
+		AddCubeFace(p000, p001, p101);
+		AddCubeFace(p000, p101, p100);
+
+		// +Y face
+		AddCubeFace(p010, p110, p111);
+		AddCubeFace(p010, p111, p011);
+
+		// -Z face
+		AddCubeFace(p000, p100, p110);
+		AddCubeFace(p000, p110, p010);
+
+		// +Z face
+		AddCubeFace(p001, p011, p111);
+		AddCubeFace(p001, p111, p101);
 	}
 
 	void SceneRenderer::RenderScene()
 	{
 		//ScopedTimer timer("SceneRenderer::RenderScene");
+
+		mFrameIndex++;
+
+		const int writeQueryIndex = int(mFrameIndex & 1);
+		const int readQueryIndex = int((mFrameIndex + 1) & 1);
+
+		// Update visible/hasResult from the previous frame's queries (non-stalling)
+		for (auto& pair : mOcclusionCache)
+		{
+			OcclusionInfo& occlusionInfo = pair.second;
+
+			GLuint available = 0;
+			glGetQueryObjectuiv(occlusionInfo.queryIds[readQueryIndex], GL_QUERY_RESULT_AVAILABLE, &available);
+			if (!available)
+				continue; // do not stall; keep previous state
+
+			GLuint anySamplesPassed = 0;
+			glGetQueryObjectuiv(occlusionInfo.queryIds[readQueryIndex], GL_QUERY_RESULT, &anySamplesPassed);
+
+			occlusionInfo.visible = (anySamplesPassed != 0);
+			occlusionInfo.hasResult = true;
+		}
 
 		mObjShader->mShader->use();
 		mObjShader->mShader->uniform("u_ShadowBiasSlope", mShadowBiasSlope);
@@ -110,7 +183,6 @@ namespace JamesEngine
 			mBloomIntermediate->resize(winW, winH);
 			mBloom->resize(winW, winH);
 			mCompositeScene->resize(winW, winH);
-			mToneMappedScene->resize(winW, winH);
 
 			mLastViewportSize = glm::ivec2(winW, winH);
 		}
@@ -120,10 +192,6 @@ namespace JamesEngine
 		mObjShader->mShader->use();
 		mObjShader->mShader->uniform("u_Projection", camera->GetProjectionMatrix());
 		std::vector<std::shared_ptr<Camera>> cams;
-		core->FindComponents<Camera>(cams); // FOR DEBUGGING - can see the scene from one veiw while still processes it from another (I know the first camera is a free roam cam)
-		mObjShader->mShader->uniform("u_View", cams.at(0)->GetViewMatrix());
-		mObjShader->mShader->uniform("u_ViewPos", cams.at(0)->GetPosition());
-		mObjShader->mShader->uniform("u_DebugVP", camera->GetProjectionMatrix() * camera->GetViewMatrix());
 		mObjShader->mShader->uniform("u_View", camera->GetViewMatrix());
 		mObjShader->mShader->uniform("u_ViewPos", camera->GetPosition());
 		mObjShader->mShader->unuse();
@@ -364,19 +432,18 @@ namespace JamesEngine
 
 		window->ResetGLModes();
 
-		// Build a copy sorted by distance (closest -> furthest)
 		const glm::mat4 camView = camera->GetViewMatrix();
 		const glm::mat4 camProj = camera->GetProjectionMatrix();
 		const glm::vec3 camPos = camera->GetPosition();
 		const glm::mat4 VP = camProj * camView;
 
 
-		std::vector<MaterialRenderInfo> distanceSortedOpaqueMaterials = FrustumCulledMaterials(
+		std::vector<MaterialRenderInfo> frustumCulledOpaqueMaterials = FrustumCulledMaterials(
 			mOpaqueMaterials,
 			camView,
 			camProj);
 
-		std::vector<MaterialRenderInfo> distanceSortedTransparentMaterials = FrustumCulledMaterials(
+		std::vector<MaterialRenderInfo> frustumCulledTransparentMaterials = FrustumCulledMaterials(
 			mTransparentMaterials,
 			camView,
 			camProj);
@@ -402,8 +469,8 @@ namespace JamesEngine
 		glDisable(GL_MULTISAMPLE);
 		glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
 
-		// OPAQUES (front-to-back already)
-		for (const auto& opaqueMaterial : distanceSortedOpaqueMaterials)
+		// OPAQUES
+		for (const auto& opaqueMaterial : frustumCulledOpaqueMaterials)
 		{
 			const auto& pbr = opaqueMaterial.materialGroup.pbr;
 			GLboolean prevCullEnabled = glIsEnabled(GL_CULL_FACE);
@@ -448,7 +515,7 @@ namespace JamesEngine
 		glEnable(GL_BLEND);
 		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
-		for (const auto& transparentMaterial : distanceSortedTransparentMaterials)
+		for (const auto& transparentMaterial : frustumCulledTransparentMaterials)
 		{
 			const auto& pbr = transparentMaterial.materialGroup.pbr;
 
@@ -476,9 +543,44 @@ namespace JamesEngine
 			if (prevCullEnabled) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
 		}
 
+		glDisable(GL_BLEND);
+
+		glDepthMask(GL_FALSE); // Disable depth writes for occlusion testing
+		glDisable(GL_CULL_FACE);
+
+		// Issue occlusion queries using the depth we just wrote
+		mOcclusionBoxShader->mShader->use();
+		mOcclusionBoxShader->mShader->uniform("u_View", camView);
+		mOcclusionBoxShader->mShader->uniform("u_Projection", camProj);
+
+		for (const MaterialRenderInfo& material : frustumCulledOpaqueMaterials)
+		{
+			auto cacheIterator = mOcclusionCache.find(material.occlusionKey);
+			OcclusionInfo& occlusionInfo = cacheIterator->second;
+
+			if (mFrameIndex - occlusionInfo.lastFrameTested < 5) // Number must be odd, to do with double-buffered queries
+				continue; // Recently tested
+
+			if (cacheIterator == mOcclusionCache.end())
+				continue; // Should not happen
+
+			// Set transforms + bounds (model-space)
+			mOcclusionBoxShader->mShader->uniform("u_Model", material.transform);
+			mOcclusionBoxShader->mShader->uniform("u_BoundsCenterMS", material.materialGroup.boundsCenterMS);
+			mOcclusionBoxShader->mShader->uniform("u_BoundsHalfExtentsMS", material.materialGroup.boundsHalfExtentsMS);
+
+			glBeginQuery(GL_ANY_SAMPLES_PASSED_CONSERVATIVE, occlusionInfo.queryIds[writeQueryIndex]);
+			mOcclusionBoxShader->mShader->draw(mCube.get());
+			glEndQuery(GL_ANY_SAMPLES_PASSED_CONSERVATIVE);
+			occlusionInfo.hasResult = false;
+			occlusionInfo.lastFrameTested = mFrameIndex;
+		}
+
+		mOcclusionBoxShader->mShader->unuse();
+
 		mShadingPass->unbind();
 
-		glDisable(GL_BLEND);
+		glEnable(GL_CULL_FACE);
 
 		// Restore color writes
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -557,9 +659,22 @@ namespace JamesEngine
 		mObjShader->mShader->uniform("u_AOFallback", mAOFallback);
 		mObjShader->mShader->uniform("u_EmissiveFallback", mEmmisive);
 
+		int materialCount = 0;
 		// SHADING PASS
-		for (const auto& opaqueMaterial : distanceSortedOpaqueMaterials)
+		for (const auto& opaqueMaterial : frustumCulledOpaqueMaterials)
 		{
+			auto cacheIterator = mOcclusionCache.find(opaqueMaterial.occlusionKey);
+			if (cacheIterator != mOcclusionCache.end())
+			{
+				const OcclusionInfo& occlusionInfo = cacheIterator->second;
+
+				// If we have a valid previous result and it was occluded, skip drawing
+				if (occlusionInfo.hasResult && !occlusionInfo.visible)
+					continue;
+			}
+
+			materialCount++;
+
 			std::shared_ptr<Model> modelToRender = opaqueMaterial.model;
 
 			const auto& pbr = opaqueMaterial.materialGroup.pbr;
@@ -658,11 +773,13 @@ namespace JamesEngine
 			mObjShader->mShader->draw(opaqueMaterial.materialGroup.vao, vertCount);
 		}
 
+		//std::cout << "Rendered Opaque Materials: " << materialCount << std::endl;
+
 		glEnable(GL_BLEND);
 		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
 		// THEN RENDER TRANSPARENT MATERIALS
-		for (const auto& transparentMaterial : distanceSortedTransparentMaterials)
+		for (const auto& transparentMaterial : frustumCulledTransparentMaterials)
 		{
 			std::shared_ptr<Model> modelToRender = transparentMaterial.model;
 
@@ -911,70 +1028,69 @@ namespace JamesEngine
 		mCompositeShader->mShader->unuse();
 		mCompositeScene->unbind();
 
-
-		mToneMappedScene->clear();
-		//mToneMappedScene->bind(); // Drawing straight to screen
-		glViewport(0, 0, mToneMappedScene->getWidth(), mToneMappedScene->getHeight());
+		glViewport(0, 0, winW, winH);
 		mToneMapShader->mShader->use();
 		mToneMapShader->mShader->uniform("u_HDRScene", mCompositeScene, 29);
 		mToneMapShader->mShader->uniform("u_Exposure", mExposure);
 		mToneMapShader->mShader->draw(mRect.get());
 		mToneMapShader->mShader->unuse();
-		mToneMappedScene->unbind();
 
 		window->ResetGLModes();
 
 		ClearScene();
 	}
 
-	void SceneRenderer::AddModel(std::shared_ptr<Model> _model, const glm::mat4& _transform, const ShadowOverride& _shadow)
+	void SceneRenderer::AddModel(int _entityId, std::shared_ptr<Model> _model, const glm::mat4& _transform, const ShadowOverride& _shadow)
 	{
-		SubmissionInfo info;
-		info.model = _model;
-		info.transform = _transform;
-		info.shadowMode = _shadow.mode;
-		info.shadowModel = _shadow.proxy;
-
-		if (info.shadowMode == ShadowMode::Proxy && !info.shadowModel)
-			info.shadowMode = ShadowMode::Default; // User said to use proxy but didn't provide one, fallback to default
-
-		mSubmissions.push_back(info);
-
 		auto opaque = Renderer::Model::PBRMaterial::AlphaMode::AlphaOpaque;
 		auto mask = Renderer::Model::PBRMaterial::AlphaMode::AlphaMask;
 		auto blend = Renderer::Model::PBRMaterial::AlphaMode::AlphaBlend;
 
+		uint32_t materialGroupIndex = 0; // For occlusion hash
 		for (const auto& materialGroup : _model->mModel->GetMaterialGroups())
 		{
+			materialGroupIndex++;
+
+			uint64_t occlusionKey = (uint64_t(_entityId) << 32) | uint64_t(materialGroupIndex);
+
 			const auto& pbr = materialGroup.pbr;
 
 			if (pbr.alphaMode == opaque || pbr.alphaMode == mask)
 			{
-				mOpaqueMaterials.push_back({ const_cast<Renderer::Model::MaterialGroup&>(materialGroup), _model, _transform });
+				mOpaqueMaterials.push_back({ const_cast<Renderer::Model::MaterialGroup&>(materialGroup), _model, _transform, occlusionKey });
 			}
 			else if (pbr.alphaMode == blend)
 			{
-				mTransparentMaterials.push_back({ const_cast<Renderer::Model::MaterialGroup&>(materialGroup), _model, _transform });
+				mTransparentMaterials.push_back({ const_cast<Renderer::Model::MaterialGroup&>(materialGroup), _model, _transform, occlusionKey });
 			}
 
-			if (info.shadowMode != ShadowMode::Proxy)
+			auto [iterator, inserted] = mOcclusionCache.try_emplace(occlusionKey, OcclusionInfo{}); // Adds if not already there
+			OcclusionInfo& occlusionInfo = iterator->second;
+
+			if (inserted)
 			{
-				mShadowMaterials.push_back({ const_cast<Renderer::Model::MaterialGroup&>(materialGroup), _model, _transform });
+				glGenQueries(2, occlusionInfo.queryIds);
+			}
+
+			occlusionInfo.lastFrameSubmitted = mFrameIndex;
+
+			if (_shadow.mode != ShadowMode::Proxy)
+			{
+				mShadowMaterials.push_back({ const_cast<Renderer::Model::MaterialGroup&>(materialGroup), _model, _transform, occlusionKey });
 			}
 		}
 
-		if (info.shadowMode == ShadowMode::Proxy)
+		if (_shadow.mode == ShadowMode::Proxy)
 		{
-			for (const auto& materialGroup : info.shadowModel->mModel->GetMaterialGroups())
+			for (const auto& materialGroup : _shadow.proxy->mModel->GetMaterialGroups())
 			{
-				mShadowMaterials.push_back({ const_cast<Renderer::Model::MaterialGroup&>(materialGroup), info.shadowModel, _transform });
+				mShadowMaterials.push_back({ const_cast<Renderer::Model::MaterialGroup&>(materialGroup), _shadow.proxy, _transform });
 			}
 		}
 	}
 
 	void SceneRenderer::ClearScene()
 	{
-		mSubmissions.clear();
 		mOpaqueMaterials.clear();
 		mTransparentMaterials.clear();
 		mShadowMaterials.clear();
