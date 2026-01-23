@@ -29,7 +29,7 @@ namespace Renderer
 			m_data.push_back(data[i]);
 		}
 
-		free(data);
+		stbi_image_free(data);
 
 		skybox = false;
 		m_path = _path;
@@ -112,30 +112,40 @@ namespace Renderer
 				int width, height, channels;
 				for (unsigned int i = 0; i < m_syboxFaces.size(); i++)
 				{
-					unsigned char* data = stbi_load(m_syboxFaces[i].c_str(), &width, &height, &channels, 4);
+					float* data = stbi_loadf(m_syboxFaces[i].c_str(), &width, &height, &channels, 0);
 
-					if (data)
-					{
-						std::vector<unsigned char> skyboxFaceData;
-
-						skyboxFaceData.reserve(width * height * 4);
-						for (size_t j = 0; j < width * height * 4; ++j)
-						{
-							skyboxFaceData.push_back(data[j]);
-						}
-
-						glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_SRGB8_ALPHA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &skyboxFaceData.at(0));
-						stbi_image_free(data);
-					}
-					else
+					if (!data)
 					{
 						std::cout << "Failed to load skybox faces starting at: " << m_syboxFaces[i] << std::endl;
 
-						throw std::exception();
 						stbi_image_free(data);
+						throw std::exception();
 					}
 
-					m_dirty = false;
+					GLenum srcFormat = GL_RGB;
+					GLenum internalFormat = GL_RGB16F;
+
+					if (channels == 4)
+					{
+						srcFormat = GL_RGBA;
+						internalFormat = GL_RGBA16F;
+					}
+					else if (channels == 3)
+					{
+						srcFormat = GL_RGB;
+						internalFormat = GL_RGB16F;
+					}
+					else
+					{
+						std::cout << "Unexpected HDR channel count (" << channels << ") in: " << m_syboxFaces[i] << std::endl;
+
+						stbi_image_free(data);
+						throw std::exception();
+					}
+
+					glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, internalFormat, width, height, 0, srcFormat, GL_FLOAT, data);
+
+					stbi_image_free(data);
 				}
 
 				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);

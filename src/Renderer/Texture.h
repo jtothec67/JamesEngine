@@ -35,9 +35,10 @@ namespace Renderer
 		int m_channels = 4;
 
 		std::string m_path = "";
-
 		std::vector<unsigned char> m_data;
+
 		std::vector<std::string> m_syboxFaces;
+		std::vector<float> m_hdrData;
 	};
 
 }

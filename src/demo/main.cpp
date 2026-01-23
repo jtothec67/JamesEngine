@@ -1305,7 +1305,7 @@ int main()
 		rearSuspensionParams.rideHeight = 0.072f;
 
 
-		core->GetSkybox()->SetTexture(core->GetResources()->Load<SkyboxTexture>("skyboxes/sky"));
+		core->GetSkybox()->SetTexture(core->GetResources()->Load<SkyboxTexture>("skyboxes/HDRsky"));
 
 		core->GetLightManager()->SetDirectionalLightDirection(glm::vec3(0.5f, -1.0f, 0.5f));
 		core->GetLightManager()->SetupDefault3Cascades();

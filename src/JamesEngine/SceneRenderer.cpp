@@ -472,6 +472,16 @@ namespace JamesEngine
 		// OPAQUES
 		for (const auto& opaqueMaterial : frustumCulledOpaqueMaterials)
 		{
+			auto occlusionIterator = mOcclusionCache.find(opaqueMaterial.occlusionKey);
+			if (occlusionIterator != mOcclusionCache.end())
+			{
+				const OcclusionInfo& occlusionInfo = occlusionIterator->second;
+
+				// Skip writing depth only if we are confident it is occluded
+				if (occlusionInfo.hasResult && !occlusionInfo.visible)
+					continue;
+			}
+
 			const auto& pbr = opaqueMaterial.materialGroup.pbr;
 			GLboolean prevCullEnabled = glIsEnabled(GL_CULL_FACE);
 			if (pbr.doubleSided) glDisable(GL_CULL_FACE);
