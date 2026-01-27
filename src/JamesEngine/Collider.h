@@ -3,7 +3,7 @@
 #include "Component.h"
 #include "RaycastSystem.h"
 
-#ifdef _DEBUG
+#ifdef JAMES_DEBUG
 #include "Renderer/Shader.h"
 #endif
 
@@ -14,7 +14,7 @@ namespace JamesEngine
 	class Collider : public Component
 	{
 	public:
-#ifdef _DEBUG
+#ifdef JAMES_DEBUG
 		virtual void OnGUI() {}
 #endif
 
@@ -29,8 +29,6 @@ namespace JamesEngine
 		void SetRotationOffset(glm::vec3 _rotation) { mRotationOffset = _rotation; }
 		glm::vec3 GetRotationOffset() { return mRotationOffset; }
 
-		void SetDebugVisual(bool _value) { mDebugVisual = _value; }
-
 		void IsTrigger(bool _value) { mIsTrigger = _value; }
 		bool IsTrigger() { return mIsTrigger; }
 
@@ -43,9 +41,7 @@ namespace JamesEngine
 
 		bool mIsTrigger = false;
 
-		bool mDebugVisual = true;
-
-#ifdef _DEBUG
+#ifdef JAMES_DEBUG
 		std::shared_ptr<Renderer::Shader> mShader = std::make_shared<Renderer::Shader>("../assets/shaders/OutlineShader.vert", "../assets/shaders/OutlineShader.frag");
 #endif
 	};

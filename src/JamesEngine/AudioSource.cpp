@@ -5,7 +5,7 @@
 #include "Core.h"
 #include "Camera.h"
 
-#ifdef _DEBUG
+#ifdef JAMES_DEBUG
 
 #include <glm/glm.hpp>
 #include <glm/ext/matrix_transform.hpp>
@@ -54,10 +54,15 @@ namespace JamesEngine
 			Play();
 	}
 
-#ifdef _DEBUG
-	void AudioSource::OnRender()
+#ifdef JAMES_DEBUG
+	void AudioSource::OnGUI()
 	{
+		if (!GetCore()->GetAudioSourceDebugVisuals())
+			return;
+
 		std::shared_ptr<Camera> camera = GetEntity()->GetCore()->GetCamera();
+
+		mShader->use();
 
 		mShader->uniform("projection", camera->GetProjectionMatrix());
 

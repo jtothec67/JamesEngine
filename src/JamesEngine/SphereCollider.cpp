@@ -5,7 +5,7 @@
 #include "ModelCollider.h"
 #include "MathsHelper.h"
 
-#ifdef _DEBUG
+#ifdef JAMES_DEBUG
 #include "Camera.h"
 #include "Entity.h"
 
@@ -20,11 +20,13 @@
 namespace JamesEngine
 {
 
-#ifdef _DEBUG
+#ifdef JAMES_DEBUG
 	void SphereCollider::OnGUI()
 	{
-		if (!mDebugVisual)
+		if (!GetCore()->GetColliderDebugVisuals())
 			return;
+
+		mShader->use();
 
 		std::shared_ptr<Camera> camera = GetEntity()->GetCore()->GetCamera();
 
@@ -46,11 +48,7 @@ namespace JamesEngine
 
 		mShader->uniform("outlineColor", glm::vec3(0, 1, 0));
 
-		glDisable(GL_DEPTH_TEST);
-
 		mShader->drawOutline(mModel.get());
-
-		glEnable(GL_DEPTH_TEST);
 	}
 #endif
 

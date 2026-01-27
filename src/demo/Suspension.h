@@ -25,7 +25,7 @@ namespace JamesEngine
 	class Suspension : public Component
 	{
 	public:
-#ifdef _DEBUG
+#ifdef JAMES_DEBUG
 		void OnGUI();
 #endif
 
@@ -48,8 +48,6 @@ namespace JamesEngine
 		void SetSteeringAngle(float _steeringAngle) { mSteeringAngle = _steeringAngle; }
 
 		void SetTireRadius(float _wheelRadius) { mTireRadius = _wheelRadius; }
-
-		void SetDebugVisual(bool _value) { mDebugVisual = _value; }
 
 		glm::vec3 GetContactPoint() { return mContactPoint; }
 
@@ -82,9 +80,7 @@ namespace JamesEngine
 
 		float mSteeringAngle = 0.0f;
 
-		bool mDebugVisual = true;
-
-#ifdef _DEBUG
+#ifdef JAMES_DEBUG
 		std::shared_ptr<Renderer::Shader> mShader = std::make_shared<Renderer::Shader>("../assets/shaders/OutlineShader.vert", "../assets/shaders/OutlineShader.frag");
 		std::shared_ptr<Renderer::Model> mModel = std::make_shared<Renderer::Model>("../assets/shapes/capsule.obj");
 #endif

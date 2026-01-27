@@ -3,7 +3,7 @@
 #include "Component.h"
 #include "Sound.h"
 
-#ifdef _DEBUG
+#ifdef JAMES_DEBUG
 
 #include "Renderer/Model.h"
 #include "Renderer/Shader.h"
@@ -23,8 +23,8 @@ namespace JamesEngine
 		void OnDestroy();
 		void OnTick();
 
-#ifdef _DEBUG
-		void OnRender();
+#ifdef JAMES_DEBUG
+		void OnGUI();
 #endif
 
 		void SetSound(std::shared_ptr<Sound> _sound) { mSound = _sound; alSourcei(mSourceId, AL_BUFFER, mSound->mBufferId); }
@@ -62,7 +62,7 @@ namespace JamesEngine
 		float mMinimumDistance = 2.5f;
 		float mRollOffFactor = 1.f;
 
-#ifdef _DEBUG
+#ifdef JAMES_DEBUG
 
 		std::shared_ptr<Renderer::Model> mModel = std::make_shared<Renderer::Model>("../assets/shapes/sphere.obj");
 		std::shared_ptr<Renderer::Shader> mShader = std::make_shared<Renderer::Shader>("../assets/shaders/OutlineShader.vert", "../assets/shaders/OutlineShader.frag");

@@ -159,6 +159,14 @@ namespace JamesEngine
 
 		glm::mat4& GetLightSpaceMatrix() { return mLightSpaceMatrix; }
 
+#ifdef JAMES_DEBUG
+		void SetAudioSourceDebugVisuals(bool _active) { mAudioSourceDebugVisuals = _active; }
+		bool GetAudioSourceDebugVisuals() const { return mAudioSourceDebugVisuals; }
+
+		void SetColliderDebugVisuals(bool _active) { mColliderDebugVisuals = _active; }
+		bool GetColliderDebugVisuals() const { return mColliderDebugVisuals; }
+#endif
+
 	private:
 		friend class SceneRenderer;
 
@@ -201,6 +209,11 @@ namespace JamesEngine
 		int mNumDeltaTimeZeros = 2;
 
 		glm::mat4 mLightSpaceMatrix;
+
+#ifdef JAMES_DEBUG
+		bool mAudioSourceDebugVisuals = false;
+		bool mColliderDebugVisuals = false;
+#endif
 	};
 
 }

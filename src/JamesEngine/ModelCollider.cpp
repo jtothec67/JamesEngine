@@ -10,7 +10,7 @@
 #include <algorithm>
 #include <iomanip>
 
-#ifdef _DEBUG
+#ifdef JAMES_DEBUG
 #include "Camera.h"
 #include "Entity.h"
 #include "Transform.h"
@@ -26,10 +26,10 @@
 namespace JamesEngine
 {
 
-#ifdef _DEBUG
+#ifdef JAMES_DEBUG
     void ModelCollider::OnGUI()
     {
-        if (!mDebugVisual)
+        if (!GetCore()->GetColliderDebugVisuals())
             return;
 
         if (mModel == nullptr)
@@ -55,11 +55,7 @@ namespace JamesEngine
 
         mShader->uniform("outlineColor", glm::vec3(0, 1, 0));
 
-        glDisable(GL_DEPTH_TEST);
-
         mShader->drawOutline(mModel->mModel.get());
-
-        glEnable(GL_DEPTH_TEST);
     }
 #endif
 

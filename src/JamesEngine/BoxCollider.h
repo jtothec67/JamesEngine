@@ -2,7 +2,7 @@
 
 #include "Collider.h"
 
-#ifdef _DEBUG
+#ifdef JAMES_DEBUG
 #include "Renderer/Model.h"
 #endif
 
@@ -13,7 +13,7 @@ namespace JamesEngine
 	class BoxCollider : public Collider
 	{
 	public:
-#ifdef _DEBUG
+#ifdef JAMES_DEBUG
 		void OnGUI();
 #endif
 
@@ -28,7 +28,7 @@ namespace JamesEngine
 	private:
 		glm::vec3 mSize{ 1 };
 
-#ifdef _DEBUG
+#ifdef JAMES_DEBUG
 		std::shared_ptr<Renderer::Model> mModel = std::make_shared<Renderer::Model>("../assets/shapes/cube.obj");
 #endif
 	};

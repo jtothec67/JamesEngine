@@ -15,7 +15,7 @@ namespace JamesEngine
     class ModelCollider : public Collider
     {
     public:
-#ifdef _DEBUG
+#ifdef JAMES_DEBUG
         void OnGUI();
 #endif
 		void OnAlive();

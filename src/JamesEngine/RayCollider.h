@@ -2,7 +2,7 @@
 
 #include "Collider.h"
 
-#ifdef _DEBUG
+#ifdef JAMES_DEBUG
 #include "Renderer/Model.h"
 #endif
 
@@ -13,7 +13,7 @@ namespace JamesEngine
 	class RayCollider : public Collider
 	{
 	public:
-#ifdef _DEBUG
+#ifdef JAMES_DEBUG
 		void OnGUI();
 #endif
 
@@ -39,7 +39,7 @@ namespace JamesEngine
 		float mSteepnessThreshold = 0.5f;
 		float mMinPenetrationPercentage = 0.2f;
 
-#ifdef _DEBUG
+#ifdef JAMES_DEBUG
 		std::shared_ptr<Renderer::Model> mModel = std::make_shared<Renderer::Model>("../assets/shapes/cylinder.obj");
 #endif
 	};

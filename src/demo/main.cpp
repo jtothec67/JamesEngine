@@ -1221,6 +1221,11 @@ int main()
 	core->SetLoadingScreen(core->GetResources()->Load<Texture>("images/loading"));
 	core->SetTimeScale(1.f);
 
+#ifdef JAMES_DEBUG
+	core->SetAudioSourceDebugVisuals(false);
+	core->SetColliderDebugVisuals(false);
+#endif
+
 	// Scope to ensure the entities aren't being held in main if they're destroyed
 	{
 
@@ -1376,7 +1381,6 @@ int main()
 		trackMR->SetShadowModel(core->GetResources()->Load<Model>("models/Imola/ImolaShadow.glb"));
 		std::shared_ptr<ModelCollider> trackCollider = track->AddComponent<ModelCollider>();
 		trackCollider->SetModel(core->GetResources()->Load<Model>("models/Imola/ImolaCollision.glb"));
-		trackCollider->SetDebugVisual(false);
 
 		// Start/finish line
 		std::shared_ptr<Entity> startFinishLine = core->AddEntity();

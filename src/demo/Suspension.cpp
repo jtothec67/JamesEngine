@@ -1,6 +1,6 @@
 #include "Suspension.h"
 
-#ifdef _DEBUG
+#ifdef JAMES_DEBUG
 #include <glm/glm.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #endif
@@ -8,18 +8,20 @@
 namespace JamesEngine
 {
 
-#ifdef _DEBUG
+#ifdef JAMES_DEBUG
     void Suspension::OnGUI()
     {
-        if (!mDebugVisual)
+        if (!GetCore()->GetColliderDebugVisuals())
             return;
+
+        if (!mWheel || !mAnchorPoint)
+            return;
+
+        mShader->use();
 
         std::shared_ptr<Camera> camera = GetEntity()->GetCore()->GetCamera();
         mShader->uniform("projection", camera->GetProjectionMatrix());
         mShader->uniform("view", camera->GetViewMatrix());
-
-        if (!mWheel || !mAnchorPoint)
-            return;
 
         // Anchor basis and ray direction (cast along -Up)
         glm::vec3 anchorPos = mAnchorPoint->GetComponent<Transform>()->GetPosition();
@@ -68,8 +70,6 @@ namespace JamesEngine
         mShader->uniform("outlineWidth", 1.0f);
         mShader->uniform("outlineColor", glm::vec3(0, 1, 0));
 
-        glDisable(GL_DEPTH_TEST);
-
         // Draw all 5 capsules
         for (int i = 0; i < 5; ++i)
         {
@@ -86,8 +86,6 @@ namespace JamesEngine
             mShader->uniform("model", model);
             mShader->drawOutline(mModel.get()); // capsule mesh
         }
-
-        glEnable(GL_DEPTH_TEST);
     }
 #endif
 

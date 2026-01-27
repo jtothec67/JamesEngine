@@ -116,6 +116,11 @@ add_library(JamesEngine
 	src/JamesEngine/RaycastSystem.cpp
 )
 
+# Define JAMESJAMES_DEBUG only for RelWithDebInfo builds
+target_compile_definitions(JamesEngine PRIVATE
+	$<$<CONFIG:RelWithDebInfo>:JAMES_DEBUG=1>
+)
+
 target_link_libraries(JamesEngine Renderer openal32)
 
 add_library(Renderer
@@ -137,6 +142,10 @@ add_library(Renderer
 	src/Renderer/Model.h
 )
 
+target_compile_definitions(Renderer PRIVATE
+	$<$<CONFIG:RelWithDebInfo>:JAMES_DEBUG=1>
+)
+
 target_link_libraries(Renderer SDL2 OpenGL32 glew32 freetype)
 
 add_executable(demo
@@ -153,6 +162,10 @@ add_executable(demo
 
 	src/demo/Drivetrain.h
 	src/demo/Drivetrain.cpp
+)
+
+target_compile_definitions(demo PRIVATE
+	$<$<CONFIG:RelWithDebInfo>:JAMES_DEBUG=1>
 )
 
 option(HIDE_CONSOLE "Build without console window" OFF)
