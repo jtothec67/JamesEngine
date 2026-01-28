@@ -132,52 +132,6 @@ float safeRcp(float x)
     return 1.0 / max(abs(x), 1e-8);
 }
 
-float ComputeShadowPoissonPCF(sampler2D shadowMap, vec3 projCoords, float depth, float bias, int cascadeIndex)
-{
-    vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0));
-
-    // Scale so that the *world-space* blur size is similar across cascades
-    float texelScale = u_CascadeTexelScale[cascadeIndex];
-    vec2 filterStep  = texelSize * texelScale;
-
-    float shadow = 0.0;
-    float totalSamples = 0.0;
-
-    ivec2 screenCoord = ivec2(gl_FragCoord.xy);
-    float angle = fract(sin(dot(vec2(screenCoord), vec2(12.9898, 78.233))) * 43758.5453) * 6.2831;
-    mat2 rotation = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
-
-    int earlyShadowCount = 0;
-    for (int i = 0; i < 4; ++i)
-    {
-        vec2 offset = rotation * poissonDisk[i] * filterStep;
-        float sampleDepth = texture(shadowMap, projCoords.xy + offset).r;
-        if (depth - bias > sampleDepth) earlyShadowCount++;
-    }
-
-    if (earlyShadowCount == 0) return 0.0;
-    else if (earlyShadowCount == 4) return 1.0;
-
-    int lastFourUnshadowed = 0;
-    for (int i = 0; i < NUM_POISSON_SAMPLES; ++i)
-    {
-        vec2 offset = rotation * poissonDisk[i] * filterStep;
-        float sampleDepth = texture(shadowMap, projCoords.xy + offset).r;
-        float isShadowed = (depth - bias > sampleDepth) ? 1.0 : 0.0;
-
-        shadow += isShadowed;
-        totalSamples += 1.0;
-
-        if (isShadowed == 0.0) lastFourUnshadowed++;
-        else lastFourUnshadowed = 0;
-
-        if (i >= 4 && lastFourUnshadowed >= 4) break;
-    }
-
-    return shadow / totalSamples;
-}
-
-
 float ComputeShadowPCSS(sampler2D shadowMap, vec3 projCoords, float receiverDepth, float bias, int cascadeIndex)
 {
     float u_PCSS_SearchRadiusTexels = 6;

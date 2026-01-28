@@ -36,15 +36,6 @@ namespace JamesEngine
 		mAOIntermediate = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::PostProcessTarget);
 		mAOBlurred = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::PostProcessTarget);
 		mBrightPassScene = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::Colour);
-		mBloomDown.resize(mBloomLevels);
-		mBloomTemp.resize(mBloomLevels);
-		mBloomBlur.resize(mBloomLevels);
-		for (int i = 0; i < mBloomLevels; ++i)
-		{
-			mBloomDown[i] = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::Colour);
-			mBloomTemp[i] = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::Colour);
-			mBloomBlur[i] = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::Colour);
-		}
 		mBloomIntermediate = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::Colour);
 		mBloom = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::Colour);
 		mCompositeScene = std::make_shared<Renderer::RenderTexture>(1, 1, Renderer::RenderTextureType::Colour);
@@ -117,6 +108,57 @@ namespace JamesEngine
 		// +Z face
 		AddCubeFace(p001, p011, p111);
 		AddCubeFace(p001, p111, p101);
+
+
+		// Set initial default parameters
+		EnableSSAO(true);
+		SetSSAORadius(0.2f);
+		SetSSAOBias(0.06f);
+		SetSSAOPower(1.4f);
+		SetSSAOBlurScale(1.0f);
+
+		SetAOStrength(1.0f);
+		SetAOSpecularScale(1.0f);
+		SetAOMin(0.05f);
+
+		EnableBloom(true);
+		SetBloomThreshold(1.3f);
+		SetBloomStrength(1.f);
+		SetBloomKnee(0.65f);
+		SetBloomLevels(5);
+		SetBloomMinSize(16);
+
+		SetSoftShadowBase(1.f);
+		SetSoftShadowScale(10.f);
+		SetShadowBiasSlope(0.0022f);
+		SetShadowBiasMin(0.0020f);
+		SetShadowNormalOffsetScale(2.f);
+
+		SetExposure(1.0f);
+	}
+
+	void SceneRenderer::SetBloomLevels(int _levels) // Annoying
+	{
+		mBloomLevels = _levels;
+		mBloomDown.clear();
+		mBloomTemp.clear();
+		mBloomBlur.clear();
+		mBloomDown.resize(mBloomLevels);
+		mBloomTemp.resize(mBloomLevels);
+		mBloomBlur.resize(mBloomLevels);
+		int winW, winH;
+		mCore.lock()->GetWindow()->GetWindowSize(winW, winH);
+		int w = winW;
+		int h = winH;
+		for (int i = 0; i < mBloomLevels; ++i)
+		{
+			mBloomDown[i] = std::make_shared<Renderer::RenderTexture>(w, h, Renderer::RenderTextureType::Colour);
+			mBloomTemp[i] = std::make_shared<Renderer::RenderTexture>(w, h, Renderer::RenderTextureType::Colour);
+			mBloomBlur[i] = std::make_shared<Renderer::RenderTexture>(w, h, Renderer::RenderTextureType::Colour);
+
+			if (w <= mBloomMinSize || h <= mBloomMinSize)
+				break;
+		}
 	}
 
 	void SceneRenderer::RenderScene()
@@ -144,12 +186,6 @@ namespace JamesEngine
 			occlusionInfo.visible = (anySamplesPassed != 0);
 			occlusionInfo.hasResult = true;
 		}
-
-		mObjShader->mShader->use();
-		mObjShader->mShader->uniform("u_ShadowBiasSlope", mShadowBiasSlope);
-		mObjShader->mShader->uniform("u_ShadowBiasMin", mShadowBiasMin);
-		mObjShader->mShader->uniform("u_NormalOffsetScale", mNormalOffsetScale);
-		mObjShader->mShader->unuse();
 
 		auto core = mCore.lock();
 		auto window = core->GetWindow();
@@ -187,14 +223,24 @@ namespace JamesEngine
 			mLastViewportSize = glm::ivec2(winW, winH);
 		}
 
-		// Global uniforms
+		// Camera info
+		const glm::mat4 camView = camera->GetViewMatrix();
+		const glm::mat4 camProj = camera->GetProjectionMatrix();
+		const glm::vec3 camPos = camera->GetPosition();
+		const glm::mat4 VP = camProj * camView;
+		const glm::vec3 camFwd = -camera->GetEntity()->GetComponent<Transform>()->GetForward();
+		const glm::vec3 camUp = camera->GetEntity()->GetComponent<Transform>()->GetUp();
+		const glm::vec3 camRight = camera->GetEntity()->GetComponent<Transform>()->GetRight();
+		const float vfov = glm::radians(camera->GetFov());
+		const float aspect = (winH > 0) ? (static_cast<float>(winW) / static_cast<float>(winH)) : (16.0f / 9.0f);
+		const float camNear = camera->GetNearClip();
+		const float camFar = camera->GetFarClip();
 
+		// Global uniforms
 		mObjShader->mShader->use();
-		mObjShader->mShader->uniform("u_Projection", camera->GetProjectionMatrix());
-		std::vector<std::shared_ptr<Camera>> cams;
-		mObjShader->mShader->uniform("u_View", camera->GetViewMatrix());
-		mObjShader->mShader->uniform("u_ViewPos", camera->GetPosition());
-		mObjShader->mShader->unuse();
+		mObjShader->mShader->uniform("u_Projection", camProj);
+		mObjShader->mShader->uniform("u_View", camView);
+		mObjShader->mShader->uniform("u_ViewPos", camPos);
 
 		if (!core->mLightManager->GetShadowCascades().empty())
 		{
@@ -203,18 +249,6 @@ namespace JamesEngine
 			glDisable(GL_BLEND);
 			glDisable(GL_MULTISAMPLE);
 			glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-
-			// Camera info
-			const glm::vec3 camPos = camera->GetPosition();
-			const glm::vec3 camFwd = -camera->GetEntity()->GetComponent<Transform>()->GetForward();
-			const glm::vec3 camUp = camera->GetEntity()->GetComponent<Transform>()->GetUp();
-			const glm::vec3 camRight = camera->GetEntity()->GetComponent<Transform>()->GetRight();
-			const float vfov = glm::radians(camera->GetFov());
-			const float aspect = (winH > 0) ? (static_cast<float>(winW) / static_cast<float>(winH)) : (16.0f / 9.0f);
-			const float camNear = camera->GetNearClip();
-			const float camFar = camera->GetFarClip();
-			const glm::mat4 viewMat = camera->GetViewMatrix();
-			const glm::mat4 projMat = camera->GetProjectionMatrix();
 
 			const glm::vec3 lightDir = glm::normalize(core->mLightManager->GetDirectionalLightDirection());
 
@@ -241,7 +275,7 @@ namespace JamesEngine
 					farPlane
 				);
 
-				auto inv = glm::inverse(cascadeProj * viewMat);
+				auto inv = glm::inverse(cascadeProj * camView);
 
 				std::vector<glm::vec4> frustumCorners;
 				for (unsigned int x = 0; x < 2; ++x)
@@ -305,12 +339,10 @@ namespace JamesEngine
 				mDepthShader->mShader->use();
 				mDepthShader->mShader->uniform("u_View", lightView);
 				mDepthShader->mShader->uniform("u_Projection", lightProj);
-				mDepthShader->mShader->unuse();
 
 				mDepthAlphaShader->mShader->use();
 				mDepthAlphaShader->mShader->uniform("u_View", lightView);
 				mDepthAlphaShader->mShader->uniform("u_Projection", lightProj);
-				mDepthAlphaShader->mShader->unuse();
 
 				// Render this cascade
 				cascade.renderTexture->clear();
@@ -357,8 +389,6 @@ namespace JamesEngine
 						// Draw this material only
 						const GLsizei vertCount = static_cast<GLsizei>(materialGroup.faces.size() * 3);
 						mDepthAlphaShader->mShader->draw(materialGroup.vao, vertCount);
-
-						mDepthAlphaShader->mShader->unuse();
 					}
 					else
 					{
@@ -368,15 +398,11 @@ namespace JamesEngine
 
 						const GLsizei vertCount = static_cast<GLsizei>(materialGroup.faces.size() * 3);
 						mDepthShader->mShader->draw(materialGroup.vao, vertCount);
-
-						mDepthShader->mShader->unuse();
 					}
 
 					// Restore culling
 					if (prevCullEnabled) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
 				}
-
-				cascade.renderTexture->unbind();
 			}
 
 			window->ResetGLModes();
@@ -417,13 +443,11 @@ namespace JamesEngine
 			mObjShader->mShader->uniform("u_LightSpaceMatrices", shadowMatrices);
 			mObjShader->mShader->uniform("u_CascadeTexelScale", cascadeTexelScale);
 			mObjShader->mShader->uniform("u_CascadeWorldTexelSize", cascadeWorldTexelSize);
-			mObjShader->mShader->unuse();
 		}
 		else
 		{
 			mObjShader->mShader->use();
 			mObjShader->mShader->uniform("u_NumCascades", 0);
-			mObjShader->mShader->unuse();
 		}
 
 		// Prepare window for rendering
@@ -431,11 +455,6 @@ namespace JamesEngine
 		window->ClearWindow();
 
 		window->ResetGLModes();
-
-		const glm::mat4 camView = camera->GetViewMatrix();
-		const glm::mat4 camProj = camera->GetProjectionMatrix();
-		const glm::vec3 camPos = camera->GetPosition();
-		const glm::mat4 VP = camProj * camView;
 
 
 		std::vector<MaterialRenderInfo> frustumCulledOpaqueMaterials = FrustumCulledMaterials(
@@ -469,6 +488,14 @@ namespace JamesEngine
 		glDisable(GL_MULTISAMPLE);
 		glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
 
+		mDepthShader->mShader->use();
+		mDepthShader->mShader->uniform("u_View", camView);
+		mDepthShader->mShader->uniform("u_Projection", camProj);
+
+		mDepthAlphaShader->mShader->use();
+		mDepthAlphaShader->mShader->uniform("u_View", camView);
+		mDepthAlphaShader->mShader->uniform("u_Projection", camProj);
+
 		// OPAQUES
 		for (const auto& opaqueMaterial : frustumCulledOpaqueMaterials)
 		{
@@ -490,20 +517,14 @@ namespace JamesEngine
 			if (pbr.alphaMode == Renderer::Model::PBRMaterial::AlphaMode::AlphaOpaque)
 			{
 				mDepthShader->mShader->use();
-				// Reuse the same uniform name the depth shader expects
-				mDepthShader->mShader->uniform("u_View", camView);
-				mDepthShader->mShader->uniform("u_Projection", camProj);
 				mDepthShader->mShader->uniform("u_Model", opaqueMaterial.transform);
 
 				const GLsizei vertCount = static_cast<GLsizei>(opaqueMaterial.materialGroup.faces.size() * 3);
 				mDepthShader->mShader->draw(opaqueMaterial.materialGroup.vao, vertCount);
-				mDepthShader->mShader->unuse();
 			}
 			else
 			{
 				mDepthAlphaShader->mShader->use();
-				mDepthAlphaShader->mShader->uniform("u_View", camView);
-				mDepthAlphaShader->mShader->uniform("u_Projection", camProj);
 				mDepthAlphaShader->mShader->uniform("u_Model", opaqueMaterial.transform);
 				mDepthAlphaShader->mShader->uniform("u_AlphaCutoff", pbr.alphaCutoff);
 
@@ -516,7 +537,6 @@ namespace JamesEngine
 
 				const GLsizei vertCount = static_cast<GLsizei>(opaqueMaterial.materialGroup.faces.size() * 3);
 				mDepthAlphaShader->mShader->draw(opaqueMaterial.materialGroup.vao, vertCount);
-				mDepthAlphaShader->mShader->unuse();
 			}
 
 			if (prevCullEnabled) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
@@ -534,8 +554,6 @@ namespace JamesEngine
 			else glEnable(GL_CULL_FACE);
 
 			mDepthAlphaShader->mShader->use();
-			mDepthAlphaShader->mShader->uniform("u_View", camView);
-			mDepthAlphaShader->mShader->uniform("u_Projection", camProj);
 			mDepthAlphaShader->mShader->uniform("u_Model", transparentMaterial.transform);
 			mDepthAlphaShader->mShader->uniform("u_AlphaCutoff", pbr.alphaCutoff);
 
@@ -548,7 +566,6 @@ namespace JamesEngine
 
 			const GLsizei vertCount = static_cast<GLsizei>(transparentMaterial.materialGroup.faces.size() * 3);
 			mDepthAlphaShader->mShader->draw(transparentMaterial.materialGroup.vao, vertCount);
-			mDepthAlphaShader->mShader->unuse();
 
 			if (prevCullEnabled) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
 		}
@@ -586,10 +603,6 @@ namespace JamesEngine
 			occlusionInfo.lastFrameTested = mFrameIndex;
 		}
 
-		mOcclusionBoxShader->mShader->unuse();
-
-		mShadingPass->unbind();
-
 		glEnable(GL_CULL_FACE);
 
 		// Restore color writes
@@ -607,12 +620,7 @@ namespace JamesEngine
 			mSSAOShader->mShader->uniform("u_InvView", glm::inverse(camView));
 			mSSAOShader->mShader->uniform("u_InvProj", glm::inverse(camProj));
 			mSSAOShader->mShader->uniform("u_InvResolution", glm::vec2(1.0f / mShadingPass->getWidth(), 1.0f / mShadingPass->getHeight()));
-			mSSAOShader->mShader->uniform("u_Radius", mSSAORadius);
-			mSSAOShader->mShader->uniform("u_Bias", mSSAOBias);
-			mSSAOShader->mShader->uniform("u_Power", mSSAOPower);
 			mSSAOShader->mShader->draw(mRect.get());
-			mSSAOShader->mShader->unuse();
-			mAORaw->unbind();
 
 			// Blur AO - horizontal
 			mAOIntermediate->clear();
@@ -621,9 +629,8 @@ namespace JamesEngine
 			mScalarBlurShader->mShader->uniform("u_RawAO", mAORaw);
 			mScalarBlurShader->mShader->uniform("u_InvResolution", glm::vec2(1.0f / mAORaw->getWidth(), 1.0f / mAORaw->getHeight()));
 			mScalarBlurShader->mShader->uniform("u_Direction", glm::vec2(1, 0));
-			mScalarBlurShader->mShader->uniform("u_StepScale", mAOBlurScale);
+			mScalarBlurShader->mShader->uniform("u_StepScale", mSSAOBlurScale);
 			mScalarBlurShader->mShader->draw(mRect.get());
-			mAOIntermediate->unbind();
 
 			// Blur AO - vertical
 			mAOBlurred->clear();
@@ -632,7 +639,6 @@ namespace JamesEngine
 			mScalarBlurShader->mShader->uniform("u_RawAO", mAOIntermediate);
 			mScalarBlurShader->mShader->uniform("u_Direction", glm::vec2(0, 1));
 			mScalarBlurShader->mShader->draw(mRect.get());
-			mAOBlurred->unbind();
 		}
 
 
@@ -649,18 +655,11 @@ namespace JamesEngine
 		glDisable(GL_BLEND);
 
 		mObjShader->mShader->use();
-		mObjShader->mShader->uniform("u_UseSSAO", mSSAOEnabled);
 		if (mSSAOEnabled)
 		{
 			mObjShader->mShader->uniform("u_SSAO", mAOBlurred, 27);
-			mObjShader->mShader->uniform("u_AOStrength", mAOStrength);
-			mObjShader->mShader->uniform("u_AOSpecScale", mAOSpecScale);
-			mObjShader->mShader->uniform("u_AOMin", mAOMin);
 			mObjShader->mShader->uniform("u_InvColorResolution", glm::vec2(1.f / mShadingPass->getWidth(), 1.f / mShadingPass->getHeight()));
 		}
-
-		mObjShader->mShader->uniform("u_PCSSBase", mPCSSBase);
-		mObjShader->mShader->uniform("u_PCSSScale", mPCSSScale);
 
 		// Fallbacks
 		mObjShader->mShader->uniform("u_AlbedoFallback", mBaseColorStrength);
@@ -783,8 +782,6 @@ namespace JamesEngine
 			mObjShader->mShader->draw(opaqueMaterial.materialGroup.vao, vertCount);
 		}
 
-		//std::cout << "Rendered Opaque Materials: " << materialCount << std::endl;
-
 		glEnable(GL_BLEND);
 		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -889,10 +886,6 @@ namespace JamesEngine
 			mObjShader->mShader->draw(transparentMaterial.materialGroup.vao, vertCount);
 		}
 
-		mObjShader->mShader->unuse();
-
-		mShadingPass->unbind();
-
 		// States for post-process
 		glDisable(GL_DEPTH_TEST);
 		glDepthMask(GL_FALSE);
@@ -909,11 +902,7 @@ namespace JamesEngine
 			glViewport(0, 0, mBrightPassScene->getWidth(), mBrightPassScene->getHeight());
 			mBrightPassShader->mShader->use();
 			mBrightPassShader->mShader->uniform("u_Scene", mShadingPass, 29);
-			mBrightPassShader->mShader->uniform("u_BloomThreshold", mBloomThreshold);
-			mBrightPassShader->mShader->uniform("u_BloomKnee", mBloomKnee);
 			mBrightPassShader->mShader->draw(mRect.get());
-			mBrightPassShader->mShader->unuse();
-			mBrightPassScene->unbind();
 
 			// Downsample and blur bright pass
 			int usedLevels = 0;
@@ -931,8 +920,6 @@ namespace JamesEngine
 				mDownsample2x->mShader->use();
 				mDownsample2x->mShader->uniform("u_RawTexture", src, 29);
 				mDownsample2x->mShader->draw(mRect.get());
-				mDownsample2x->mShader->unuse();
-				down->unbind();
 
 				// Horizontal
 				temp->clear();
@@ -943,7 +930,6 @@ namespace JamesEngine
 				mVec3BlurShader->mShader->uniform("u_InvResolution", glm::vec2(1.0f / down->getWidth(), 1.0f / down->getHeight()));
 				mVec3BlurShader->mShader->uniform("u_Direction", glm::vec2(1, 0));
 				mVec3BlurShader->mShader->draw(mRect.get());
-				temp->unbind();
 
 				// Vertical
 				blur->clear();
@@ -953,7 +939,6 @@ namespace JamesEngine
 				mVec3BlurShader->mShader->uniform("u_Source", temp);
 				mVec3BlurShader->mShader->uniform("u_Direction", glm::vec2(0, 1));
 				mVec3BlurShader->mShader->draw(mRect.get());
-				blur->unbind();
 
 				src = blur;
 				usedLevels = i + 1;
@@ -989,8 +974,6 @@ namespace JamesEngine
 					mUpsampleAdd->mShader->uniform("u_HighRes", high, 24);
 					mUpsampleAdd->mShader->uniform("u_LowStrength", 1.0f);
 					mUpsampleAdd->mShader->draw(mRect.get());
-					mUpsampleAdd->mShader->unuse();
-					outRT->unbind();
 
 					accum = outRT;
 					writeToBloom = !writeToBloom;
@@ -1010,8 +993,6 @@ namespace JamesEngine
 					mUpsampleAdd->mShader->uniform("u_HighRes", accum, 24);
 					mUpsampleAdd->mShader->uniform("u_LowStrength", 0.0f); // Out = high
 					mUpsampleAdd->mShader->draw(mRect.get());
-					mUpsampleAdd->mShader->unuse();
-					mBloom->unbind();
 				}
 			}
 			else
@@ -1028,22 +1009,17 @@ namespace JamesEngine
 		glViewport(0, 0, mCompositeScene->getWidth(), mCompositeScene->getHeight());
 		mCompositeShader->mShader->use();
 		mCompositeShader->mShader->uniform("u_Scene", mShadingPass, 29);
-		mCompositeShader->mShader->uniform("u_UseBloom", mBloomEnabled);
 		if (mBloomEnabled)
 		{
 			mCompositeShader->mShader->uniform("u_Bloom", mBloom, 26); // Should find a way to not eyeball the texture unit
-			mCompositeShader->mShader->uniform("u_BloomStrength", mBloomStrength);
 		}
 		mCompositeShader->mShader->draw(mRect.get());
-		mCompositeShader->mShader->unuse();
 		mCompositeScene->unbind();
 
 		glViewport(0, 0, winW, winH);
 		mToneMapShader->mShader->use();
 		mToneMapShader->mShader->uniform("u_HDRScene", mCompositeScene, 29);
-		mToneMapShader->mShader->uniform("u_Exposure", mExposure);
 		mToneMapShader->mShader->draw(mRect.get());
-		mToneMapShader->mShader->unuse();
 
 		window->ResetGLModes();
 

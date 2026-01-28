@@ -48,17 +48,115 @@ namespace JamesEngine
 
 		void RenderScene();
 
-		void AddModel(int _entityId, std::shared_ptr<Model> _model, const glm::mat4& _transform = glm::mat4(1.0f), const ShadowOverride& _shadow = {});
+		// User toggleable settings
+		// SSAO
+		void EnableSSAO(bool _enabled) {
+			mSSAOEnabled = _enabled;
+			mObjShader->mShader->use();
+			mObjShader->mShader->uniform("u_UseSSAO", mSSAOEnabled);
+		}
+		bool IsSSAOEnabled() const { return mSSAOEnabled; }
+		void SetSSAORadius(float _radius) {
+			mSSAORadius = _radius;
+			mSSAOShader->mShader->use();
+			mSSAOShader->mShader->uniform("u_Radius", mSSAORadius);
+		}
+		void SetSSAOBias(float _bias) { 
+			mSSAOBias = _bias;
+			mSSAOShader->mShader->use();
+			mSSAOShader->mShader->uniform("u_Bias", mSSAOBias);
+		}
+		void SetSSAOPower(float _power) { 
+			mSSAOPower = _power;
+			mSSAOShader->mShader->use();
+			mSSAOShader->mShader->uniform("u_Power", mSSAOPower);
+		}
+		void SetSSAOBlurScale(float _blurScale) { mSSAOBlurScale = _blurScale; }
 
-		void SetSSAORadius(float _radius) { mSSAORadius = _radius; }
-		void SetSSAOBias(float _bias) { mSSAOBias = _bias; }
-		void SetSSAOPower(float _power) { mSSAOPower = _power; }
+		// AO application
+		void SetAOStrength(float _strength) {
+			mAOStrength = _strength;
+			mObjShader->mShader->use();
+			mObjShader->mShader->uniform("u_AOStrength", mAOStrength);
+		}
+		void SetAOSpecularScale(float _specScale) {
+			mAOSpecScale = _specScale;
+			mObjShader->mShader->use();
+			mObjShader->mShader->uniform("u_AOSpecScale", mAOSpecScale);
+		}
+		void SetAOMin(float _min) {
+			mAOMin = _min;
+			mObjShader->mShader->use();
+			mObjShader->mShader->uniform("u_AOMin", mAOMin);
+		}
 
-		void SetAOStrength(float _strength) { mAOStrength = _strength; }
-		void SetAOSpecularScale(float _specScale) { mAOSpecScale = _specScale; }
-		void SetAOMin(float _min) { mAOMin = _min; }
+		// Bloom
+		void EnableBloom(bool _enabled) {
+			mBloomEnabled = _enabled;
+			mCompositeShader->mShader->use();
+			mCompositeShader->mShader->uniform("u_UseBloom", mBloomEnabled);
+		}
+		bool IsBloomEnabled() const { return mBloomEnabled; }
+		void SetBloomThreshold(float _threshold) {
+			mBloomThreshold = _threshold;
+			mBrightPassShader->mShader->use();
+			mBrightPassShader->mShader->uniform("u_BloomThreshold", mBloomThreshold);
+		}
+		void SetBloomStrength(float _strength) {
+			mBloomStrength = _strength;
+			mCompositeShader->mShader->use();
+			mCompositeShader->mShader->uniform("u_BloomStrength", mBloomStrength);
+		}
+		void SetBloomKnee(float _knee) {
+			mBloomKnee = _knee;
+			mBrightPassShader->mShader->use();
+			mBrightPassShader->mShader->uniform("u_BloomKnee", mBloomKnee);
+		}
+		void SetBloomLevels(int _levels);
+		void SetBloomMinSize(int _minSize) {
+			mBloomMinSize = _minSize;
+			SetBloomLevels(mBloomLevels); // Could make sure user sets bloom min size befoore setting bloom levels, but whatever
+		}
+
+		// Shadows
+		void SetSoftShadowBase(float _base) {
+			mPCSSBase = _base;
+			mObjShader->mShader->use();
+			mObjShader->mShader->uniform("u_PCSSBase", mPCSSBase);
+		}
+		void SetSoftShadowScale(float _scale) {
+			mPCSSScale = _scale;
+			mObjShader->mShader->use();
+			mObjShader->mShader->uniform("u_PCSSScale", mPCSSScale);
+		}
+		void SetShadowBiasSlope(float _slope) {
+			mShadowBiasSlope = _slope;
+			mObjShader->mShader->use();
+			mObjShader->mShader->uniform("u_ShadowBiasSlope", mShadowBiasSlope);
+		}
+		void SetShadowBiasMin(float _min) {
+			mShadowBiasMin = _min;
+			mObjShader->mShader->use();
+			mObjShader->mShader->uniform("u_ShadowBiasMin", mShadowBiasMin);
+		}
+		void SetShadowNormalOffsetScale(float _scale) {
+			mShadowNormalOffsetScale = _scale;
+			mObjShader->mShader->use();
+			mObjShader->mShader->uniform("u_NormalOffsetScale", mShadowNormalOffsetScale);
+		}
+
+		// Tone mapping
+		void SetExposure(float _exposure) {
+			mExposure = _exposure;
+			mToneMapShader->mShader->use();
+			mToneMapShader->mShader->uniform("u_Exposure", mExposure);
+		}
 
 	private:
+		friend class ModelRenderer;
+
+		void AddModel(int _entityId, std::shared_ptr<Model> _model, const glm::mat4& _transform = glm::mat4(1.0f), const ShadowOverride& _shadow = {});
+
 		void ClearScene(); // Clears all models from the scene for next frame
 
 		std::vector<MaterialRenderInfo> FrustumCulledMaterials(
@@ -142,7 +240,7 @@ namespace JamesEngine
 
 		float mShadowBiasSlope = 0.0022;
 		float mShadowBiasMin = 0.0002;
-		float mNormalOffsetScale = 2.f;
+		float mShadowNormalOffsetScale = 2.f;
 
 		// SSAO settings
 		bool mSSAOEnabled = true;
@@ -150,7 +248,7 @@ namespace JamesEngine
 		float mSSAORadius = 0.2f;
 		float mSSAOBias = 0.06f;
 		float mSSAOPower = 1.4f;
-		float mAOBlurScale = 1.0f;
+		float mSSAOBlurScale = 1.0f;
 
 		// AO settings
 		float mAOStrength = 1.0f;

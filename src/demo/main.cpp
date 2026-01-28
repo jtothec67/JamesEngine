@@ -428,7 +428,7 @@ struct CarController : public Component
 
 	// Brake torques
 	float brakeTorqueCapacity = 15000.f;
-	float brakeBias = 0.58f; // 60% front, 40% rear
+	float brakeBias = 0.58f;
 
 	// Input tracking
 	bool lastInputController = false;
