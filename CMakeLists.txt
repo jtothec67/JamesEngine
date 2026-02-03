@@ -116,7 +116,40 @@ add_library(JamesEngine
 	src/JamesEngine/RaycastSystem.cpp
 )
 
-# Define JAMESJAMES_DEBUG only for RelWithDebInfo builds
+# ImGui (only build it in RelWithDebInfo)
+target_sources(JamesEngine PRIVATE
+	$<$<CONFIG:RelWithDebInfo>:
+		${CMAKE_SOURCE_DIR}/src/External/imgui/imgui.cpp
+		${CMAKE_SOURCE_DIR}/src/External/imgui/imgui_draw.cpp
+		${CMAKE_SOURCE_DIR}/src/External/imgui/imgui_impl_opengl3.cpp
+		${CMAKE_SOURCE_DIR}/src/External/imgui/imgui_impl_sdl2.cpp
+		${CMAKE_SOURCE_DIR}/src/External/imgui/imgui_tables.cpp
+		${CMAKE_SOURCE_DIR}/src/External/imgui/imgui_widgets.cpp
+	>
+)
+
+target_include_directories(JamesEngine PRIVATE
+	$<$<CONFIG:RelWithDebInfo>:
+		${CMAKE_SOURCE_DIR}/src/External/imgui
+	>
+)
+
+# Group ImGui files under "External/ImGui" in Visual Studio
+set(IMGUI_FILES
+	${CMAKE_SOURCE_DIR}/src/External/imgui/imgui.cpp
+	${CMAKE_SOURCE_DIR}/src/External/imgui/imgui_draw.cpp
+	${CMAKE_SOURCE_DIR}/src/External/imgui/imgui_impl_opengl3.cpp
+	${CMAKE_SOURCE_DIR}/src/External/imgui/imgui_impl_sdl2.cpp
+	${CMAKE_SOURCE_DIR}/src/External/imgui/imgui_tables.cpp
+	${CMAKE_SOURCE_DIR}/src/External/imgui/imgui_widgets.cpp
+)
+
+source_group(TREE ${CMAKE_SOURCE_DIR}/src/external/imgui
+	PREFIX "External\\ImGui"
+	FILES ${IMGUI_FILES}
+)
+
+# Define JAMES_DEBUG only for RelWithDebInfo builds
 target_compile_definitions(JamesEngine PRIVATE
 	$<$<CONFIG:RelWithDebInfo>:JAMES_DEBUG=1>
 )
