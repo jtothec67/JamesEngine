@@ -8,13 +8,19 @@
 #include "Timer.h"
 #include "Skybox.h"
 #include "Texture.h"
+#include "Shader.h"
 
 #include <iostream>
 #include <filesystem>
 
+#ifdef JAMES_DEBUG
+#include <imgui.h>
+#include <imgui_impl_sdl2.h>
+#include <imgui_impl_opengl3.h>
+#endif
+
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/string_cast.hpp>
-#include "Shader.h"
 
 namespace JamesEngine
 {
@@ -59,6 +65,21 @@ namespace JamesEngine
 		PreUploadGlobalStaticUniforms();
 		mGUI->PreUploadGlobalStaticUniformsUI();
 
+#ifdef JAMES_DEBUG
+		// Setting up the GUI system
+		IMGUI_CHECKVERSION();
+		ImGui::CreateContext();
+		ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+		ImGui::StyleColorsDark();
+
+		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+
+		const char* glslVersion = "#version 430";
+		ImGui_ImplSDL2_InitForOpenGL(mWindow->GetSDLWindow(), mWindow->GetGLContext());
+		ImGui_ImplOpenGL3_Init(glslVersion);
+#endif
+
 		Timer mDeltaTimer;
 
 		// For GPU timing
@@ -101,6 +122,10 @@ namespace JamesEngine
 				SDL_Event event = {};
 				while (SDL_PollEvent(&event))
 				{
+#ifdef JAMES_DEBUG
+					ImGui_ImplSDL2_ProcessEvent(&event);
+#endif
+
 					if (event.type == SDL_QUIT)
 					{
 						mIsRunning = false;
@@ -174,11 +199,32 @@ namespace JamesEngine
 
 				glBeginQuery(GL_TIME_ELAPSED, sceneTimeQuery[sceneQ]);
 
+#ifdef JAMES_DEBUG
+				ImGui_ImplOpenGL3_NewFrame();
+				ImGui_ImplSDL2_NewFrame();
+#endif
+
 				RenderScene();
 
 				glEndQuery(GL_TIME_ELAPSED);
 
 				RenderGUI();
+
+#ifdef JAMES_DEBUG
+				// Draws the GUI
+				ImGui::Render();
+				ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+				// Free floating ImGui window
+				if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+				{
+					SDL_Window* backup_current_window = SDL_GL_GetCurrentWindow();
+					SDL_GLContext backup_current_context = SDL_GL_GetCurrentContext();
+					ImGui::UpdatePlatformWindows();
+					ImGui::RenderPlatformWindowsDefault();
+					SDL_GL_MakeCurrent(backup_current_window, backup_current_context);
+				}
+#endif
 
 				// Present the rendered frame
 				mWindow->SwapWindows();

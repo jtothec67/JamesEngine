@@ -40,6 +40,9 @@ namespace JamesEngine
 
 		void ResetGLModes();
 
+		SDL_Window* GetSDLWindow() { return mRaw; }
+		SDL_GLContext GetGLContext() { return mContext; }
+
 	private:
 		SDL_Window* mRaw;
 

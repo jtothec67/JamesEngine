@@ -10,6 +10,12 @@
 
 #include <algorithm>
 
+#ifdef JAMES_DEBUG
+#include <imgui.h>
+#include <imgui_impl_sdl2.h>
+#include <imgui_impl_opengl3.h>
+#endif
+
 namespace JamesEngine
 {
 
@@ -137,7 +143,7 @@ namespace JamesEngine
 		SetExposure(1.0f);
 	}
 
-	void SceneRenderer::SetBloomLevels(int _levels) // Annoying
+	void SceneRenderer::SetBloomLevels(int _levels) // Annoying, doesn't currently work also. Fine when setting initially but not at run time (via imgui menu)
 	{
 		mBloomLevels = _levels;
 		mBloomDown.clear();
@@ -164,6 +170,88 @@ namespace JamesEngine
 	void SceneRenderer::RenderScene()
 	{
 		//ScopedTimer timer("SceneRenderer::RenderScene");
+
+#ifdef JAMES_DEBUG
+		ImGui::NewFrame();
+
+		ImGui::Begin("Scene Renderer Controls");
+
+		if (ImGui::CollapsingHeader("SSAO"))
+		{
+			if (ImGui::Checkbox("Enable SSAO", &mSSAOEnabled))
+				EnableSSAO(mSSAOEnabled);
+
+			if (ImGui::SliderFloat("Radius", &mSSAORadius, 0.01f, 1.0f))
+				SetSSAORadius(mSSAORadius);
+
+			if (ImGui::SliderFloat("Bias", &mSSAOBias, 0.0f, 0.2f))
+				SetSSAOBias(mSSAOBias);
+
+			if (ImGui::SliderFloat("Power", &mSSAOPower, 0.1f, 4.0f))
+				SetSSAOPower(mSSAOPower);
+
+			if (ImGui::SliderFloat("Blur Scale", &mSSAOBlurScale, 0.1f, 4.0f))
+				SetSSAOBlurScale(mSSAOBlurScale);
+
+			ImGui::Separator();
+
+			if (ImGui::SliderFloat("AO Strength", &mAOStrength, 0.0f, 3.0f))
+				SetAOStrength(mAOStrength);
+
+			if (ImGui::SliderFloat("AO Specular Scale", &mAOSpecScale, 0.0f, 2.0f))
+				SetAOSpecularScale(mAOSpecScale);
+
+			if (ImGui::SliderFloat("AO Min", &mAOMin, 0.0f, 0.2f))
+				SetAOMin(mAOMin);
+		}
+
+		if (ImGui::CollapsingHeader("Bloom"))
+		{
+			if (ImGui::Checkbox("Enable Bloom", &mBloomEnabled))
+				EnableBloom(mBloomEnabled);
+
+			if (ImGui::SliderFloat("Threshold", &mBloomThreshold, 0.0f, 5.0f))
+				SetBloomThreshold(mBloomThreshold);
+
+			if (ImGui::SliderFloat("Strength", &mBloomStrength, 0.0f, 3.0f))
+				SetBloomStrength(mBloomStrength);
+
+			if (ImGui::SliderFloat("Knee", &mBloomKnee, 0.01f, 1.0f))
+				SetBloomKnee(mBloomKnee);
+
+			if (ImGui::SliderInt("Levels", &mBloomLevels, 1, 8))
+				SetBloomLevels(mBloomLevels);
+
+			if (ImGui::SliderInt("Min Size", &mBloomMinSize, 4, 64))
+				SetBloomMinSize(mBloomMinSize);
+		}
+
+		if (ImGui::CollapsingHeader("Shadows"))
+		{
+			if (ImGui::SliderFloat("Soft Shadow Base", &mPCSSBase, 0.0f, 3.0f))
+				SetSoftShadowBase(mPCSSBase);
+
+			if (ImGui::SliderFloat("Soft Shadow Scale", &mPCSSScale, 0.0f, 20.0f))
+				SetSoftShadowScale(mPCSSScale);
+
+			if (ImGui::SliderFloat("Bias Slope", &mShadowBiasSlope, 0.0f, 0.01f))
+				SetShadowBiasSlope(mShadowBiasSlope);
+
+			if (ImGui::SliderFloat("Bias Min", &mShadowBiasMin, 0.0f, 0.01f))
+				SetShadowBiasMin(mShadowBiasMin);
+
+			if (ImGui::SliderFloat("Normal Offset Scale", &mShadowNormalOffsetScale, 0.0f, 5.0f))
+				SetShadowNormalOffsetScale(mShadowNormalOffsetScale);
+		}
+
+		if (ImGui::CollapsingHeader("Tonemapping"))
+		{
+			if (ImGui::SliderFloat("Exposure", &mExposure, 0.1f, 5.0f))
+				SetExposure(mExposure);
+		}
+
+		ImGui::End();
+#endif
 
 		mFrameIndex++;
 
