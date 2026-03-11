@@ -98,6 +98,31 @@ namespace JamesEngine
 
 		float mLastSlipRatio = 0.f;
 		float mLastSlipAngle = 0.f;
+
+#ifdef JAMES_DEBUG
+		struct TireGraphInfo
+		{
+			const float slipAngStart = glm::radians(-20.0f);
+			const float slipAngEnd = glm::radians(20.0f);
+			const float slipAngStep = glm::radians(0.5f);
+
+			const float maxDisplayFy = 15000.f;
+			std::vector<float> fyCurve;
+			float curSlipAngle = 0;
+			float curFy = 0;
+
+			const float slipRatioStart = -1.0f;
+			const float slipRatioEnd = 1.0f;
+			const float slipRatioStep = 0.01f;
+
+			const float maxDisplayFx = 15000.f;
+			std::vector<float> fxCurve;
+			float curSlipRatio = 0;
+			float curFx = 0;
+		};
+
+		TireGraphInfo mTireGraphInfo;
+#endif
 	};
 
 }

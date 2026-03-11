@@ -172,8 +172,6 @@ namespace JamesEngine
 		//ScopedTimer timer("SceneRenderer::RenderScene");
 
 #ifdef JAMES_DEBUG
-		ImGui::NewFrame();
-
 		ImGui::Begin("Scene Renderer Controls");
 
 		if (ImGui::CollapsingHeader("SSAO"))

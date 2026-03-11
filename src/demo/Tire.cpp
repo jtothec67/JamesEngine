@@ -3,6 +3,12 @@
 #include "Suspension.h"
 #include "../JamesEngine/Timer.h"
 
+#ifdef JAMES_DEBUG
+#include <External/imgui/imgui.h>
+#include <External/imgui/imgui_impl_sdl2.h>
+#include <External/imgui/imgui_impl_opengl3.h>
+#endif
+
 #include <iomanip>
 
 namespace JamesEngine
@@ -80,63 +86,32 @@ namespace JamesEngine
             return;
         }
 
-        {
-            /*float Fz = 5500.0f;
-            float mu = mTireParams.peakFrictionCoefficient;
-            float a = mTireParams.contactHalfLengthX;
-            float b = mTireParams.contactHalfLengthY;
+        /*{
+            float Fz = 5500.0f;
+            float Vx = 20.0f;
+            float Vy = 0.0f;
 
-            float longStiff = mTireParams.brushLongStiffCoeff * Fz;
-            float latStiff = mTireParams.brushLatStiffCoeff * Fz;
+            float R = mTireParams.tireRadius;
 
-            float kxA = longStiff / (2.0f * a * b);
-            float kyA = latStiff / (2.0f * a * b);
-            float p = Fz / (4.0f * a * b);
+            const float slipStart = -3.0f;
+            const float slipEnd = 3.0f;
+            const float slipStep = 0.02f;
 
-            float slipRatio = 0.0f;
+            std::cout << "Slip_ratio,Fx_force\n";
 
-            const float degStart = 0.0f;
-            const float degEnd = 15.0f;
-            const float degStep = 0.1f;
+            const float denom = glm::max(std::fabs(Vx), 0.5f);
 
-            std::cout << "Slip_angle_rad,Fy_force\n";
-
-            for (float aDeg = degStart; aDeg <= degEnd + 1e-6f; aDeg += degStep)
+            for (float targetSlip = slipStart; targetSlip <= slipEnd + 1e-6f; targetSlip += slipStep)
             {
-                float slipAngle = aDeg * float(M_PI) / 180.0f;
-                float tanAlpha = std::tan(slipAngle);
+                float Vwheel = Vx + targetSlip * denom;
+                float omega = Vwheel / glm::max(R, 1e-6f);
 
-                float tx = kxA * slipRatio;
-                float ty = kyA * tanAlpha;
-                float S = std::sqrt(tx * tx + ty * ty);
+                glm::vec2 F = BrushTireModel(Vx, Vy, omega, Fz);
+                float Fx = F.x;
 
-                float Fy = 0.0f;
-                const float Fmax = mu * Fz;
-
-                if (S > 1e-12f && Fz > 0.0f)
-                {
-                    float xs = 2.0f * a * (mu * p) / S - a;
-                    xs = glm::clamp(xs, -a, a);
-
-                    float c = tx / S;
-                    float s = ty / S;
-
-                    float factor = (xs + a);
-                    float Fy_adh = (2.0f * b) * (kyA * tanAlpha) * (factor * factor / (4.0f * a));
-
-                    float slidingFraction = (a - xs) / (2.0f * a);
-                    float slideFriction = mTireParams.slidingFrictionFactor * mu;
-                    float effectiveFriction = slideFriction
-                        + (mu - slideFriction) * std::pow(1.0f - slidingFraction, mTireParams.slidingFrictionFalloffExponent);
-
-                    float Fy_sl = (2.0f * b) * (effectiveFriction * p * s * (a - xs));
-
-                    Fy = -(Fy_adh + Fy_sl);
-                }
-
-                std::cout << std::fixed << std::setprecision(4) << slipAngle << "," << -Fy << "\n";
-            }*/
-        }
+                std::cout << std::fixed << std::setprecision(4) << targetSlip << "," << Fx << "\n";
+            }
+        }*/
 
         // Compute vehicle velocity at contact
         glm::vec3 carVel = mCarRb->GetVelocityAtPoint(mSuspension->GetContactPoint());
@@ -254,6 +229,57 @@ namespace JamesEngine
         glm::vec3 forceWorld = projForward * Fx + projSide * Fy;
         mCarRb->ApplyForce(forceWorld, mSuspension->GetContactPoint());
 
+#ifdef JAMES_DEBUG
+
+        // Current slip angle (what the car is actually doing right now)
+        const float vxDenom = glm::max(std::fabs(Vx), 0.5f);
+        mTireGraphInfo.curSlipAngle = std::atan2(Vy, vxDenom); // radians
+
+        // Current lateral force from the *actual model output* you already computed this frame.
+        mTireGraphInfo.curFy = -Fy;
+
+        // Keep it static so we don't allocate every frame.
+        mTireGraphInfo.fyCurve.clear();
+
+        // Free-rolling omega (no longitudinal slip) for the lateral curve
+        const float omegaFree = Vx / glm::max(R, 1e-6f);
+
+        for (float targetAlpha = mTireGraphInfo.slipAngStart; targetAlpha <= mTireGraphInfo.slipAngEnd + 1e-6f; targetAlpha += mTireGraphInfo.slipAngStep)
+        {
+            // Make Vy match the target slip angle for a given Vx: alpha = atan2(Vy, |Vx|)
+            float testVy = std::tan(targetAlpha) * vxDenom;
+
+            glm::vec2 F = BrushTireModel(Vx, testVy, omegaFree, Fz);
+            float Fy = -F.y;
+
+            mTireGraphInfo.fyCurve.push_back(Fy);
+        }
+
+
+        // Current slip ratio (what the car is actually doing right now)
+        const float longDenom = glm::max(std::fabs(Vx), 0.5f);
+        mTireGraphInfo.curSlipRatio = (mWheelAngularVelocity * R - Vx) / longDenom;
+
+        // Current longitudinal force from the actual model output you already computed this frame
+        mTireGraphInfo.curFx = Fx;
+
+        // Keep it static so we don't allocate every frame
+        mTireGraphInfo.fxCurve.clear();
+
+        // For the longitudinal curve, keep lateral velocity at zero
+        const float testVy = 0.0f;
+
+        for (float targetSlipRatio = mTireGraphInfo.slipRatioStart; targetSlipRatio <= mTireGraphInfo.slipRatioEnd + 1e-6f; targetSlipRatio += mTireGraphInfo.slipRatioStep)
+        {
+            float testOmega = (targetSlipRatio * longDenom + Vx) / glm::max(R, 1e-6f);
+
+            glm::vec2 F = BrushTireModel(Vx, testVy, testOmega, Fz);
+            float Fx = F.x;
+
+            mTireGraphInfo.fxCurve.push_back(Fx);
+        }
+#endif
+
         // Apply rolling resistance
         glm::vec3 rollingResistanceDir = -projForward * glm::sign(Vx);
         glm::vec3 rollingResistanceForce = rollingResistanceDir * mTireParams.rollingResistance * Fz;
@@ -323,9 +349,6 @@ namespace JamesEngine
         float kxA = Cx / (2.0f * a * b);
         float kyA = Cy / (2.0f * a * b);
 
-        // Uniform pressure over rectangular patch
-        float p = Fz / (4.0f * a * b);
-
         // Build combined shear slope (per-area)
         float tx = kxA * slipRatio;
         float ty = kyA * tanSlipAngle;
@@ -343,6 +366,9 @@ namespace JamesEngine
             float muX_peak = mTireParams.peakFrictionCoeffLong;
             float muY_peak = mTireParams.peakFrictionCoeffLat;
             float muDir_pk = std::sqrt((muX_peak * c) * (muX_peak * c) + (muY_peak * s) * (muY_peak * s));
+
+            // Uniform pressure over rectangular patch
+            float p = Fz / (4.0f * a * b);
 
             // 2-D adhesion–sliding boundary
             float xs = 2.0f * a * (muDir_pk * p) / S - a;
@@ -394,6 +420,117 @@ namespace JamesEngine
 
         glm::vec3 modelRotationOffset = glm::vec3(mWheelRotation, 0.0f, 0.0f) + mInitialRotationOffset;
         GetEntity()->GetComponent<ModelRenderer>()->SetRotationOffset(modelRotationOffset);
+
+
+#ifdef JAMES_DEBUG
+        std::string tag = GetEntity()->GetTag();
+        tag.append(" info");
+
+        ImGui::Begin(tag.c_str());
+
+        if (ImGui::CollapsingHeader("Lateral tire forces"))
+        {
+            // --- 3) Plot ---
+            ImGui::Text("Slip angle range: %.1f to %.1f deg",
+                glm::degrees(mTireGraphInfo.slipAngStart), glm::degrees(mTireGraphInfo.slipAngEnd));
+
+            ImGui::PlotLines(
+                "Fy vs slip angle",
+                mTireGraphInfo.fyCurve.data(),
+                (int)mTireGraphInfo.fyCurve.size(),
+                0,
+                nullptr,
+                -mTireGraphInfo.maxDisplayFy,
+                mTireGraphInfo.maxDisplayFy,
+                ImVec2(0, 160)
+            );
+
+            // Item rect of the whole plot widget
+            ImVec2 itemMin = ImGui::GetItemRectMin();
+            ImVec2 itemMax = ImGui::GetItemRectMax();
+
+            // PlotLines draws inside the frame padding
+            ImGuiStyle& style = ImGui::GetStyle();
+            ImVec2 plotMin = ImVec2(itemMin.x + style.FramePadding.x, itemMin.y + style.FramePadding.y);
+            ImVec2 plotMax = ImVec2(itemMax.x - style.FramePadding.x, itemMax.y - style.FramePadding.y);
+
+            // --- X mapping ---
+            // First map slip angle into sample space, because PlotLines is sample-based
+            float t = (mTireGraphInfo.curSlipAngle - mTireGraphInfo.slipAngStart) /
+                (mTireGraphInfo.slipAngEnd - mTireGraphInfo.slipAngStart);
+            t = glm::clamp(t, 0.0f, 1.0f);
+
+            int sampleCount = (int)mTireGraphInfo.fyCurve.size();
+            float samplePos = t * float(glm::max(sampleCount - 1, 1));
+            float u = samplePos / float(glm::max(sampleCount - 1, 1));
+
+            float xPix = plotMin.x + u * (plotMax.x - plotMin.x);
+
+            // --- Y mapping ---
+            float fyMin = -mTireGraphInfo.maxDisplayFy;
+            float fyMax = mTireGraphInfo.maxDisplayFy;
+
+            float v = (mTireGraphInfo.curFy - fyMin) / (fyMax - fyMin);
+            v = (v < 0.f) ? 0.f : (v > 1.f ? 1.f : v);
+
+            float yPix = plotMax.y - v * (plotMax.y - plotMin.y);
+
+            // Draw marker
+            ImDrawList* dl = ImGui::GetWindowDrawList();
+            dl->AddLine(ImVec2(xPix - 57, plotMin.y), ImVec2(xPix - 57, plotMax.y), IM_COL32(255, 255, 255, 180), 1.0f);
+            dl->AddCircleFilled(ImVec2(xPix - 57, yPix), 3.0f, IM_COL32(255, 255, 255, 220));
+
+            ImGui::Text("Current slip angle: %.2f deg", glm::degrees(mTireGraphInfo.curSlipAngle));
+            ImGui::Text("Current Fy: %.1f N", mTireGraphInfo.curFy);
+        }
+
+        if (ImGui::CollapsingHeader("Longitudinal tire forces"))
+        {
+            ImGui::Text("Slip ratio range: %.2f to %.2f",
+                mTireGraphInfo.slipRatioStart, mTireGraphInfo.slipRatioEnd);
+
+            ImGui::PlotLines(
+                "Fx vs slip ratio",
+                mTireGraphInfo.fxCurve.data(),
+                (int)mTireGraphInfo.fxCurve.size(),
+                0,
+                nullptr,
+                -mTireGraphInfo.maxDisplayFx,
+                mTireGraphInfo.maxDisplayFx,
+                ImVec2(0, 160)
+            );
+
+            // Marker: show where we currently are on the graph
+            ImVec2 pMin = ImGui::GetItemRectMin();
+            ImVec2 pMax = ImGui::GetItemRectMax();
+
+            // Map slip ratio -> [0..1] across plot width
+            float u = (mTireGraphInfo.curSlipRatio - mTireGraphInfo.slipRatioStart) /
+                (mTireGraphInfo.slipRatioEnd - mTireGraphInfo.slipRatioStart);
+            u = (u < 0.f) ? 0.f : (u > 1.f ? 1.f : u);
+
+            // Keep your existing x offset hack if needed
+            float xPix = pMin.x + u * (pMax.x - pMin.x);
+
+            // Map Fx -> [0..1] across plot height using fixed display scale
+            float fxMin = -mTireGraphInfo.maxDisplayFx;
+            float fxMax = mTireGraphInfo.maxDisplayFx;
+
+            float v = (mTireGraphInfo.curFx - fxMin) / (fxMax - fxMin);
+            v = (v < 0.f) ? 0.f : (v > 1.f ? 1.f : v);
+
+            float yPix = pMax.y - v * (pMax.y - pMin.y);
+
+            ImDrawList* dl = ImGui::GetWindowDrawList();
+            dl->AddLine(ImVec2(xPix - 57, pMin.y), ImVec2(xPix - 57, pMax.y), IM_COL32(255, 255, 255, 180), 1.0f);
+            dl->AddCircleFilled(ImVec2(xPix - 57, yPix), 3.0f, IM_COL32(255, 255, 255, 220));
+
+            ImGui::Text("Current slip ratio: %.3f", mTireGraphInfo.curSlipRatio);
+            ImGui::Text("Current Fx: %.1f N", mTireGraphInfo.curFx);
+        }
+
+        ImGui::End();
+#endif
     }
 
     float Tire::GetSlidingAmount()

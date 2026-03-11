@@ -137,6 +137,12 @@ namespace JamesEngine
 				}
 			}
 
+#ifdef JAMES_DEBUG
+			ImGui_ImplOpenGL3_NewFrame();
+			ImGui_ImplSDL2_NewFrame();
+			ImGui::NewFrame();
+#endif
+
 			{
 				//ScopedTimer timer("Core::Tick");
 				// Run tick on all entities
@@ -198,11 +204,6 @@ namespace JamesEngine
 				//ScopedTimer timer("Core::Render");
 
 				glBeginQuery(GL_TIME_ELAPSED, sceneTimeQuery[sceneQ]);
-
-#ifdef JAMES_DEBUG
-				ImGui_ImplOpenGL3_NewFrame();
-				ImGui_ImplSDL2_NewFrame();
-#endif
 
 				RenderScene();
 
